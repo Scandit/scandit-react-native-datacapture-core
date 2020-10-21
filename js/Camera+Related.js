@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CameraSettings = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
 var TorchState;
@@ -69,7 +70,7 @@ var CameraSettings = /** @class */ (function (_super) {
         set: function (newRange) {
             this.focus.range = newRange;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     CameraSettings.fromJSON = function (json) {

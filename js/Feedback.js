@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Feedback = exports.Sound = exports.Vibration = void 0;
 var FeedbackProxy_1 = require("./native/FeedbackProxy");
 var Serializeable_1 = require("./private/Serializeable");
 var Vibration = /** @class */ (function (_super) {
@@ -30,7 +31,7 @@ var Vibration = /** @class */ (function (_super) {
         get: function () {
             return new Vibration();
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return Vibration;
@@ -48,7 +49,7 @@ var Sound = /** @class */ (function (_super) {
         get: function () {
             return new Sound(null);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -72,21 +73,21 @@ var Feedback = /** @class */ (function (_super) {
         get: function () {
             return new Feedback(Vibration.defaultVibration, Sound.defaultSound);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Feedback.prototype, "vibration", {
         get: function () {
             return this._vibration;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Feedback.prototype, "sound", {
         get: function () {
             return this._sound;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Feedback.prototype.emit = function () {

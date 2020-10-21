@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Defaults = void 0;
 var react_native_1 = require("react-native");
 var Common_1 = require("../Common");
 // tslint:disable-next-line:variable-name

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Anchor = exports.Direction = exports.Orientation = exports.SizingMode = exports.MeasureUnit = void 0;
 var MeasureUnit;
 (function (MeasureUnit) {
     MeasureUnit["DIP"] = "dip";

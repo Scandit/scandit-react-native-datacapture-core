@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Camera = void 0;
 var Camera_Related_1 = require("./Camera+Related");
 var FrameSource_1 = require("./FrameSource");
 var CameraProxy_1 = require("./native/CameraProxy");
@@ -50,7 +51,7 @@ var Camera = /** @class */ (function (_super) {
             }
             this._context = newContext;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Camera, "default", {
@@ -64,7 +65,7 @@ var Camera = /** @class */ (function (_super) {
                 return null;
             }
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Camera.atPosition = function (cameraPosition) {
@@ -81,7 +82,7 @@ var Camera = /** @class */ (function (_super) {
         get: function () {
             return this._desiredState;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Camera.prototype, "desiredTorchState", {
@@ -92,7 +93,7 @@ var Camera = /** @class */ (function (_super) {
             this._desiredTorchState = desiredTorchState;
             this.didChange();
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Camera.prototype.switchToDesiredState = function (state) {

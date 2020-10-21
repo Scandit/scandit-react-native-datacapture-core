@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DataCaptureVersion = void 0;
 var react_native_1 = require("react-native");
 // tslint:disable-next-line:variable-name
 var NativeModule = react_native_1.NativeModules.ScanditDataCaptureCore;
@@ -8,16 +9,16 @@ var DataCaptureVersion = /** @class */ (function () {
     }
     Object.defineProperty(DataCaptureVersion, "pluginVersion", {
         get: function () {
-            return '6.5.0';
+            return '6.5.1';
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DataCaptureVersion, "sdkVersion", {
         get: function () {
             return NativeModule.Version;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return DataCaptureVersion;

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContextStatus = void 0;
 var ContextStatus = /** @class */ (function () {
     function ContextStatus() {
     }
@@ -14,21 +15,21 @@ var ContextStatus = /** @class */ (function () {
         get: function () {
             return this._message;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(ContextStatus.prototype, "code", {
         get: function () {
             return this._code;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(ContextStatus.prototype, "isValid", {
         get: function () {
             return this._isValid;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return ContextStatus;

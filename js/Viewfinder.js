@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SpotlightViewfinder = exports.RectangularViewfinder = exports.LaserlineViewfinder = exports.NoViewfinder = void 0;
 var Common_1 = require("./Common");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
@@ -50,7 +51,7 @@ var RectangularViewfinder = /** @class */ (function (_super) {
         get: function () {
             return this._sizeWithUnitAndAspect;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     RectangularViewfinder.prototype.setSize = function (size) {
@@ -83,7 +84,7 @@ var SpotlightViewfinder = /** @class */ (function (_super) {
         get: function () {
             return this._sizeWithUnitAndAspect;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     SpotlightViewfinder.prototype.setSize = function (size) {

@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.PrivateDataCaptureView = void 0;
 var DataCaptureContext_1 = require("../DataCaptureContext");
 var DataCaptureViewProxy_1 = require("../native/DataCaptureViewProxy");
 var Defaults_1 = require("./Defaults");
@@ -52,14 +53,14 @@ var PrivateDataCaptureView = /** @class */ (function (_super) {
                 this._context.initialize();
             }
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(PrivateDataCaptureView.prototype, "privateContext", {
         get: function () {
             return this.context;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     PrivateDataCaptureView.forContext = function (context) {

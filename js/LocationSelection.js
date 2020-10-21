@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.RectangularLocationSelection = exports.RadiusLocationSelection = exports.NoneLocationSelection = void 0;
 var Common_1 = require("./Common");
 var Serializeable_1 = require("./private/Serializeable");
 // tslint:disable-next-line:variable-name
@@ -35,7 +36,7 @@ var RadiusLocationSelection = /** @class */ (function (_super) {
         get: function () {
             return this._radius;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -55,7 +56,7 @@ var RectangularLocationSelection = /** @class */ (function (_super) {
         get: function () {
             return this._sizeWithUnitAndAspect;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     RectangularLocationSelection.withSize = function (size) {

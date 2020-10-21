@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Brush = exports.Color = exports.MarginsWithUnit = exports.SizeWithUnitAndAspect = exports.SizeWithAspect = exports.Size = exports.SizeWithUnit = exports.RectWithUnit = exports.Rect = exports.PointWithUnit = exports.NumberWithUnit = exports.Quadrilateral = exports.Point = void 0;
 var CommonEnums_1 = require("./CommonEnums");
 var Serializeable_1 = require("./private/Serializeable");
 var Point = /** @class */ (function (_super) {
@@ -33,14 +34,14 @@ var Point = /** @class */ (function (_super) {
         get: function () {
             return this._x;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Point.prototype, "y", {
         get: function () {
             return this._y;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Point.fromJSON = function (json) {
@@ -69,28 +70,28 @@ var Quadrilateral = /** @class */ (function (_super) {
         get: function () {
             return this._topLeft;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Quadrilateral.prototype, "topRight", {
         get: function () {
             return this._topRight;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Quadrilateral.prototype, "bottomRight", {
         get: function () {
             return this._bottomRight;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Quadrilateral.prototype, "bottomLeft", {
         get: function () {
             return this._bottomLeft;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Quadrilateral.fromJSON = function (json) {
@@ -123,14 +124,14 @@ var NumberWithUnit = /** @class */ (function (_super) {
         get: function () {
             return this._value;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(NumberWithUnit.prototype, "unit", {
         get: function () {
             return this._unit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     NumberWithUnit.fromJSON = function (json) {
@@ -157,14 +158,14 @@ var PointWithUnit = /** @class */ (function (_super) {
         get: function () {
             return this._x;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(PointWithUnit.prototype, "y", {
         get: function () {
             return this._y;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     PointWithUnit.fromJSON = function (json) {
@@ -174,7 +175,7 @@ var PointWithUnit = /** @class */ (function (_super) {
         get: function () {
             return new PointWithUnit(new NumberWithUnit(0, CommonEnums_1.MeasureUnit.Pixel), new NumberWithUnit(0, CommonEnums_1.MeasureUnit.Pixel));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -198,14 +199,14 @@ var Rect = /** @class */ (function (_super) {
         get: function () {
             return this._origin;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Rect.prototype, "size", {
         get: function () {
             return this._size;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -229,14 +230,14 @@ var RectWithUnit = /** @class */ (function (_super) {
         get: function () {
             return this._origin;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(RectWithUnit.prototype, "size", {
         get: function () {
             return this._size;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -260,14 +261,14 @@ var SizeWithUnit = /** @class */ (function (_super) {
         get: function () {
             return this._width;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(SizeWithUnit.prototype, "height", {
         get: function () {
             return this._height;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -291,14 +292,14 @@ var Size = /** @class */ (function (_super) {
         get: function () {
             return this._width;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Size.prototype, "height", {
         get: function () {
             return this._height;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Size.fromJSON = function (json) {
@@ -322,14 +323,14 @@ var SizeWithAspect = /** @class */ (function () {
         get: function () {
             return this._size;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(SizeWithAspect.prototype, "aspect", {
         get: function () {
             return this._aspect;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -351,21 +352,21 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
         get: function () {
             return this._widthAndHeight;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(SizeWithUnitAndAspect.prototype, "widthAndAspectRatio", {
         get: function () {
             return this._widthAndAspectRatio;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(SizeWithUnitAndAspect.prototype, "heightAndAspectRatio", {
         get: function () {
             return this._heightAndAspectRatio;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(SizeWithUnitAndAspect.prototype, "sizingMode", {
@@ -378,7 +379,7 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
             }
             return CommonEnums_1.SizingMode.WidthAndHeight;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     SizeWithUnitAndAspect.sizeWithWidthAndHeight = function (widthAndHeight) {
@@ -455,28 +456,28 @@ var MarginsWithUnit = /** @class */ (function (_super) {
         get: function () {
             return this._left;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(MarginsWithUnit.prototype, "right", {
         get: function () {
             return this._right;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(MarginsWithUnit.prototype, "top", {
         get: function () {
             return this._top;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(MarginsWithUnit.prototype, "bottom", {
         get: function () {
             return this._bottom;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     MarginsWithUnit.fromJSON = function (json) {
@@ -486,7 +487,7 @@ var MarginsWithUnit = /** @class */ (function (_super) {
         get: function () {
             return new MarginsWithUnit(new NumberWithUnit(0, CommonEnums_1.MeasureUnit.Pixel), new NumberWithUnit(0, CommonEnums_1.MeasureUnit.Pixel), new NumberWithUnit(0, CommonEnums_1.MeasureUnit.Pixel), new NumberWithUnit(0, CommonEnums_1.MeasureUnit.Pixel));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     __decorate([
@@ -512,56 +513,56 @@ var Color = /** @class */ (function () {
         get: function () {
             return this.hexadecimalString.slice(0, 2);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "greenComponent", {
         get: function () {
             return this.hexadecimalString.slice(2, 4);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "blueComponent", {
         get: function () {
             return this.hexadecimalString.slice(4, 6);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "alphaComponent", {
         get: function () {
             return this.hexadecimalString.slice(6, 8);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "red", {
         get: function () {
             return Color.hexToNumber(this.redComponent);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "green", {
         get: function () {
             return Color.hexToNumber(this.greenComponent);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "blue", {
         get: function () {
             return Color.hexToNumber(this.blueComponent);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Color.prototype, "alpha", {
         get: function () {
             return Color.hexToNumber(this.alphaComponent);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Color.fromHex = function (hex) {
@@ -635,35 +636,35 @@ var Brush = /** @class */ (function (_super) {
             var transparentBlack = Color.fromRGBA(255, 255, 255, 0);
             return new Brush(transparentBlack, transparentBlack, 0);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Brush.prototype, "fillColor", {
         get: function () {
             return this.fill.color;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Brush.prototype, "strokeColor", {
         get: function () {
             return this.stroke.color;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Brush.prototype, "strokeWidth", {
         get: function () {
             return this.stroke.width;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Brush.prototype, "copy", {
         get: function () {
             return new Brush(this.fillColor, this.strokeColor, this.strokeWidth);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return Brush;

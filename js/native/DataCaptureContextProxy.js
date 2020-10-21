@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DataCaptureContextProxy = void 0;
 var react_native_1 = require("react-native");
 var DataCaptureContext_Related_1 = require("../DataCaptureContext+Related");
 // tslint:disable:variable-name
@@ -19,7 +20,7 @@ var DataCaptureContextProxy = /** @class */ (function () {
         get: function () {
             return this.context;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     DataCaptureContextProxy.forDataCaptureContext = function (context) {

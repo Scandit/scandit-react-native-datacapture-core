@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DefaultSerializeable = exports.serializationDefault = exports.ignoreFromSerializationIfNull = exports.nameForSerialization = exports.ignoreFromSerialization = void 0;
 function ignoreFromSerialization(target, propertyName) {
     target.ignoredProperties = target.ignoredProperties || [];
     target.ignoredProperties.push(propertyName);

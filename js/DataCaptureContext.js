@@ -19,6 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DataCaptureContext = void 0;
 var DataCaptureContextProxy_1 = require("./native/DataCaptureContextProxy");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
@@ -40,14 +41,14 @@ var DataCaptureContext = /** @class */ (function (_super) {
         get: function () {
             return this._frameSource;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DataCaptureContext, "deviceID", {
         get: function () {
             return Defaults_1.Defaults.deviceID;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     DataCaptureContext.forLicenseKey = function (licenseKey) {

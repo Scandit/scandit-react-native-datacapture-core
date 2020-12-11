@@ -55,6 +55,10 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
             guard oldValue != dataCaptureView else { return }
 
             self.dataCaptureView?.addListener(self)
+
+            self.dataCaptureView?.focusGesture = nil
+            self.dataCaptureView?.zoomGesture = nil
+
             pthread_mutex_lock(&dataCaptureViewListenersLock)
             defer {pthread_mutex_unlock(&dataCaptureViewListenersLock)}
             dataCaptureViewListeners

@@ -182,6 +182,9 @@ class ScanditDataCaptureCoreModule(
 
             DataCaptureViewHandler.dataCaptureView = result.view.also {
                 it.addListener(this)
+
+                it.focusGesture = null
+                it.zoomGesture = null
             }
 
             TreeLifecycleObserver.dispatchTreeCreated(result.dataCaptureContext)
@@ -223,6 +226,7 @@ class ScanditDataCaptureCoreModule(
     fun dispose() {
         TreeLifecycleObserver.dispatchTreeDestroyed()
 
+        dataCaptureContext?.release()
         dataCaptureContext = null
         camera = null
 

@@ -97,14 +97,19 @@ var DataCaptureContext = /** @class */ (function (_super) {
         }
     };
     DataCaptureContext.prototype.removeAllModes = function () {
+        this.modes.forEach(function (mode) {
+            mode._context = null;
+        });
         this.modes = [];
         this.update();
     };
     DataCaptureContext.prototype.dispose = function () {
+        var _a;
         if (!this.proxy) {
             return;
         }
         this.removeAllModes();
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
         this.proxy.dispose();
     };
     // Called when the capture view is shown, that is the earliest point that we need the context deserialized.

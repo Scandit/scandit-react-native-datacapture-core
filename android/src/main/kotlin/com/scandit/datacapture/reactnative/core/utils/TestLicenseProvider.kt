@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2020- Scandit AG. All rights reserved.
  */
+@file:Suppress("MaxLineLength")
 
 package com.scandit.datacapture.reactnative.core.utils
 
@@ -10,14 +11,8 @@ import androidx.annotation.VisibleForTesting
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 object TestLicenseProvider {
-    const val LICENSE = "AWqNxrSBIDJ+CX7jZQXNWHs+u0OvKR92+yQ8AV52vgpSb7vWw3twHPlT9OUVIP/6OX1JH5pX" +
-            "S32oITvDz2ji1LNgnBK3VwBkdSuqMvZsA4UOSoQOxGkO8vgIWIF7Qvu9hSOrwdFf3QWABu3tLocYFs7DQDVr" +
-            "v9hvmAhZuzZCk/WbpinHz2O98uuljom4MGmUrzJAFmtkPyUUtPg8+k29p/GSMkDYpk9OvuJGX7ypQyuj0Owo" +
-            "9SyTijvN2hSWdwNwxF2+MCb73UbV0PKXxEMJJBZd1AHWvWxHRKUT9jefNyhtKosJvf6wk8X0+HfNUwuAEP6V" +
-            "+flPo0bStHFi59kyJUBkqPmvR8DRRmAQ6xBXM2UMgEdXciPOCZukjUOevfYBKKfAjEMvG2zgYyStbiHwC+0+" +
-            "jJjnxqdi6KJaKMoFcMDJ1HxKdTh/MxvfCi9mAuwHymX6+INfL+K/wLixD2ElQHeceeqz63riXQ35ZMSQa+Wj" +
-            "LJlzkcdk1qQHelkdftniJSw5mPKxRC/ZFvbhUWn+o1m/THchtnudn4FYBDsavWgRoJFJq1lBofjXiQmpikQw" +
-            "XAirTsPlRbMvkzOs/NHz/ajDuCV5AtRPHpRNo2aGtpH+KOulSzIUFCsVYIIqd4FwDR5PR3OYcQTfqI7gS+Ed" +
-            "aCE8m6LmaJjZ10c3l3XclP8joSv2s27IK4RWRQaxRyK9Cub7TLrZ5a2SHvpbT764Us0sLzKG7QHq95Ncy58e" +
-            "NFdRGCUmMevhdzzNVn24vi1HhAWqU4rNixuY0q2bXEXoASDk3yhYkRdU3DmkInHAfAovyw=="
+    /*
+     * ./CreateLicenseKey none -k ~/Documents/sdk-private.pem -p android,ios,linux,windows,windows-desktop -mr 4k -c a6vw/V/Y/Ov50msIhmuDL7V/bQb85mTGj+Im9gtkZOU -f respect-privacy,ocr,tracking,barcode-generator,barcode-scanner,blink-id,id-capture,label-capture,barcode-scanner-for-id-capture,parser-library,parser-library-for-id-capture -a '(com\.scandit\..*)'
+     */
+    const val LICENSE = "AV7P5RwAHB4AO8A7VwlX7GkQyTwrDPsA0yZUdmpWyv9gT6nw5kD1tDBbTVDucnTI71RPtE5S3xzqDbmuHX5Qn4p6RVkmIGEVKjalE5hOvY6JQuPGhxa9DfE/ATnGAxYaqw+IOipuKn4DShISmj9Kt5+erxLGLDC8Givjw7JvXUXq5CM1qp/Y98cLQCsqExSnDfRzmNmAYyLH5AZtJwQLNrbuvGciiDcCWFH/WOMyVG5ZXdJHcnYNhGMtAR8kyN6JsN2+l0kTE6iSNKKslU6Vsx4YohL/QUeEFMD6J1CLdv+mbkqhbI3UZCuC0XQ5BAKR3f7G6JOr02BlKSEvQ6jWORPWCP9hyzR0wxVh7GzSIpmsVeEOEzkvB3hFcuJq+GIu2HkcHv45T1flE8rZ+yNoZEpGsgxiJBa7n8BwjftGNUhx5kTBycoZ8jLe9UfCcc6CWQXNcfwS5MwZ5DzT0JbiwDmwPkCSox9R7PnSjcyHK6ZravWOtwmtcE2ZLC/HYp/8nk/Nvy07i8ZrGaspRfc+qZfhbEb6APnvZz5ArFrSjz0sBtHI940DxeJcSpxFFFlUpZVzMrxVcxgIgu8X+a4MwABVIA4qh4yw7S3sWFx98SjTidMJ9GK2OIApHBrcHzcRjvqbYoca3glRW05VNietV7atOmiAVJ4u7ULYU4sA7ii2WmSd3qRclmL3BjkRxBgYAPalUKJ6wLIXIahd0smRDdnPe1TNjIdsAWQ3Dig0+V8hbB4bDGfA1xunTw4NZHFkXZnEjXg7q1FWejHrPiMIH45/SMxWek6HdYgWyrF++3pceigYvQ=="
 }

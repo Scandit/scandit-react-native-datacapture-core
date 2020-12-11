@@ -85,17 +85,10 @@ var CameraSettings = /** @class */ (function (_super) {
         return settings;
     };
     CameraSettings.prototype.setProperty = function (name, value) {
-        switch (name) {
-            case PrivateCameraProperty.CameraAPI:
-                this.api = value;
-                break;
-        }
+        this[name] = value;
     };
     CameraSettings.prototype.getProperty = function (name) {
-        switch (name) {
-            case PrivateCameraProperty.CameraAPI:
-                return this.api;
-        }
+        return this[name];
     };
     return CameraSettings;
 }(Serializeable_1.DefaultSerializeable));

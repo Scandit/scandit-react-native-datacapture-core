@@ -19,10 +19,24 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataCaptureContext = void 0;
+exports.DataCaptureContext = exports.DataCaptureContextSettings = void 0;
 var DataCaptureContextProxy_1 = require("./native/DataCaptureContextProxy");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
+var DataCaptureContextSettings = /** @class */ (function (_super) {
+    __extends(DataCaptureContextSettings, _super);
+    function DataCaptureContextSettings() {
+        return _super.call(this) || this;
+    }
+    DataCaptureContextSettings.prototype.setProperty = function (name, value) {
+        this[name] = value;
+    };
+    DataCaptureContextSettings.prototype.getProperty = function (name) {
+        return this[name];
+    };
+    return DataCaptureContextSettings;
+}(Serializeable_1.DefaultSerializeable));
+exports.DataCaptureContextSettings = DataCaptureContextSettings;
 var DataCaptureContext = /** @class */ (function (_super) {
     __extends(DataCaptureContext, _super);
     function DataCaptureContext(licenseKey, deviceName) {
@@ -30,6 +44,7 @@ var DataCaptureContext = /** @class */ (function (_super) {
         _this.licenseKey = licenseKey;
         _this.deviceName = deviceName;
         _this.framework = 'react-native';
+        _this.settings = new DataCaptureContextSettings();
         _this._frameSource = null;
         _this.view = null;
         _this.modes = [];
@@ -53,6 +68,13 @@ var DataCaptureContext = /** @class */ (function (_super) {
     });
     DataCaptureContext.forLicenseKey = function (licenseKey) {
         return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+    };
+    DataCaptureContext.forLicenseKeyWithSettings = function (licenseKey, settings) {
+        var context = this.forLicenseKey(licenseKey);
+        if (settings !== null) {
+            context.applySettings(settings);
+        }
+        return context;
     };
     DataCaptureContext.forLicenseKeyWithOptions = function (licenseKey, options) {
         if (options == null) {
@@ -111,6 +133,10 @@ var DataCaptureContext = /** @class */ (function (_super) {
         this.removeAllModes();
         (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
         this.proxy.dispose();
+    };
+    DataCaptureContext.prototype.applySettings = function (settings) {
+        this.settings = settings;
+        return this.update();
     };
     // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
     DataCaptureContext.prototype.initialize = function () {

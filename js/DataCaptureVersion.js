@@ -9,7 +9,7 @@ var DataCaptureVersion = /** @class */ (function () {
     }
     Object.defineProperty(DataCaptureVersion, "pluginVersion", {
         get: function () {
-            return '6.6.3';
+            return '6.7.0';
         },
         enumerable: false,
         configurable: true

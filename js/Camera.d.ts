@@ -12,8 +12,8 @@ export declare class Camera extends DefaultSerializeable implements FrameSource 
     private set context(value);
     private get context();
     private proxy;
-    static get default(): Optional<Camera>;
-    static atPosition(cameraPosition: CameraPosition): Optional<Camera>;
+    static get default(): Camera | null;
+    static atPosition(cameraPosition: CameraPosition): Camera | null;
     get desiredState(): FrameSourceState;
     set desiredTorchState(desiredTorchState: TorchState);
     get desiredTorchState(): TorchState;
@@ -21,8 +21,8 @@ export declare class Camera extends DefaultSerializeable implements FrameSource 
     switchToDesiredState(state: FrameSourceState): Promise<void>;
     getCurrentState(): Promise<FrameSourceState>;
     getIsTorchAvailable(): Promise<boolean>;
-    addListener(listener: Optional<FrameSourceListener>): void;
-    removeListener(listener: Optional<FrameSourceListener>): void;
+    addListener(listener: FrameSourceListener | null): void;
+    removeListener(listener: FrameSourceListener | null): void;
     applySettings(settings: CameraSettings): Promise<void>;
     private didChange;
 }

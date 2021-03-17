@@ -1,11 +1,12 @@
-import { CameraPosition, CameraSettings, FocusRange, VideoResolution } from '../Camera+Related';
+import { CameraPosition, CameraSettings, FocusGestureStrategy, FocusRange, VideoResolution } from '../Camera+Related';
 import { Color, MarginsWithUnit, NumberWithUnit, PointWithUnit, SizeWithUnitAndAspect } from '../Common';
 import { Anchor } from '../CommonEnums';
 export interface CameraSettingsDefaultsJSON {
     preferredResolution: string;
-    maxFrameRate: number;
     zoomFactor: number;
     focusRange: string;
+    zoomGestureZoomFactor: number;
+    focusGestureStrategy: string;
 }
 export interface PrivateCameraSettingsDefaults {
     fromJSON(json: CameraSettingsDefaultsJSON): CameraSettings;
@@ -14,11 +15,12 @@ export declare const Defaults: {
     Camera: {
         Settings: {
             preferredResolution: VideoResolution;
-            maxFrameRate: any;
             zoomFactor: any;
             focusRange: FocusRange;
+            zoomGestureZoomFactor: any;
+            focusGestureStrategy: FocusGestureStrategy;
         };
-        defaultPosition: Optional<CameraPosition>;
+        defaultPosition: CameraPosition | null;
         availablePositions: CameraPosition[];
     };
     DataCaptureView: {
@@ -26,6 +28,8 @@ export declare const Defaults: {
         pointOfInterest: PointWithUnit;
         logoAnchor: Anchor;
         logoOffset: PointWithUnit;
+        focusGesture: import("..").FocusGesture | null;
+        zoomGesture: import("..").FocusGesture | null;
     };
     LaserlineViewfinder: {
         width: NumberWithUnit;
@@ -41,6 +45,10 @@ export declare const Defaults: {
         enabledBorderColor: Color;
         disabledBorderColor: Color;
         backgroundColor: Color;
+    };
+    AimerViewfinder: {
+        frameColor: Color;
+        dotColor: Color;
     };
     Brush: {
         fillColor: Color;

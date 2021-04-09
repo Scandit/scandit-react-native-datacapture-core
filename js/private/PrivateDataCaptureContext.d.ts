@@ -7,7 +7,7 @@ export interface PrivateDataCaptureContext {
     modes: [DataCaptureMode];
     components: [DataCaptureComponent];
     listeners: [DataCaptureContextListener];
-    view: Optional<PrivateDataCaptureView>;
+    view: PrivateDataCaptureView | null;
     initialize: () => void;
     update: () => Promise<void>;
     addComponent: (component: DataCaptureComponent) => Promise<void>;
@@ -16,7 +16,7 @@ export interface PrivateDataCaptureComponent {
     _context: DataCaptureContext;
 }
 export interface PrivateDataCaptureMode {
-    _context: Optional<DataCaptureContext>;
+    _context: DataCaptureContext | null;
 }
 export interface ContextStatusJSON {
     code: number;

@@ -77,9 +77,9 @@ export declare class SizeWithUnitAndAspect implements Serializeable {
     private _widthAndHeight;
     private _widthAndAspectRatio;
     private _heightAndAspectRatio;
-    get widthAndHeight(): Optional<SizeWithUnit>;
-    get widthAndAspectRatio(): Optional<SizeWithAspect>;
-    get heightAndAspectRatio(): Optional<SizeWithAspect>;
+    get widthAndHeight(): SizeWithUnit | null;
+    get widthAndAspectRatio(): SizeWithAspect | null;
+    get heightAndAspectRatio(): SizeWithAspect | null;
     get sizingMode(): SizingMode;
     private static sizeWithWidthAndHeight;
     private static sizeWithWidthAndAspectRatio;

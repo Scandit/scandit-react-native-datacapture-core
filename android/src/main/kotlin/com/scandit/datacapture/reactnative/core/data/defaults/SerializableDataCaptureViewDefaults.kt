@@ -14,7 +14,9 @@ data class SerializableDataCaptureViewDefaults(
     private val scanAreaMargins: String,
     private val pointOfInterest: String,
     private val logoAnchor: String,
-    private val logoOffset: String
+    private val logoOffset: String,
+    private val focusGesture: String?,
+    private val zoomGesture: String?
 ) : SerializableData {
 
     override fun toWritableMap(): WritableMap = writableMap {
@@ -22,6 +24,8 @@ data class SerializableDataCaptureViewDefaults(
         putString(FIELD_POI, pointOfInterest)
         putString(FIELD_LOGO_ANCHOR, logoAnchor)
         putString(FIELD_LOGO_OFFSET, logoOffset)
+        putString(FIELD_FOCUS_GESTURE, focusGesture)
+        putString(FIELD_ZOOM_GESTURE, zoomGesture)
     }
 
     companion object {
@@ -29,5 +33,7 @@ data class SerializableDataCaptureViewDefaults(
         private const val FIELD_POI = "pointOfInterest"
         private const val FIELD_LOGO_ANCHOR = "logoAnchor"
         private const val FIELD_LOGO_OFFSET = "logoOffset"
+        private const val FIELD_FOCUS_GESTURE = "focusGesture"
+        private const val FIELD_ZOOM_GESTURE = "zoomGesture"
     }
 }

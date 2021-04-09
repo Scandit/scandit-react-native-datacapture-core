@@ -19,7 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SpotlightViewfinder = exports.RectangularViewfinder = exports.LaserlineViewfinder = exports.NoViewfinder = void 0;
+exports.AimerViewfinder = exports.SpotlightViewfinder = exports.RectangularViewfinder = exports.LaserlineViewfinder = exports.NoViewfinder = void 0;
 var Common_1 = require("./Common");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
@@ -102,4 +102,16 @@ var SpotlightViewfinder = /** @class */ (function (_super) {
     return SpotlightViewfinder;
 }(Serializeable_1.DefaultSerializeable));
 exports.SpotlightViewfinder = SpotlightViewfinder;
+var AimerViewfinder = /** @class */ (function (_super) {
+    __extends(AimerViewfinder, _super);
+    function AimerViewfinder() {
+        var _this = _super.call(this) || this;
+        _this.type = 'aimer';
+        _this.frameColor = Defaults_1.Defaults.AimerViewfinder.frameColor;
+        _this.dotColor = Defaults_1.Defaults.AimerViewfinder.dotColor;
+        return _this;
+    }
+    return AimerViewfinder;
+}(Serializeable_1.DefaultSerializeable));
+exports.AimerViewfinder = AimerViewfinder;
 //# sourceMappingURL=Viewfinder.js.map

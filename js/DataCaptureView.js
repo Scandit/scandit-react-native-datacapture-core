@@ -87,6 +87,30 @@ var DataCaptureView = /** @class */ (function (_super) {
     });
     ;
     ;
+    Object.defineProperty(DataCaptureView.prototype, "focusGesture", {
+        get: function () {
+            return this.view.focusGesture;
+        },
+        set: function (newValue) {
+            this.view.focusGesture = newValue;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    ;
+    ;
+    Object.defineProperty(DataCaptureView.prototype, "zoomGesture", {
+        get: function () {
+            return this.view.zoomGesture;
+        },
+        set: function (newValue) {
+            this.view.zoomGesture = newValue;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    ;
+    ;
     DataCaptureView.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
     };

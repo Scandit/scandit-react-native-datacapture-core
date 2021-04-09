@@ -34,9 +34,3 @@ export declare class SpotlightViewfinder extends DefaultSerializeable implements
     setWidthAndAspectRatio(width: NumberWithUnit, heightToWidthAspectRatio: number): void;
     setHeightAndAspectRatio(height: NumberWithUnit, widthToHeightAspectRatio: number): void;
 }
-export declare class AimerViewfinder extends DefaultSerializeable implements Viewfinder {
-    private type;
-    frameColor: Color;
-    dotColor: Color;
-    constructor();
-}

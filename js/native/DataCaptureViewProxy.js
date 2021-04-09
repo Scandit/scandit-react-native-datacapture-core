@@ -34,7 +34,10 @@ var DataCaptureViewProxy = /** @class */ (function () {
     };
     DataCaptureViewProxy.prototype.subscribeListener = function () {
         var _this = this;
-        NativeModule.registerListenerForViewEvents();
+        // We don't need to register as a Listener to the native side on iOS, as it's done automatically by RN under the hood.
+        if (react_native_1.Platform.OS === 'android') {
+            NativeModule.registerListenerForViewEvents();
+        }
         var didChangeSize = EventEmitter.addListener(DataCaptureViewListenerName.didChangeSize, function (body) {
             var size = Common_1.Size.fromJSON(body.size);
             var orientation = body.orientation;
@@ -47,7 +50,10 @@ var DataCaptureViewProxy = /** @class */ (function () {
         this.nativeListeners.push(didChangeSize);
     };
     DataCaptureViewProxy.prototype.unsubscribeListener = function () {
-        NativeModule.unregisterListenerForViewEvents();
+        // We don't need to unregister as a Listener to the native side on iOS, as it's done automatically by RN under the hood.
+        if (react_native_1.Platform.OS === 'android') {
+            NativeModule.unregisterListenerForViewEvents();
+        }
         this.nativeListeners.forEach(function (listener) { return listener.remove(); });
         this.nativeListeners = [];
     };

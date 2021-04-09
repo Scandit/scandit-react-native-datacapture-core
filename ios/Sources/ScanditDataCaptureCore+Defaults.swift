@@ -19,7 +19,6 @@ extension ScanditDataCaptureCore {
                 "LaserlineViewfinder": laserlineViewfinderDefaults,
                 "RectangularViewfinder": rectangularViewfinderDefaults,
                 "SpotlightViewfinder": spotlightViewfinderDefaults,
-                "AimerViewfinder": aimerViewfinderDefaults,
                 "Brush": brushDefaults,
                 "deviceID": DataCaptureContext.deviceID
         ]
@@ -47,16 +46,10 @@ extension ScanditDataCaptureCore {
     }
 
     var dataCaptureViewDefaults: [String: Any] {
-        var view: DataCaptureView!
-        DispatchQueue.main.sync {
-            view = DataCaptureView(frame: .zero)
-        }
         return ["scanAreaMargins": DataCaptureView.defaultScanAreaMargins.jsonString,
                 "pointOfInterest": DataCaptureView.defaultPointOfInterest.jsonString,
                 "logoAnchor": DataCaptureView.defaultLogoAnchor.jsonString,
-                "logoOffset": DataCaptureView.defaultLogoOffset.jsonString,
-                "focusGesture": view.focusGesture?.jsonString,
-                "zoomGesture": view.zoomGesture?.jsonString]
+                "logoOffset": DataCaptureView.defaultLogoOffset.jsonString ]
     }
 
     var laserlineViewfinderDefaults: [String: Any] {
@@ -78,12 +71,6 @@ extension ScanditDataCaptureCore {
                 "enabledBorderColor": spotlightViewfinder.enabledBorderColor.sdcHexString,
                 "disabledBorderColor": spotlightViewfinder.disabledBorderColor.sdcHexString,
                 "backgroundColor": spotlightViewfinder.backgroundColor.sdcHexString]
-    }
-
-    var aimerViewfinderDefaults: [String: Any] {
-        let aimerViewfinder = AimerViewfinder()
-        return ["frameColor": aimerViewfinder.frameColor.sdcHexString,
-                "dotColor": aimerViewfinder.dotColor.sdcHexString]
     }
 
     var brushDefaults: [String: Any] {

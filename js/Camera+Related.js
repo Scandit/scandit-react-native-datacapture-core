@@ -13,7 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
+exports.CameraSettings = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
 var TorchState;
@@ -41,13 +41,6 @@ var FocusRange;
     FocusRange["Near"] = "near";
     FocusRange["Far"] = "far";
 })(FocusRange = exports.FocusRange || (exports.FocusRange = {}));
-var FocusGestureStrategy;
-(function (FocusGestureStrategy) {
-    FocusGestureStrategy["None"] = "none";
-    FocusGestureStrategy["Manual"] = "manual";
-    FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
-    FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
-})(FocusGestureStrategy = exports.FocusGestureStrategy || (exports.FocusGestureStrategy = {}));
 var PrivateCameraProperty;
 (function (PrivateCameraProperty) {
     PrivateCameraProperty["CameraAPI"] = "api";
@@ -57,12 +50,11 @@ var CameraSettings = /** @class */ (function (_super) {
     function CameraSettings(settings) {
         var _this = _super.call(this) || this;
         _this.preferredResolution = Defaults_1.Defaults.Camera.Settings.preferredResolution;
+        _this.maxFrameRate = Defaults_1.Defaults.Camera.Settings.maxFrameRate;
         _this.zoomFactor = Defaults_1.Defaults.Camera.Settings.zoomFactor;
-        _this.zoomGestureZoomFactor = Defaults_1.Defaults.Camera.Settings.zoomGestureZoomFactor;
-        _this.api = 0;
+        _this.api = 1;
         _this.focus = {
             range: Defaults_1.Defaults.Camera.Settings.focusRange,
-            focusGestureStrategy: Defaults_1.Defaults.Camera.Settings.focusGestureStrategy,
         };
         if (settings !== undefined && settings !== null) {
             Object.getOwnPropertyNames(settings).forEach(function (propertyName) {
@@ -81,36 +73,12 @@ var CameraSettings = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(CameraSettings.prototype, "focusGestureStrategy", {
-        get: function () {
-            return this.focus.focusGestureStrategy;
-        },
-        set: function (newStrategy) {
-            this.focus.focusGestureStrategy = newStrategy;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CameraSettings.prototype, "maxFrameRate", {
-        get: function () {
-            // tslint:disable-next-line:no-console
-            console.warn('maxFrameRate is deprecated');
-            return 0;
-        },
-        set: function (newValue) {
-            // tslint:disable-next-line:no-console
-            console.warn('maxFrameRate is deprecated');
-        },
-        enumerable: false,
-        configurable: true
-    });
     CameraSettings.fromJSON = function (json) {
         var settings = new CameraSettings();
         settings.preferredResolution = json.preferredResolution;
+        settings.maxFrameRate = json.maxFrameRate;
         settings.zoomFactor = json.zoomFactor;
         settings.focusRange = json.focusRange;
-        settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
-        settings.focusGestureStrategy = json.focusGestureStrategy;
         if (json.api !== undefined && json.api !== null) {
             settings.api = json.api;
         }

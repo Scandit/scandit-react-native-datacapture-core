@@ -42,7 +42,10 @@ var DataCaptureContextProxy = /** @class */ (function () {
         return NativeModule.dispose();
     };
     DataCaptureContextProxy.prototype.unsubscribeListener = function () {
-        NativeModule.unregisterListenerForEvents();
+        // We don't need to unregister as a Listener to the native side on iOS, as it's done automatically by RN under the hood.
+        if (react_native_1.Platform.OS === 'android') {
+            NativeModule.unregisterListenerForEvents();
+        }
         this.nativeListeners.forEach(function (listener) { return listener.remove(); });
         this.nativeListeners = [];
     };
@@ -60,7 +63,10 @@ var DataCaptureContextProxy = /** @class */ (function () {
     };
     DataCaptureContextProxy.prototype.subscribeListener = function () {
         var _this = this;
-        NativeModule.registerListenerForEvents();
+        // We don't need to register as a Listener to the native side on iOS, as it's done automatically by RN under the hood.
+        if (react_native_1.Platform.OS === 'android') {
+            NativeModule.registerListenerForEvents();
+        }
         var didChangeStatus = EventEmitter.addListener(DataCaptureContextListenerName.didChangeStatus, function (body) {
             var contextStatus = DataCaptureContext_Related_1.ContextStatus.fromJSON(JSON.parse(body.status));
             _this.notifyListenersOfDidChangeStatus(contextStatus);

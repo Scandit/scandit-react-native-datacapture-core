@@ -14,33 +14,29 @@ import com.scandit.datacapture.reactnative.core.utils.writableMap
 
 data class SerializableCameraSettingsDefaults(
     private val prefResolution: String,
+    private val maxFrameRate: Float,
     private val zoomFactor: Float,
-    private val focusRange: String,
-    private val zoomGestureZoomFactor: Float,
-    private val focusGestureStrategy: String
+    private val focusRange: String
 ) : SerializableData {
 
     constructor(settings: CameraSettings) : this(
             prefResolution = settings.preferredResolution.toJson(),
+            maxFrameRate = settings.maxFrameRate,
             zoomFactor = settings.zoomFactor,
-            focusRange = "full",
-            zoomGestureZoomFactor = settings.zoomGestureZoomFactor,
-            focusGestureStrategy = settings.focusGestureStrategy.toJson()
+            focusRange = "full"
     )
 
     override fun toWritableMap(): WritableMap = writableMap {
         putString(FIELD_PREFERRED_RESOLUTION, prefResolution)
+        putDouble(FIELD_MAX_FRAME_RATE, maxFrameRate.toDouble())
         putDouble(FIELD_ZOOM_FACTOR, zoomFactor.toDouble())
         putString(FIELD_FOCUS_RANGE, focusRange)
-        putDouble(FIELD_ZOOM_GESTURE_ZOOM_FACTOR, zoomGestureZoomFactor.toDouble())
-        putString(FIELD_FOCUS_GESTURE_STRATEGY, focusGestureStrategy)
     }
 
     companion object {
         private const val FIELD_PREFERRED_RESOLUTION = "preferredResolution"
+        private const val FIELD_MAX_FRAME_RATE = "maxFrameRate"
         private const val FIELD_ZOOM_FACTOR = "zoomFactor"
         private const val FIELD_FOCUS_RANGE = "focusRange"
-        private const val FIELD_ZOOM_GESTURE_ZOOM_FACTOR = "zoomGestureZoomFactor"
-        private const val FIELD_FOCUS_GESTURE_STRATEGY = "focusGestureStrategy"
     }
 }

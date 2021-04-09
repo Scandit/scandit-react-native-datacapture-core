@@ -2,7 +2,6 @@ import React from 'react';
 import { MarginsWithUnit, Point, PointWithUnit, Quadrilateral, Size } from './Common';
 import { Anchor, Orientation } from './CommonEnums';
 import { DataCaptureContext } from './DataCaptureContext';
-import { FocusGesture, ZoomGesture } from './DataCaptureView+Related';
 export interface DataCaptureOverlay {
 }
 export interface DataCaptureViewListener {
@@ -22,10 +21,6 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     set logoAnchor(newValue: Anchor);
     get logoOffset(): PointWithUnit;
     set logoOffset(newValue: PointWithUnit);
-    get focusGesture(): FocusGesture | null;
-    set focusGesture(newValue: FocusGesture | null);
-    get zoomGesture(): ZoomGesture | null;
-    set zoomGesture(newValue: ZoomGesture | null);
     addOverlay(overlay: DataCaptureOverlay): void;
     removeOverlay(overlay: DataCaptureOverlay): void;
     addListener(listener: DataCaptureViewListener): void;

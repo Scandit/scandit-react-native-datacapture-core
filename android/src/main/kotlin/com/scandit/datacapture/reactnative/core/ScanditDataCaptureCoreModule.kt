@@ -7,10 +7,7 @@
 package com.scandit.datacapture.reactnative.core
 
 import androidx.annotation.VisibleForTesting
-import com.facebook.react.bridge.Promise
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
-import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 import com.scandit.datacapture.core.capture.DataCaptureContext
 import com.scandit.datacapture.core.capture.DataCaptureContextListener
@@ -24,7 +21,6 @@ import com.scandit.datacapture.core.source.serialization.FrameSourceDeserializer
 import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.core.ui.DataCaptureViewListener
 import com.scandit.datacapture.core.ui.style.Brush
-import com.scandit.datacapture.core.ui.viewfinder.AimerViewfinder
 import com.scandit.datacapture.core.ui.viewfinder.LaserlineViewfinder
 import com.scandit.datacapture.core.ui.viewfinder.RectangularViewfinder
 import com.scandit.datacapture.core.ui.viewfinder.SpotlightViewfinder
@@ -88,7 +84,6 @@ class ScanditDataCaptureCoreModule(
         val laserViewfinder = LaserlineViewfinder()
         val rectangularViewfinder = RectangularViewfinder()
         val spotlightViewfinder = SpotlightViewfinder()
-        val aimerViewfinder = AimerViewfinder()
         val brush = Brush.transparent()
         val availableCameraPositions = listOfNotNull(
                 Camera.getCamera(CameraPosition.USER_FACING)?.position,
@@ -108,9 +103,7 @@ class ScanditDataCaptureCoreModule(
                         scanAreaMargins = dataCaptureView.scanAreaMargins.toJson(),
                         pointOfInterest = dataCaptureView.pointOfInterest.toJson(),
                         logoAnchor = dataCaptureView.logoAnchor.toJson(),
-                        logoOffset = dataCaptureView.logoOffset.toJson(),
-                        focusGesture = dataCaptureView.focusGesture?.toJson(),
-                        zoomGesture = dataCaptureView.zoomGesture?.toJson()
+                        logoOffset = dataCaptureView.logoOffset.toJson()
                 ),
                 laserlineViewfinderDefaults = SerializableLaserlineViewfinderDefaults(
                         width = laserViewfinder.width.toJson(),
@@ -126,10 +119,6 @@ class ScanditDataCaptureCoreModule(
                         enabledBorderColor = spotlightViewfinder.enabledBorderColor.hexString,
                         disabledBorderColor = spotlightViewfinder.disabledBorderColor.hexString,
                         backgroundColor = spotlightViewfinder.backgroundColor.hexString
-                ),
-                aimerViewfinderDefaults = SerializableAimerViewfinderDefaults(
-                        frameColor = aimerViewfinder.frameColor.hexString,
-                        dotColor = aimerViewfinder.dotColor.hexString
                 ),
                 brushDefaults = SerializableBrushDefaults(
                         brush = brush
@@ -191,8 +180,11 @@ class ScanditDataCaptureCoreModule(
 
             dataCaptureContext = result.dataCaptureContext
 
-            DataCaptureViewHandler.dataCaptureView = result.view?.also {
+            DataCaptureViewHandler.dataCaptureView = result.view.also {
                 it.addListener(this)
+
+                it.focusGesture = null
+                it.zoomGesture = null
             }
 
             TreeLifecycleObserver.dispatchTreeCreated(result.dataCaptureContext)
@@ -214,18 +206,12 @@ class ScanditDataCaptureCoreModule(
                 // Parsers are re-created during the update. Avoid keeping stale ones.
                 TreeLifecycleObserver.dispatchParsersRemoved()
 
-                val result = deserializers.dataCaptureContextDeserializer.updateContextFromJson(
+                deserializers.dataCaptureContextDeserializer.updateContextFromJson(
                         dataCaptureContext,
                         DataCaptureViewHandler.dataCaptureView,
                         emptyList(),
                         newJson
                 )
-
-                DataCaptureViewHandler.dataCaptureView?.removeListener(this)
-
-                DataCaptureViewHandler.dataCaptureView = result.view?.also {
-                    it.addListener(this)
-                }
             }
 
             promise.resolve(null)

@@ -50,16 +50,4 @@ RCT_EXTERN_METHOD(isTorchAvailable
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(registerListenerForCameraEvents)
-
-RCT_EXTERN_METHOD(unregisterListenerForCameraEvents)
-
-RCT_EXTERN_METHOD(registerListenerForEvents)
-
-RCT_EXTERN_METHOD(unregisterListenerForEvents)
-
-RCT_EXTERN_METHOD(registerListenerForViewEvents)
-
-RCT_EXTERN_METHOD(unregisterListenerForViewEvents)
-
 @end

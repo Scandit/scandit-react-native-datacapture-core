@@ -3,7 +3,7 @@ import { DataCaptureContext } from '../DataCaptureContext';
 import { FrameSourceListener, FrameSourceState } from '../FrameSource';
 import { CameraProxy } from '../native/CameraProxy';
 export interface PrivateCamera {
-    context: DataCaptureContext | null;
+    context: Optional<DataCaptureContext>;
     position: CameraPosition;
     _desiredState: FrameSourceState;
     desiredTorchState: TorchState;

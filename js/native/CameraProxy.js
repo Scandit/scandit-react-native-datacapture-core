@@ -31,7 +31,10 @@ var CameraProxy = /** @class */ (function () {
     };
     CameraProxy.prototype.subscribeListener = function () {
         var _this = this;
-        NativeModule.registerListenerForCameraEvents();
+        // We don't need to register as a Listener to the native side on iOS, as it's done automatically by RN under the hood.
+        if (react_native_1.Platform.OS === 'android') {
+            NativeModule.registerListenerForCameraEvents();
+        }
         var didChangeState = EventEmitter.addListener(FrameSourceListenerName.didChangeState, function (body) {
             var newState = body.state;
             _this.camera.listeners.forEach(function (listener) {
@@ -43,7 +46,10 @@ var CameraProxy = /** @class */ (function () {
         this.nativeListeners.push(didChangeState);
     };
     CameraProxy.prototype.unsubscribeListener = function () {
-        NativeModule.unregisterListenerForCameraEvents();
+        // We don't need to unregister as a Listener to the native side on iOS, as it's done automatically by RN under the hood.
+        if (react_native_1.Platform.OS === 'android') {
+            NativeModule.unregisterListenerForCameraEvents();
+        }
         this.nativeListeners.forEach(function (listener) { return listener.remove(); });
         this.nativeListeners = [];
     };

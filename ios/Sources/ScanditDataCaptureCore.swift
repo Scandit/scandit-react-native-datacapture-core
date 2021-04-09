@@ -56,6 +56,9 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
             self.dataCaptureView?.addListener(self)
 
+            self.dataCaptureView?.focusGesture = nil
+            self.dataCaptureView?.zoomGesture = nil
+
             pthread_mutex_lock(&dataCaptureViewListenersLock)
             defer {pthread_mutex_unlock(&dataCaptureViewListenersLock)}
             dataCaptureViewListeners
@@ -88,9 +91,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     static public func register(modeDeserializer: DataCaptureModeDeserializer) {
-
-        RNTSDCModeDeserializers.removeAll(where: {type(of: $0) == type(of: modeDeserializer)})
-
         RNTSDCModeDeserializers.append(modeDeserializer)
     }
 
@@ -263,14 +263,4 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         defer {pthread_mutex_unlock(&dataCaptureViewListenersLock)}
         dataCaptureViewListeners.remove(listener)
     }
-
-    // Empty methods to unify the logic on the TS side for supporting functionality automatically provided by RN on iOS,
-    // but custom implemented on Android.
-
-    @objc func registerListenerForCameraEvents() { }
-    @objc func unregisterListenerForCameraEvents() { }
-    @objc func registerListenerForEvents() { }
-    @objc func unregisterListenerForEvents() { }
-    @objc func registerListenerForViewEvents() { }
-    @objc func unregisterListenerForViewEvents() { }
 }

@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Defaults = void 0;
 var react_native_1 = require("react-native");
 var Common_1 = require("../Common");
-var PrivateDataCaptureView_Related_1 = require("./PrivateDataCaptureView+Related");
 // tslint:disable-next-line:variable-name
 var NativeModule = react_native_1.NativeModules.ScanditDataCaptureCore;
 // tslint:disable-next-line:variable-name
@@ -11,10 +10,9 @@ exports.Defaults = {
     Camera: {
         Settings: {
             preferredResolution: NativeModule.Defaults.Camera.Settings.preferredResolution,
+            maxFrameRate: NativeModule.Defaults.Camera.Settings.maxFrameRate,
             zoomFactor: NativeModule.Defaults.Camera.Settings.zoomFactor,
             focusRange: NativeModule.Defaults.Camera.Settings.focusRange,
-            zoomGestureZoomFactor: NativeModule.Defaults.Camera.Settings.zoomGestureZoomFactor,
-            focusGestureStrategy: NativeModule.Defaults.Camera.Settings.focusGestureStrategy,
         },
         defaultPosition: (NativeModule.Defaults.Camera.defaultPosition || null),
         availablePositions: NativeModule.Defaults.Camera.availablePositions,
@@ -27,10 +25,6 @@ exports.Defaults = {
         logoAnchor: NativeModule.Defaults.DataCaptureView.logoAnchor,
         logoOffset: Common_1.PointWithUnit
             .fromJSON(JSON.parse(NativeModule.Defaults.DataCaptureView.logoOffset)),
-        focusGesture: PrivateDataCaptureView_Related_1.PrivateFocusGestureDeserializer
-            .fromJSON(JSON.parse(NativeModule.Defaults.DataCaptureView.focusGesture)),
-        zoomGesture: PrivateDataCaptureView_Related_1.PrivateFocusGestureDeserializer
-            .fromJSON(JSON.parse(NativeModule.Defaults.DataCaptureView.zoomGesture)),
     },
     LaserlineViewfinder: {
         width: Common_1.NumberWithUnit
@@ -55,10 +49,6 @@ exports.Defaults = {
             .fromJSON(NativeModule.Defaults.SpotlightViewfinder.disabledBorderColor),
         backgroundColor: Common_1.Color
             .fromJSON(NativeModule.Defaults.SpotlightViewfinder.backgroundColor),
-    },
-    AimerViewfinder: {
-        frameColor: Common_1.Color.fromJSON(NativeModule.Defaults.AimerViewfinder.frameColor),
-        dotColor: Common_1.Color.fromJSON(NativeModule.Defaults.AimerViewfinder.dotColor),
     },
     Brush: {
         fillColor: Common_1.Color

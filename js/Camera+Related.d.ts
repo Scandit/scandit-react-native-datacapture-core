@@ -20,24 +20,14 @@ export declare enum FocusRange {
     Near = "near",
     Far = "far"
 }
-export declare enum FocusGestureStrategy {
-    None = "none",
-    Manual = "manual",
-    ManualUntilCapture = "manualUntilCapture",
-    AutoOnLocation = "autoOnLocation"
-}
 export declare class CameraSettings extends DefaultSerializeable {
     preferredResolution: VideoResolution;
+    maxFrameRate: number;
     zoomFactor: number;
-    zoomGestureZoomFactor: number;
     private api;
     private focus;
     get focusRange(): FocusRange;
     set focusRange(newRange: FocusRange);
-    get focusGestureStrategy(): FocusGestureStrategy;
-    set focusGestureStrategy(newStrategy: FocusGestureStrategy);
-    get maxFrameRate(): number;
-    set maxFrameRate(newValue: number);
     private static fromJSON;
     constructor();
     constructor(settings: CameraSettings);

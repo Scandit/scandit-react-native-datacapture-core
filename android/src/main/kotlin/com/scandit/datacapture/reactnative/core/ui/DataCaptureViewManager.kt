@@ -40,16 +40,6 @@ class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
     override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
         container = FrameLayout(reactContext)
         DataCaptureViewHandler.dataCaptureView?.let { view ->
-            /*
-            During hot reloading, DataCaptureViewManager recreates the view instance with
-            a createViewInstance() call, without destroying the previous instance (with
-            onDropViewInstance() callback). As a result, the DataCaptureViewHandler.dataCaptureView
-            still has a parent - we have to remove the reference to the old parent before adding
-            DataCaptureViewHandler.dataCaptureView to the newly created container.
-            */
-            view.parent?.let {
-                removeView(it as FrameLayout, view)
-            }
             container?.addView(view, MATCH_PARENT, MATCH_PARENT)
         }
 
@@ -89,11 +79,6 @@ class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
     }
 
     override fun onViewDeserialized(view: DataCaptureView) {
-        view.post {
-            view.parent?.let {
-                removeView(it as FrameLayout, view)
-            }
-            container?.addView(view, MATCH_PARENT, MATCH_PARENT)
-        }
+        container?.addView(view, MATCH_PARENT, MATCH_PARENT)
     }
 }

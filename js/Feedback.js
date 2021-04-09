@@ -22,36 +22,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Feedback = exports.Sound = exports.Vibration = void 0;
 var FeedbackProxy_1 = require("./native/FeedbackProxy");
 var Serializeable_1 = require("./private/Serializeable");
-var VibrationType;
-(function (VibrationType) {
-    VibrationType["default"] = "default";
-    VibrationType["selectionHaptic"] = "selectionHaptic";
-    VibrationType["successHaptic"] = "successHaptic";
-})(VibrationType || (VibrationType = {}));
 var Vibration = /** @class */ (function (_super) {
     __extends(Vibration, _super);
-    function Vibration(type) {
-        var _this = _super.call(this) || this;
-        _this.type = type;
-        return _this;
+    function Vibration() {
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     Object.defineProperty(Vibration, "defaultVibration", {
         get: function () {
-            return new Vibration(VibrationType.default);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Vibration, "selectionHapticFeedback", {
-        get: function () {
-            return new Vibration(VibrationType.selectionHaptic);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Vibration, "successHapticFeedback", {
-        get: function () {
-            return new Vibration(VibrationType.successHaptic);
+            return new Vibration();
         },
         enumerable: false,
         configurable: true

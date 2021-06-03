@@ -23,4 +23,5 @@ __exportStar(require("./Feedback"), exports);
 __exportStar(require("./FrameSource"), exports);
 __exportStar(require("./LocationSelection"), exports);
 __exportStar(require("./Viewfinder"), exports);
+__exportStar(require("./Viewfinder+Related"), exports);
 //# sourceMappingURL=index.js.map

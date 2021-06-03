@@ -56,20 +56,53 @@ extension ScanditDataCaptureCore {
                 "logoAnchor": DataCaptureView.defaultLogoAnchor.jsonString,
                 "logoOffset": DataCaptureView.defaultLogoOffset.jsonString,
                 "focusGesture": view.focusGesture?.jsonString,
-                "zoomGesture": view.zoomGesture?.jsonString]
+                "zoomGesture": view.zoomGesture?.jsonString,
+                "logoStyle": view.logoStyle.jsonString]
     }
 
     var laserlineViewfinderDefaults: [String: Any] {
-        let laserlineViewfinder = LaserlineViewfinder()
-        return ["width": laserlineViewfinder.width.jsonString,
-                "enabledColor": laserlineViewfinder.enabledColor.sdcHexString,
-                "disabledColor": laserlineViewfinder.disabledColor.sdcHexString]
+        func createViewfinderDefaults(style: LaserlineViewfinderStyle) -> [String: Any] {
+            let viewfinder = LaserlineViewfinder(style: style)
+            let defaults = [
+                "style": viewfinder.style.jsonString,
+                "width": viewfinder.width.jsonString,
+                "enabledColor": viewfinder.enabledColor.sdcHexString,
+                "disabledColor": viewfinder.disabledColor.sdcHexString
+            ]
+            return defaults
+        }
+
+        return [
+            "defaultStyle": LaserlineViewfinder().style.jsonString,
+            "styles": [
+                LaserlineViewfinderStyle.animated.jsonString: createViewfinderDefaults(style: .animated),
+                LaserlineViewfinderStyle.legacy.jsonString: createViewfinderDefaults(style: .legacy)
+            ]
+        ]
     }
 
     var rectangularViewfinderDefaults: [String: Any] {
-        let rectangularViewfinder = RectangularViewfinder()
-        return ["size": rectangularViewfinder.sizeWithUnitAndAspect.jsonString,
-                "color": rectangularViewfinder.color.sdcHexString]
+        func createViewfinderDefaults(style: RectangularViewfinderStyle) -> [String: Any] {
+            let viewfinder = RectangularViewfinder(style: style)
+            let defaults = [
+                "style": viewfinder.style.jsonString,
+                "size": viewfinder.sizeWithUnitAndAspect.jsonString,
+                "color": viewfinder.color.sdcHexString,
+                "lineStyle": viewfinder.lineStyle.jsonString,
+                "dimming": viewfinder.dimming,
+                "animation": viewfinder.animation?.jsonString as Any
+            ]
+            return defaults
+        }
+
+        return [
+            "defaultStyle": RectangularViewfinder().style.jsonString,
+            "styles": [
+                RectangularViewfinderStyle.square.jsonString: createViewfinderDefaults(style: .square),
+                RectangularViewfinderStyle.rounded.jsonString: createViewfinderDefaults(style: .rounded),
+                RectangularViewfinderStyle.legacy.jsonString: createViewfinderDefaults(style: .legacy)
+            ]
+        ]
     }
 
     var spotlightViewfinderDefaults: [String: Any] {

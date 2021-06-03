@@ -11,3 +11,4 @@ export * from './Feedback';
 export * from './FrameSource';
 export * from './LocationSelection';
 export * from './Viewfinder';
+export * from './Viewfinder+Related';

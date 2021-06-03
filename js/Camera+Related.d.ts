@@ -36,6 +36,8 @@ export declare class CameraSettings extends DefaultSerializeable {
     set focusRange(newRange: FocusRange);
     get focusGestureStrategy(): FocusGestureStrategy;
     set focusGestureStrategy(newStrategy: FocusGestureStrategy);
+    get shouldPreferSmoothAutoFocus(): boolean;
+    set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus: boolean);
     get maxFrameRate(): number;
     set maxFrameRate(newValue: number);
     private static fromJSON;

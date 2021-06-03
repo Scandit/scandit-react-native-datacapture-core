@@ -2,7 +2,7 @@ import React from 'react';
 import { MarginsWithUnit, Point, PointWithUnit, Quadrilateral, Size } from './Common';
 import { Anchor, Orientation } from './CommonEnums';
 import { DataCaptureContext } from './DataCaptureContext';
-import { FocusGesture, ZoomGesture } from './DataCaptureView+Related';
+import { FocusGesture, ZoomGesture, Control, LogoStyle } from './DataCaptureView+Related';
 export interface DataCaptureOverlay {
 }
 export interface DataCaptureViewListener {
@@ -18,6 +18,8 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     set scanAreaMargins(newValue: MarginsWithUnit);
     get pointOfInterest(): PointWithUnit;
     set pointOfInterest(newValue: PointWithUnit);
+    get logoStyle(): LogoStyle;
+    set logoStyle(style: LogoStyle);
     get logoAnchor(): Anchor;
     set logoAnchor(newValue: Anchor);
     get logoOffset(): PointWithUnit;
@@ -32,6 +34,8 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     removeListener(listener: DataCaptureViewListener): void;
     viewPointForFramePoint(point: Point): Promise<Point>;
     viewQuadrilateralForFrameQuadrilateral(quadrilateral: Quadrilateral): Promise<Quadrilateral>;
+    addControl(control: Control): void;
+    removeControl(control: Control): void;
     componentWillUnmount(): void;
     render(): JSX.Element;
 }

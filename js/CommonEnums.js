@@ -12,6 +12,7 @@ var SizingMode;
     SizingMode["WidthAndHeight"] = "widthAndHeight";
     SizingMode["WidthAndAspectRatio"] = "widthAndAspectRatio";
     SizingMode["HeightAndAspectRatio"] = "heightAndAspectRatio";
+    SizingMode["ShorterDimensionAndAspectRatio"] = "shorterDimensionAndAspectRatio";
 })(SizingMode = exports.SizingMode || (exports.SizingMode = {}));
 var Orientation;
 (function (Orientation) {

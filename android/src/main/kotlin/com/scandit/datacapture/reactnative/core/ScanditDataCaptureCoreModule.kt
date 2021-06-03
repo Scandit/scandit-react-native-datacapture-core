@@ -104,22 +104,12 @@ class ScanditDataCaptureCoreModule(
                         availablePositions = availableCameraPositions,
                         defaultPosition = Camera.getDefaultCamera()?.position?.toJson()
                 ),
-                dataCaptureViewDefaults = SerializableDataCaptureViewDefaults(
-                        scanAreaMargins = dataCaptureView.scanAreaMargins.toJson(),
-                        pointOfInterest = dataCaptureView.pointOfInterest.toJson(),
-                        logoAnchor = dataCaptureView.logoAnchor.toJson(),
-                        logoOffset = dataCaptureView.logoOffset.toJson(),
-                        focusGesture = dataCaptureView.focusGesture?.toJson(),
-                        zoomGesture = dataCaptureView.zoomGesture?.toJson()
-                ),
+                dataCaptureViewDefaults = SerializableDataCaptureViewDefaults(dataCaptureView),
                 laserlineViewfinderDefaults = SerializableLaserlineViewfinderDefaults(
-                        width = laserViewfinder.width.toJson(),
-                        enabledColor = laserViewfinder.enabledColor.hexString,
-                        disabledColor = laserViewfinder.disabledColor.hexString
+                    laserViewfinder
                 ),
                 rectangularViewfinderDefaults = SerializableRectangularViewfinderDefaults(
-                        size = rectangularViewfinder.sizeWithUnitAndAspect.toJson(),
-                        color = rectangularViewfinder.color.hexString
+                    rectangularViewfinder
                 ),
                 spotlightViewfinderDefaults = SerializableSpotlightViewfinderDefaults(
                         size = spotlightViewfinder.sizeWithUnitAndAspect.toJson(),

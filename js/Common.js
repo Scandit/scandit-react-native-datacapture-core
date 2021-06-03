@@ -347,6 +347,7 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
         this._widthAndHeight = null;
         this._widthAndAspectRatio = null;
         this._heightAndAspectRatio = null;
+        this._shorterDimensionAndAspectRatio = null;
     }
     Object.defineProperty(SizeWithUnitAndAspect.prototype, "widthAndHeight", {
         get: function () {
@@ -369,6 +370,13 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
+    Object.defineProperty(SizeWithUnitAndAspect.prototype, "shorterDimensionAndAspectRatio", {
+        get: function () {
+            return this._shorterDimensionAndAspectRatio;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(SizeWithUnitAndAspect.prototype, "sizingMode", {
         get: function () {
             if (this.widthAndAspectRatio) {
@@ -376,6 +384,9 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
             }
             if (this.heightAndAspectRatio) {
                 return CommonEnums_1.SizingMode.HeightAndAspectRatio;
+            }
+            if (this.shorterDimensionAndAspectRatio) {
+                return CommonEnums_1.SizingMode.ShorterDimensionAndAspectRatio;
             }
             return CommonEnums_1.SizingMode.WidthAndHeight;
         },
@@ -397,6 +408,11 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
         sizeWithUnitAndAspect._heightAndAspectRatio = new SizeWithAspect(height, aspectRatio);
         return sizeWithUnitAndAspect;
     };
+    SizeWithUnitAndAspect.sizeWithShorterDimensionAndAspectRatio = function (shorterDimension, aspectRatio) {
+        var sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
+        sizeWithUnitAndAspect._shorterDimensionAndAspectRatio = new SizeWithAspect(shorterDimension, aspectRatio);
+        return sizeWithUnitAndAspect;
+    };
     SizeWithUnitAndAspect.fromJSON = function (json) {
         if (json.width && json.height) {
             return this.sizeWithWidthAndHeight(new SizeWithUnit(NumberWithUnit.fromJSON(json.width), NumberWithUnit.fromJSON(json.height)));
@@ -406,6 +422,9 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
         }
         else if (json.height && json.aspect) {
             return this.sizeWithHeightAndAspectRatio(NumberWithUnit.fromJSON(json.height), json.aspect);
+        }
+        else if (json.shorterDimension && json.aspect) {
+            return this.sizeWithShorterDimensionAndAspectRatio(NumberWithUnit.fromJSON(json.shorterDimension), json.aspect);
         }
         else {
             throw new Error("SizeWithUnitAndAspectJSON is malformed: " + JSON.stringify(json));
@@ -423,6 +442,11 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
                     height: this.heightAndAspectRatio.size.toJSON(),
                     aspect: this.heightAndAspectRatio.aspect,
                 };
+            case CommonEnums_1.SizingMode.ShorterDimensionAndAspectRatio:
+                return {
+                    shorterDimension: this.shorterDimensionAndAspectRatio.size.toJSON(),
+                    aspect: this.shorterDimensionAndAspectRatio.aspect,
+                };
             default:
                 return {
                     width: this.widthAndHeight.width.toJSON(),
@@ -439,6 +463,9 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
     __decorate([
         Serializeable_1.nameForSerialization('heightAndAspectRatio')
     ], SizeWithUnitAndAspect.prototype, "_heightAndAspectRatio", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('shorterDimensionAndAspectRatio')
+    ], SizeWithUnitAndAspect.prototype, "_shorterDimensionAndAspectRatio", void 0);
     return SizeWithUnitAndAspect;
 }());
 exports.SizeWithUnitAndAspect = SizeWithUnitAndAspect;

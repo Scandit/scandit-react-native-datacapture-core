@@ -18,8 +18,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataCaptureContext = exports.DataCaptureContextSettings = void 0;
+var react_native_1 = require("react-native");
 var DataCaptureContextProxy_1 = require("./native/DataCaptureContextProxy");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
@@ -37,6 +39,8 @@ var DataCaptureContextSettings = /** @class */ (function (_super) {
     return DataCaptureContextSettings;
 }(Serializeable_1.DefaultSerializeable));
 exports.DataCaptureContextSettings = DataCaptureContextSettings;
+// @ts-ignore
+var _b = (_a = react_native_1.Platform.constants) === null || _a === void 0 ? void 0 : _a.reactNativeVersion, major = _b.major, minor = _b.minor, patch = _b.patch;
 var DataCaptureContext = /** @class */ (function (_super) {
     __extends(DataCaptureContext, _super);
     function DataCaptureContext(licenseKey, deviceName) {
@@ -44,6 +48,7 @@ var DataCaptureContext = /** @class */ (function (_super) {
         _this.licenseKey = licenseKey;
         _this.deviceName = deviceName;
         _this.framework = 'react-native';
+        _this.frameworkVersion = major + "." + minor + "." + patch;
         _this.settings = new DataCaptureContextSettings();
         _this._frameSource = null;
         _this.view = null;

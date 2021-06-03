@@ -2,7 +2,7 @@ import { MarginsWithUnit, Point, PointWithUnit, Quadrilateral } from '../Common'
 import { Anchor } from '../CommonEnums';
 import { DataCaptureContext } from '../DataCaptureContext';
 import { DataCaptureOverlay, DataCaptureView, DataCaptureViewListener } from '../DataCaptureView';
-import { FocusGesture, ZoomGesture } from '../DataCaptureView+Related';
+import { FocusGesture, ZoomGesture, Control, LogoStyle } from '../DataCaptureView+Related';
 import { DefaultSerializeable } from './Serializeable';
 export interface PrivateDataCaptureOverlay {
     view: PrivateDataCaptureView | null;
@@ -19,6 +19,8 @@ export declare class PrivateDataCaptureView extends DefaultSerializeable {
     focusGesture: FocusGesture | null;
     zoomGesture: ZoomGesture | null;
     private overlays;
+    private controls;
+    logoStyle: LogoStyle;
     private proxy;
     listeners: DataCaptureViewListener[];
     private get privateContext();
@@ -30,5 +32,8 @@ export declare class PrivateDataCaptureView extends DefaultSerializeable {
     removeListener(listener: DataCaptureViewListener): void;
     viewPointForFramePoint(point: Point): Promise<Point>;
     viewQuadrilateralForFrameQuadrilateral(quadrilateral: Quadrilateral): Promise<Quadrilateral>;
+    addControl(control: Control): void;
+    removeControl(control: Control): void;
+    controlUpdated(): void;
     dispose(): void;
 }

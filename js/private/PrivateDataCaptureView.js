@@ -36,6 +36,8 @@ var PrivateDataCaptureView = /** @class */ (function (_super) {
         _this.focusGesture = Defaults_1.Defaults.DataCaptureView.focusGesture;
         _this.zoomGesture = Defaults_1.Defaults.DataCaptureView.zoomGesture;
         _this.overlays = [];
+        _this.controls = [];
+        _this.logoStyle = Defaults_1.Defaults.DataCaptureView.logoStyle;
         _this.listeners = [];
         _this.proxy = DataCaptureViewProxy_1.DataCaptureViewProxy.forDataCaptureView(_this);
         return _this;
@@ -101,6 +103,23 @@ var PrivateDataCaptureView = /** @class */ (function (_super) {
     };
     PrivateDataCaptureView.prototype.viewQuadrilateralForFrameQuadrilateral = function (quadrilateral) {
         return this.proxy.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
+    };
+    PrivateDataCaptureView.prototype.addControl = function (control) {
+        if (!this.controls.includes(control)) {
+            control.view = this;
+            this.controls.push(control);
+            this.privateContext.update();
+        }
+    };
+    PrivateDataCaptureView.prototype.removeControl = function (control) {
+        if (this.controls.includes(control)) {
+            control.view = null;
+            this.controls.splice(this.overlays.indexOf(control), 1);
+            this.privateContext.update();
+        }
+    };
+    PrivateDataCaptureView.prototype.controlUpdated = function () {
+        this.privateContext.update();
     };
     PrivateDataCaptureView.prototype.dispose = function () {
         var _this = this;

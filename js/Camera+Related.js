@@ -63,6 +63,7 @@ var CameraSettings = /** @class */ (function (_super) {
         _this.focus = {
             range: Defaults_1.Defaults.Camera.Settings.focusRange,
             focusGestureStrategy: Defaults_1.Defaults.Camera.Settings.focusGestureStrategy,
+            shouldPreferSmoothAutoFocus: Defaults_1.Defaults.Camera.Settings.shouldPreferSmoothAutoFocus,
         };
         if (settings !== undefined && settings !== null) {
             Object.getOwnPropertyNames(settings).forEach(function (propertyName) {
@@ -91,6 +92,16 @@ var CameraSettings = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    Object.defineProperty(CameraSettings.prototype, "shouldPreferSmoothAutoFocus", {
+        get: function () {
+            return this.focus.shouldPreferSmoothAutoFocus;
+        },
+        set: function (newShouldPreferSmoothAutoFocus) {
+            this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(CameraSettings.prototype, "maxFrameRate", {
         get: function () {
             // tslint:disable-next-line:no-console
@@ -111,6 +122,7 @@ var CameraSettings = /** @class */ (function (_super) {
         settings.focusRange = json.focusRange;
         settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
         settings.focusGestureStrategy = json.focusGestureStrategy;
+        settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
         if (json.api !== undefined && json.api !== null) {
             settings.api = json.api;
         }

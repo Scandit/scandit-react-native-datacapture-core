@@ -10,3 +10,4 @@
 #import <React/RCTConvert.h>
 #import <React/RCTLog.h>
 #import "SDCDataCaptureView+Defaults.h"
+#import "RCTEventEmitter+Private.h"

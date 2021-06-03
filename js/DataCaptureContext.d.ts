@@ -20,6 +20,7 @@ export declare class DataCaptureContext extends DefaultSerializeable {
     private licenseKey;
     private deviceName;
     private framework;
+    private frameworkVersion;
     private settings;
     private _frameSource;
     private view;

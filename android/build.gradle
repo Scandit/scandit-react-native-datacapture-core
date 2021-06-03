@@ -37,7 +37,9 @@ android {
 }
 
 dependencies {
-    api "com.scandit.datacapture:core:6.7.3"
+    def sdk_version = "6.8.0"
+
+    api "com.scandit.datacapture:core:$sdk_version"
     
     //noinspection GradleDynamicVersion
     implementation 'com.facebook.react:react-native:+'  // From node_modules

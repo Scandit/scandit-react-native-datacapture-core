@@ -40,6 +40,7 @@ export interface PrivateSize {
 export interface SizeWithUnitAndAspectJSON {
     width?: NumberWithUnitJSON;
     height?: NumberWithUnitJSON;
+    shorterDimension?: NumberWithUnitJSON;
     aspect?: number;
 }
 export interface PrivateSizeWithUnitAndAspect {

@@ -63,6 +63,16 @@ var DataCaptureView = /** @class */ (function (_super) {
     });
     ;
     ;
+    Object.defineProperty(DataCaptureView.prototype, "logoStyle", {
+        get: function () {
+            return this.view.logoStyle;
+        },
+        set: function (style) {
+            this.view.logoStyle = style;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(DataCaptureView.prototype, "logoAnchor", {
         get: function () {
             return this.view.logoAnchor;
@@ -135,6 +145,12 @@ var DataCaptureView = /** @class */ (function (_super) {
         return this.view.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
     };
     ;
+    DataCaptureView.prototype.addControl = function (control) {
+        return this.view.addControl(control);
+    };
+    DataCaptureView.prototype.removeControl = function (control) {
+        return this.view.removeControl(control);
+    };
     DataCaptureView.prototype.componentWillUnmount = function () {
         this.view.dispose();
     };

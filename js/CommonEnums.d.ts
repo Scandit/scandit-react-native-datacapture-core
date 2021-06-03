@@ -6,7 +6,8 @@ export declare enum MeasureUnit {
 export declare enum SizingMode {
     WidthAndHeight = "widthAndHeight",
     WidthAndAspectRatio = "widthAndAspectRatio",
-    HeightAndAspectRatio = "heightAndAspectRatio"
+    HeightAndAspectRatio = "heightAndAspectRatio",
+    ShorterDimensionAndAspectRatio = "shorterDimensionAndAspectRatio"
 }
 export declare enum Orientation {
     Unknown = "unknown",

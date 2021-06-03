@@ -17,7 +17,8 @@ data class SerializableCameraSettingsDefaults(
     private val zoomFactor: Float,
     private val focusRange: String,
     private val zoomGestureZoomFactor: Float,
-    private val focusGestureStrategy: String
+    private val focusGestureStrategy: String,
+    private val shouldPreferSmoothAutoFocus: Boolean
 ) : SerializableData {
 
     constructor(settings: CameraSettings) : this(
@@ -25,7 +26,8 @@ data class SerializableCameraSettingsDefaults(
             zoomFactor = settings.zoomFactor,
             focusRange = "full",
             zoomGestureZoomFactor = settings.zoomGestureZoomFactor,
-            focusGestureStrategy = settings.focusGestureStrategy.toJson()
+            focusGestureStrategy = settings.focusGestureStrategy.toJson(),
+            shouldPreferSmoothAutoFocus = settings.shouldPreferSmoothAutoFocus
     )
 
     override fun toWritableMap(): WritableMap = writableMap {
@@ -34,6 +36,7 @@ data class SerializableCameraSettingsDefaults(
         putString(FIELD_FOCUS_RANGE, focusRange)
         putDouble(FIELD_ZOOM_GESTURE_ZOOM_FACTOR, zoomGestureZoomFactor.toDouble())
         putString(FIELD_FOCUS_GESTURE_STRATEGY, focusGestureStrategy)
+        putBoolean(FIELD_FOCUS_SHOULD_PREFER_SMOOTH_AUTOFOCUS, shouldPreferSmoothAutoFocus)
     }
 
     companion object {
@@ -42,5 +45,6 @@ data class SerializableCameraSettingsDefaults(
         private const val FIELD_FOCUS_RANGE = "focusRange"
         private const val FIELD_ZOOM_GESTURE_ZOOM_FACTOR = "zoomGestureZoomFactor"
         private const val FIELD_FOCUS_GESTURE_STRATEGY = "focusGestureStrategy"
+        private const val FIELD_FOCUS_SHOULD_PREFER_SMOOTH_AUTOFOCUS = "shouldPreferSmoothAutoFocus"
     }
 }

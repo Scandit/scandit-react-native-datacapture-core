@@ -23,33 +23,88 @@ exports.AimerViewfinder = exports.SpotlightViewfinder = exports.RectangularViewf
 var Common_1 = require("./Common");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
+var CommonEnums_1 = require("./CommonEnums");
 // tslint:disable-next-line:variable-name
 exports.NoViewfinder = { type: 'none' };
 var LaserlineViewfinder = /** @class */ (function (_super) {
     __extends(LaserlineViewfinder, _super);
-    function LaserlineViewfinder() {
+    function LaserlineViewfinder(style) {
         var _this = _super.call(this) || this;
         _this.type = 'laserline';
-        _this.width = Defaults_1.Defaults.LaserlineViewfinder.width;
-        _this.enabledColor = Defaults_1.Defaults.LaserlineViewfinder.enabledColor;
-        _this.disabledColor = Defaults_1.Defaults.LaserlineViewfinder.disabledColor;
+        var viewfinderStyle = style || Defaults_1.Defaults.LaserlineViewfinder.defaultStyle;
+        _this._style = Defaults_1.Defaults.LaserlineViewfinder.styles[viewfinderStyle].style;
+        _this.width = Defaults_1.Defaults.LaserlineViewfinder.styles[viewfinderStyle].width;
+        _this.enabledColor = Defaults_1.Defaults.LaserlineViewfinder.styles[viewfinderStyle].enabledColor;
+        _this.disabledColor = Defaults_1.Defaults.LaserlineViewfinder.styles[viewfinderStyle].disabledColor;
         return _this;
     }
+    Object.defineProperty(LaserlineViewfinder.prototype, "style", {
+        get: function () {
+            return this._style;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    __decorate([
+        Serializeable_1.nameForSerialization('style')
+    ], LaserlineViewfinder.prototype, "_style", void 0);
     return LaserlineViewfinder;
 }(Serializeable_1.DefaultSerializeable));
 exports.LaserlineViewfinder = LaserlineViewfinder;
 var RectangularViewfinder = /** @class */ (function (_super) {
     __extends(RectangularViewfinder, _super);
-    function RectangularViewfinder() {
+    function RectangularViewfinder(style, lineStyle) {
         var _this = _super.call(this) || this;
         _this.type = 'rectangular';
-        _this._sizeWithUnitAndAspect = Defaults_1.Defaults.RectangularViewfinder.size;
-        _this.color = Defaults_1.Defaults.RectangularViewfinder.color;
+        var viewfinderStyle = style || Defaults_1.Defaults.RectangularViewfinder.defaultStyle;
+        _this._style = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].style;
+        _this._lineStyle = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].lineStyle;
+        _this._dimming = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].dimming;
+        _this._animation = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].animation;
+        _this.color = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].color;
+        _this._sizeWithUnitAndAspect = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].size;
+        if (lineStyle !== undefined) {
+            _this._lineStyle = lineStyle;
+        }
         return _this;
     }
     Object.defineProperty(RectangularViewfinder.prototype, "sizeWithUnitAndAspect", {
         get: function () {
             return this._sizeWithUnitAndAspect;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(RectangularViewfinder.prototype, "style", {
+        get: function () {
+            return this._style;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(RectangularViewfinder.prototype, "lineStyle", {
+        get: function () {
+            return this._lineStyle;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(RectangularViewfinder.prototype, "dimming", {
+        get: function () {
+            return this._dimming;
+        },
+        set: function (value) {
+            this._dimming = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(RectangularViewfinder.prototype, "animation", {
+        get: function () {
+            return this._animation;
+        },
+        set: function (animation) {
+            this._animation = animation;
         },
         enumerable: false,
         configurable: true
@@ -63,6 +118,21 @@ var RectangularViewfinder = /** @class */ (function (_super) {
     RectangularViewfinder.prototype.setHeightAndAspectRatio = function (height, widthToHeightAspectRatio) {
         this._sizeWithUnitAndAspect = Common_1.SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
     };
+    RectangularViewfinder.prototype.setShorterDimensionAndAspectRatio = function (fraction, aspectRatio) {
+        this._sizeWithUnitAndAspect = Common_1.SizeWithUnitAndAspect.sizeWithShorterDimensionAndAspectRatio(new Common_1.NumberWithUnit(fraction, CommonEnums_1.MeasureUnit.Fraction), aspectRatio);
+    };
+    __decorate([
+        Serializeable_1.nameForSerialization('style')
+    ], RectangularViewfinder.prototype, "_style", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('lineStyle')
+    ], RectangularViewfinder.prototype, "_lineStyle", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('dimming')
+    ], RectangularViewfinder.prototype, "_dimming", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('animation')
+    ], RectangularViewfinder.prototype, "_animation", void 0);
     __decorate([
         Serializeable_1.nameForSerialization('size')
     ], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
@@ -78,6 +148,8 @@ var SpotlightViewfinder = /** @class */ (function (_super) {
         _this.enabledBorderColor = Defaults_1.Defaults.SpotlightViewfinder.enabledBorderColor;
         _this.disabledBorderColor = Defaults_1.Defaults.SpotlightViewfinder.disabledBorderColor;
         _this.backgroundColor = Defaults_1.Defaults.SpotlightViewfinder.backgroundColor;
+        // tslint:disable-next-line:no-console
+        console.warn('SpotlightViewfinder is deprecated and will be removed in a future release. Use RectangularViewfinder instead.');
         return _this;
     }
     Object.defineProperty(SpotlightViewfinder.prototype, "sizeWithUnitAndAspect", {

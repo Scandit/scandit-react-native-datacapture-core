@@ -135,8 +135,8 @@ var DataCaptureContext = /** @class */ (function (_super) {
         if (!this.proxy) {
             return;
         }
-        this.removeAllModes();
         (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
+        this.removeAllModes();
         this.proxy.dispose();
     };
     DataCaptureContext.prototype.applySettings = function (settings) {

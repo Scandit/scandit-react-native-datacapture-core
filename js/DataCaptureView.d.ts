@@ -10,6 +10,7 @@ export interface DataCaptureViewListener {
 }
 interface DataCaptureViewProps {
     context: DataCaptureContext;
+    style: any;
 }
 export declare class DataCaptureView extends React.Component<DataCaptureViewProps> {
     private view;

@@ -37,7 +37,7 @@ android {
 }
 
 dependencies {
-    def sdk_version = "6.8.0"
+    def sdk_version = "6.8.1"
 
     api "com.scandit.datacapture:core:$sdk_version"
     

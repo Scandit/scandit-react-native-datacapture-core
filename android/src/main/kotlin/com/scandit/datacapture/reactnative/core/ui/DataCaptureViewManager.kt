@@ -90,9 +90,10 @@ class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
 
     override fun onViewDeserialized(view: DataCaptureView) {
         view.post {
-            view.parent?.let {
-                removeView(it as FrameLayout, view)
-            }
+            // If the view has a parent it means that the view is already added to the container.
+            // In this scenario we should not remove and add it again because with trial licenses
+            // it's going to show the license popup over and over again.
+            if (view.parent != null) return@post
             container?.addView(view, MATCH_PARENT, MATCH_PARENT)
         }
     }

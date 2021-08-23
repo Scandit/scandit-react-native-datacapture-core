@@ -50,6 +50,7 @@ class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
             view.parent?.let {
                 removeView(it as FrameLayout, view)
             }
+            container?.removeAllViews()
             container?.addView(view, MATCH_PARENT, MATCH_PARENT)
         }
 
@@ -84,8 +85,7 @@ class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
 
     override fun onDropViewInstance(view: FrameLayout) {
         cancelMeasureAndLayout()
-        container?.removeAllViews()
-        container = null
+        container?.removeView(view)
     }
 
     override fun onViewDeserialized(view: DataCaptureView) {

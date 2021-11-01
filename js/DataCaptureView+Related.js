@@ -19,7 +19,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogoStyle = exports.TorchSwitchControl = exports.SwipeToZoom = exports.TapToFocus = void 0;
+exports.LogoStyle = exports.ZoomSwitchControl = exports.TorchSwitchControl = exports.SwipeToZoom = exports.TapToFocus = void 0;
 var Serializeable_1 = require("./private/Serializeable");
 var TapToFocus = /** @class */ (function (_super) {
     __extends(TapToFocus, _super);
@@ -107,6 +107,72 @@ var TorchSwitchControl = /** @class */ (function (_super) {
     return TorchSwitchControl;
 }(Serializeable_1.DefaultSerializeable));
 exports.TorchSwitchControl = TorchSwitchControl;
+var ZoomSwitchControl = /** @class */ (function (_super) {
+    __extends(ZoomSwitchControl, _super);
+    function ZoomSwitchControl() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.type = 'zoom';
+        _this.icon = {
+            zoomedOut: { default: null, pressed: null },
+            zoomedIn: { default: null, pressed: null },
+        };
+        _this.view = null;
+        return _this;
+    }
+    Object.defineProperty(ZoomSwitchControl.prototype, "zoomedOutImage", {
+        get: function () {
+            return this.icon.zoomedOut.default;
+        },
+        set: function (zoomedOutImage) {
+            var _a;
+            this.icon.zoomedOut.default = zoomedOutImage;
+            (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ZoomSwitchControl.prototype, "zoomedInImage", {
+        get: function () {
+            return this.icon.zoomedIn.default;
+        },
+        set: function (zoomedInImage) {
+            var _a;
+            this.icon.zoomedIn.default = zoomedInImage;
+            (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ZoomSwitchControl.prototype, "zoomedInPressedImage", {
+        get: function () {
+            return this.icon.zoomedIn.pressed;
+        },
+        set: function (zoomedInPressedImage) {
+            var _a;
+            this.icon.zoomedIn.pressed = zoomedInPressedImage;
+            (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ZoomSwitchControl.prototype, "zoomedOutPressedImage", {
+        get: function () {
+            return this.icon.zoomedOut.pressed;
+        },
+        set: function (zoomedOutPressedImage) {
+            var _a;
+            this.icon.zoomedOut.pressed = zoomedOutPressedImage;
+            (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    __decorate([
+        Serializeable_1.ignoreFromSerialization
+    ], ZoomSwitchControl.prototype, "view", void 0);
+    return ZoomSwitchControl;
+}(Serializeable_1.DefaultSerializeable));
+exports.ZoomSwitchControl = ZoomSwitchControl;
 var LogoStyle;
 (function (LogoStyle) {
     LogoStyle["Minimal"] = "minimal";

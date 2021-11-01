@@ -56,6 +56,9 @@ var Vibration = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    Vibration.fromJSON = function (json) {
+        return new Vibration(json.type);
+    };
     return Vibration;
 }(Serializeable_1.DefaultSerializeable));
 exports.Vibration = Vibration;
@@ -74,6 +77,9 @@ var Sound = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    Sound.fromJSON = function (json) {
+        return new Sound(json.resource);
+    };
     __decorate([
         Serializeable_1.ignoreFromSerializationIfNull
     ], Sound.prototype, "resource", void 0);
@@ -112,6 +118,9 @@ var Feedback = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    Feedback.fromJSON = function (json) {
+        return new Feedback(json.vibration ? Vibration.fromJSON(json.vibration) : null, json.sound ? Sound.fromJSON(json.sound) : null);
+    };
     Feedback.prototype.emit = function () {
         this.proxy.emit();
     };

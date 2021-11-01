@@ -11,6 +11,7 @@ import com.scandit.datacapture.core.ui.style.Brush
 import com.scandit.datacapture.reactnative.core.data.SerializableData
 import com.scandit.datacapture.reactnative.core.utils.hexString
 import com.scandit.datacapture.reactnative.core.utils.writableMap
+import org.json.JSONObject
 
 data class SerializableBrushDefaults(
     private val fillColor: String?,
@@ -28,6 +29,16 @@ data class SerializableBrushDefaults(
         putString(FIELD_FILL_COLOR, fillColor)
         putString(FIELD_STROKE_COLOR, strokeColor)
         putDouble(FIELD_STROKE_WIDTH, strokeWidth?.toDouble() ?: 0.0)
+    }
+
+    fun toJSONObject(): JSONObject {
+        val data = JSONObject()
+
+        data.put(FIELD_FILL_COLOR, fillColor)
+        data.put(FIELD_STROKE_COLOR, strokeColor)
+        data.put(FIELD_STROKE_WIDTH, strokeWidth?.toDouble() ?: 0.0)
+
+        return data
     }
 
     companion object {

@@ -17,8 +17,9 @@ import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.reactnative.core.handler.DataCaptureViewHandler
 
-class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
-        DataCaptureViewHandler.ViewListener {
+class DataCaptureViewManager :
+    ViewGroupManager<FrameLayout>(),
+    DataCaptureViewHandler.ViewListener {
 
     @get:VisibleForTesting
     var container: FrameLayout? = null
@@ -76,8 +77,10 @@ class DataCaptureViewManager : ViewGroupManager<FrameLayout>(),
         container?.let { container ->
             for (i in 0 until container.childCount) {
                 val child = container.getChildAt(i)
-                child.measure(makeMeasureSpec(container.measuredWidth, View.MeasureSpec.EXACTLY),
-                        makeMeasureSpec(container.measuredHeight, View.MeasureSpec.EXACTLY))
+                child.measure(
+                    makeMeasureSpec(container.measuredWidth, View.MeasureSpec.EXACTLY),
+                    makeMeasureSpec(container.measuredHeight, View.MeasureSpec.EXACTLY)
+                )
                 child.layout(0, 0, child.measuredWidth, child.measuredHeight)
             }
         }

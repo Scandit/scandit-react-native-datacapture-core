@@ -21,7 +21,8 @@ class SerializableLaserlineViewfinderDefaults(
 
     override fun toWritableMap(): WritableMap = writableMap {
         putString(FIELD_VIEW_FINDER_DEFAULT_STYLE, viewFinder.style.toJson())
-        putMap(FIELD_VIEW_FINDER_STYLES,
+        putMap(
+            FIELD_VIEW_FINDER_STYLES,
             writableMap {
                 putMap(
                     LaserlineViewfinderStyle.ANIMATED.toJson(),

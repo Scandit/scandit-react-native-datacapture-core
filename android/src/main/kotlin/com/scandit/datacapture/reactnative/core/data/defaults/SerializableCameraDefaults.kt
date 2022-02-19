@@ -23,9 +23,12 @@ data class SerializableCameraDefaults(
     override fun toWritableMap(): WritableMap = writableMap {
         putData(FIELD_CAMERA_SETTINGS_DEFAULTS, cameraSettingsDefaults)
         putString(FIELD_DEFAULT_POSITION, defaultPosition)
-        putArray(FIELD_AVAILABLE_POSITIONS, writableArray {
-            availablePositions.forEach { pushString(it.toJson()) }
-        })
+        putArray(
+            FIELD_AVAILABLE_POSITIONS,
+            writableArray {
+                availablePositions.forEach { pushString(it.toJson()) }
+            }
+        )
     }
 
     companion object {

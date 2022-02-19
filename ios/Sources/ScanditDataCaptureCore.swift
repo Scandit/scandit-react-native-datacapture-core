@@ -17,6 +17,7 @@ public let SDCSharedMethodQeueue = DispatchQueue(label: "com.scandit.reactnative
 enum ScanditDataCaptureCoreError: Int, CustomNSError {
     case deserializationError = 1
     case nilDataCaptureView
+    case nilFrame
 
     var domain: String { return "ScanditDataCaptureCoreErrorDomain" }
 
@@ -30,6 +31,8 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
             return "Unable to deserialize a valid object."
         case .nilDataCaptureView:
             return "DataCaptureView is null."
+        case .nilFrame:
+            return "Frame is null, it might've been reused already."
         }
     }
 
@@ -63,6 +66,8 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                 .forEach { $0.didUpdate(dataCaptureView: dataCaptureView) }
         }
     }
+    
+    public static var lastFrame: FrameData?
 
     lazy internal var contextDeserializer: DataCaptureContextDeserializer = {
         return DataCaptureContextDeserializer(frameSourceDeserializer: frameSourceDeserializer,
@@ -248,6 +253,17 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         SDCCameraPositionFromJSONString(cameraPosition, &position)
         let camera = Camera(position: position)
         resolve(camera?.isTorchAvailable ?? false)
+    }
+    
+    @objc(getLastFrame:reject:)
+    func getLastFrame(resolve: @escaping RCTPromiseResolveBlock,
+                      reject: @escaping RCTPromiseRejectBlock) {
+        guard let lastFrame = ScanditDataCaptureCore.lastFrame else {
+            let error = ScanditDataCaptureCoreError.nilFrame
+            reject(String(error.code), error.message, error)
+            return
+        }
+        resolve(lastFrame.jsonString)
     }
 
     public func addRNTDataCaptureViewListener(_ listener: RNTDataCaptureViewListener) {

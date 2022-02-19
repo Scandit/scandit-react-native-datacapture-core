@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Defaults = void 0;
 var react_native_1 = require("react-native");
 var Common_1 = require("../Common");
-var PrivateDataCaptureView_Related_1 = require("./PrivateDataCaptureView+Related");
 var Viewfinder_Related_1 = require("../Viewfinder+Related");
+var PrivateDataCaptureView_Related_1 = require("./PrivateDataCaptureView+Related");
 // tslint:disable-next-line:variable-name
 var NativeModule = react_native_1.NativeModules.ScanditDataCaptureCore;
 // tslint:disable-next-line:variable-name
@@ -57,11 +57,12 @@ exports.Defaults = {
         acc.styles[key] = {
             size: Common_1.SizeWithUnitAndAspect
                 .fromJSON(JSON.parse(viewfinder.size)),
-            color: Common_1.Color
-                .fromJSON(viewfinder.color),
+            color: Common_1.Color.fromJSON(viewfinder.color),
+            disabledColor: Common_1.Color.fromJSON(viewfinder.disabledColor),
             style: viewfinder.style,
             lineStyle: viewfinder.lineStyle,
             dimming: viewfinder.dimming,
+            disabledDimming: viewfinder.disabledDimming,
             animation: Viewfinder_Related_1.RectangularViewfinderAnimation
                 .fromJSON(JSON.parse(viewfinder.animation)),
         };

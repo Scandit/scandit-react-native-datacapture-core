@@ -48,31 +48,31 @@ class Deserializers private constructor(
         fun create(
             context: Context,
             frameSourceDeserializerListener:
-            FrameSourceDeserializerListener
+                FrameSourceDeserializerListener
         ): Deserializers {
             return Deserializers(
-                    context,
-                    modeDeserializers,
-                    componentDeserializers,
-                    frameSourceDeserializerListener
+                context,
+                modeDeserializers,
+                componentDeserializers,
+                frameSourceDeserializerListener
             )
         }
     }
 
     private val frameSourceDeserializer: FrameSourceDeserializer =
-            FrameSourceDeserializer(modeDeserializers).apply {
-                listener = frameSourceDeserializerListener
-            }
+        FrameSourceDeserializer(modeDeserializers).apply {
+            listener = frameSourceDeserializerListener
+        }
     private val dataCaptureViewDeserializer: DataCaptureViewDeserializer =
-            DataCaptureViewDeserializer(context, modeDeserializers)
+        DataCaptureViewDeserializer(context, modeDeserializers)
 
     val dataCaptureContextDeserializer: DataCaptureContextDeserializer =
-            DataCaptureContextDeserializer(
-                    frameSourceDeserializer,
-                    dataCaptureViewDeserializer,
-                    modeDeserializers,
-                    componentDeserializers
-            ).apply {
-                avoidThreadDependencies = true
-            }
+        DataCaptureContextDeserializer(
+            frameSourceDeserializer,
+            dataCaptureViewDeserializer,
+            modeDeserializers,
+            componentDeserializers
+        ).apply {
+            avoidThreadDependencies = true
+        }
 }

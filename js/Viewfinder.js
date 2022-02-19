@@ -21,9 +21,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AimerViewfinder = exports.SpotlightViewfinder = exports.RectangularViewfinder = exports.LaserlineViewfinder = exports.NoViewfinder = void 0;
 var Common_1 = require("./Common");
+var CommonEnums_1 = require("./CommonEnums");
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
-var CommonEnums_1 = require("./CommonEnums");
 // tslint:disable-next-line:variable-name
 exports.NoViewfinder = { type: 'none' };
 var LaserlineViewfinder = /** @class */ (function (_super) {
@@ -60,8 +60,10 @@ var RectangularViewfinder = /** @class */ (function (_super) {
         _this._style = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].style;
         _this._lineStyle = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].lineStyle;
         _this._dimming = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].dimming;
+        _this._disabledDimming = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].disabledDimming;
         _this._animation = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].animation;
-        _this.color = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].color;
+        _this._color = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].color;
+        _this._disabledColor = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].disabledColor;
         _this._sizeWithUnitAndAspect = Defaults_1.Defaults.RectangularViewfinder.styles[viewfinderStyle].size;
         if (lineStyle !== undefined) {
             _this._lineStyle = lineStyle;
@@ -89,12 +91,42 @@ var RectangularViewfinder = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    Object.defineProperty(RectangularViewfinder.prototype, "color", {
+        get: function () {
+            return this._color;
+        },
+        set: function (value) {
+            this._color = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(RectangularViewfinder.prototype, "disabledColor", {
+        get: function () {
+            return this._disabledColor;
+        },
+        set: function (value) {
+            this._disabledColor = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(RectangularViewfinder.prototype, "dimming", {
         get: function () {
             return this._dimming;
         },
         set: function (value) {
             this._dimming = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(RectangularViewfinder.prototype, "disabledDimming", {
+        get: function () {
+            return this._disabledDimming;
+        },
+        set: function (value) {
+            this._disabledDimming = value;
         },
         enumerable: false,
         configurable: true
@@ -131,11 +163,20 @@ var RectangularViewfinder = /** @class */ (function (_super) {
         Serializeable_1.nameForSerialization('dimming')
     ], RectangularViewfinder.prototype, "_dimming", void 0);
     __decorate([
+        Serializeable_1.nameForSerialization('disabledDimming')
+    ], RectangularViewfinder.prototype, "_disabledDimming", void 0);
+    __decorate([
         Serializeable_1.nameForSerialization('animation')
     ], RectangularViewfinder.prototype, "_animation", void 0);
     __decorate([
         Serializeable_1.nameForSerialization('size')
     ], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('color')
+    ], RectangularViewfinder.prototype, "_color", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('disabledColor')
+    ], RectangularViewfinder.prototype, "_disabledColor", void 0);
     return RectangularViewfinder;
 }(Serializeable_1.DefaultSerializeable));
 exports.RectangularViewfinder = RectangularViewfinder;

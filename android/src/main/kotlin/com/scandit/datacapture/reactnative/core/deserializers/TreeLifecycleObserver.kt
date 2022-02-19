@@ -32,14 +32,14 @@ object TreeLifecycleObserver {
     }
 
     interface Callbacks {
-        fun onTreeCreated(root: DataCaptureContext) = Unit
+        fun onTreeCreated(root: DataCaptureContext) { }
 
-        fun onTreeDestroyed() = Unit
+        fun onTreeDestroyed() { }
 
-        fun onBarcodeTrackingRemoved() = Unit
+        fun onBarcodeTrackingRemoved() { }
 
-        fun onBarcodeTrackingAdvancedOverlayRemoved() = Unit
+        fun onBarcodeTrackingAdvancedOverlayRemoved() { }
 
-        fun onParsersRemoved() = Unit
+        fun onParsersRemoved() { }
     }
 }

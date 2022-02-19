@@ -10,7 +10,6 @@ import androidx.annotation.VisibleForTesting
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableMap
 import com.scandit.datacapture.reactnative.core.utils.TestPromise.Status.*
-import java.lang.AssertionError
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 fun promise(): TestPromise = TestPromise()
@@ -96,22 +95,8 @@ class TestPromise : Promise {
 
     override fun toString(): String {
         return "TestPromise(value=$value, code=$code, message=$message, throwable=$throwable, " +
-                "userInfo=$userInfo, status=$status)"
+            "userInfo=$userInfo, status=$status)"
     }
 
     enum class Status { PENDING, RESOLVED, REJECTED }
-}
-
-inline fun waitTill(conditionDescription: String, forMs: Long = 5000L, condition: () -> Boolean) {
-    val iterCount = forMs / 50
-
-    for (i in 0..iterCount) {
-        if (condition()) {
-            return
-        }
-
-        Thread.sleep(50)
-    }
-
-    throw AssertionError("Still false after ${forMs}ms: $conditionDescription")
 }

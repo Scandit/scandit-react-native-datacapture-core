@@ -32,12 +32,18 @@ class RCTDataCaptureViewListener(
         if (!hasNativeListeners.get()) return
 
         val params = writableMap {
-            putMap(FIELD_SIZE, writableMap {
-                putInt(FIELD_WIDTH, width)
-                putInt(FIELD_HEIGHT, height)
-            })
-            putString(FIELD_ORIENTATION, DeviceOrientationMapper()
-                    .mapRotationToOrientation(screenRotation).toJson())
+            putMap(
+                FIELD_SIZE,
+                writableMap {
+                    putInt(FIELD_WIDTH, width)
+                    putInt(FIELD_HEIGHT, height)
+                }
+            )
+            putString(
+                FIELD_ORIENTATION,
+                DeviceOrientationMapper()
+                    .mapRotationToOrientation(screenRotation).toJson()
+            )
         }
         eventEmitter.emit(ON_SIZE_CHANGED_EVENT_NAME, params)
     }

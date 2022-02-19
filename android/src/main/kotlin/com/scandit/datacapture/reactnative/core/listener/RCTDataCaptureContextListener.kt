@@ -20,9 +20,9 @@ class RCTDataCaptureContextListener(
 
     companion object {
         private const val ON_OBSERVATION_STARTED_EVENT_NAME =
-                "dataCaptureContextListener-didStartObservingContext"
+            "dataCaptureContextListener-didStartObservingContext"
         private const val ON_STATUS_CHANGED_EVENT_NAME =
-                "dataCaptureContextListener-didChangeStatus"
+            "dataCaptureContextListener-didChangeStatus"
 
         private const val FIELD_STATUS = "status"
     }

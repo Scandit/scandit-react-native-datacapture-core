@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CameraProxy = void 0;
 var react_native_1 = require("react-native");
+var PrivateCamera_Related_1 = require("../private/PrivateCamera+Related");
 // tslint:disable:variable-name
 var NativeModule = react_native_1.NativeModules.ScanditDataCaptureCore;
 var EventEmitter = new react_native_1.NativeEventEmitter(NativeModule);
@@ -18,6 +19,11 @@ var CameraProxy = /** @class */ (function () {
         var proxy = new CameraProxy();
         proxy.camera = camera;
         return proxy;
+    };
+    CameraProxy.getLastFrame = function () {
+        return NativeModule.getLastFrame().then(function (frameDataJSONString) {
+            return PrivateCamera_Related_1.FrameData.fromJSON(JSON.parse(frameDataJSONString));
+        });
     };
     CameraProxy.prototype.getCurrentState = function () {
         return NativeModule.getCurrentCameraState(this.camera.position);

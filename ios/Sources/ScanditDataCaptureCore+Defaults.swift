@@ -88,8 +88,10 @@ extension ScanditDataCaptureCore {
                 "style": viewfinder.style.jsonString,
                 "size": viewfinder.sizeWithUnitAndAspect.jsonString,
                 "color": viewfinder.color.sdcHexString,
+                "disabledColor": viewfinder.disabledColor.sdcHexString,
                 "lineStyle": viewfinder.lineStyle.jsonString,
                 "dimming": viewfinder.dimming,
+                "disabledDimming": viewfinder.disabledDimming,
                 "animation": viewfinder.animation?.jsonString as Any
             ]
             return defaults

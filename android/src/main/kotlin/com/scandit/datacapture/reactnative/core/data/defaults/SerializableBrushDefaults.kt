@@ -20,9 +20,9 @@ data class SerializableBrushDefaults(
 ) : SerializableData {
 
     constructor(brush: Brush?) : this(
-            fillColor = brush?.fillColor?.hexString,
-            strokeColor = brush?.strokeColor?.hexString,
-            strokeWidth = brush?.strokeWidth
+        fillColor = brush?.fillColor?.hexString,
+        strokeColor = brush?.strokeColor?.hexString,
+        strokeWidth = brush?.strokeWidth
     )
 
     override fun toWritableMap(): WritableMap = writableMap {

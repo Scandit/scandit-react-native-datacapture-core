@@ -17,6 +17,8 @@ import com.scandit.datacapture.core.capture.DataCaptureContextListener
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.core.common.feedback.Feedback
 import com.scandit.datacapture.core.common.geometry.*
+import com.scandit.datacapture.core.data.FrameData
+import com.scandit.datacapture.core.data.toJson
 import com.scandit.datacapture.core.json.JsonValue
 import com.scandit.datacapture.core.source.*
 import com.scandit.datacapture.core.source.serialization.FrameSourceDeserializer
@@ -45,15 +47,15 @@ class ScanditDataCaptureCoreModule(
     private val reactContext: ReactApplicationContext,
     eventEmitter: RCTDeviceEventEmitter = LazyEventEmitter(reactContext),
     private val dataCaptureContextListener: RCTDataCaptureContextListener =
-            RCTDataCaptureContextListener(eventEmitter),
+        RCTDataCaptureContextListener(eventEmitter),
     private val frameSourceListener: RCTFrameSourceListener = RCTFrameSourceListener(eventEmitter),
     private val dataCaptureViewListener: RCTDataCaptureViewListener =
-            RCTDataCaptureViewListener(eventEmitter)
+        RCTDataCaptureViewListener(eventEmitter)
 ) : ReactContextBaseJavaModule(reactContext),
-        FrameSourceDeserializerListener,
-        DataCaptureContextListener by dataCaptureContextListener,
-        FrameSourceListener by frameSourceListener,
-        DataCaptureViewListener by dataCaptureViewListener {
+    FrameSourceDeserializerListener,
+    DataCaptureContextListener by dataCaptureContextListener,
+    FrameSourceListener by frameSourceListener,
+    DataCaptureViewListener by dataCaptureViewListener {
 
     companion object {
         private const val VERSION_KEY = "Version"
@@ -62,8 +64,14 @@ class ScanditDataCaptureCoreModule(
         private val ERROR_DESERIALIZATION_FAILED = Error(1, "Unable to deserialize a valid object.")
         private val ERROR_NULL_VIEW = Error(2, "DataCaptureView is null")
         private val ERROR_CAMERA_NOT_READY = Error(3, "Camera has yet not been instantiated.")
-        private val ERROR_WRONG_CAMERA_POSITION = Error(4, "CameraPosition argument does not " +
-                "match the position of the currently used camera.")
+        private val ERROR_WRONG_CAMERA_POSITION = Error(
+            4,
+            "CameraPosition argument does not " +
+                "match the position of the currently used camera."
+        )
+        private val ERROR_NULL_FRAME = Error(5, "Frame is null, it might've been reused already.")
+
+        var lastFrame: FrameData? = null
     }
 
     @get:VisibleForTesting
@@ -91,39 +99,39 @@ class ScanditDataCaptureCoreModule(
         val aimerViewfinder = AimerViewfinder()
         val brush = Brush.transparent()
         val availableCameraPositions = listOfNotNull(
-                Camera.getCamera(CameraPosition.USER_FACING)?.position,
-                Camera.getCamera(CameraPosition.WORLD_FACING)?.position
+            Camera.getCamera(CameraPosition.USER_FACING)?.position,
+            Camera.getCamera(CameraPosition.WORLD_FACING)?.position
         )
 
         SerializableCoreDefaults(
-                deviceId = DataCaptureContext.DEVICE_ID,
-                cameraDefaults = SerializableCameraDefaults(
-                        cameraSettingsDefaults = SerializableCameraSettingsDefaults(
-                                settings = cameraSettings
-                        ),
-                        availablePositions = availableCameraPositions,
-                        defaultPosition = Camera.getDefaultCamera()?.position?.toJson()
+            deviceId = DataCaptureContext.DEVICE_ID,
+            cameraDefaults = SerializableCameraDefaults(
+                cameraSettingsDefaults = SerializableCameraSettingsDefaults(
+                    settings = cameraSettings
                 ),
-                dataCaptureViewDefaults = SerializableDataCaptureViewDefaults(dataCaptureView),
-                laserlineViewfinderDefaults = SerializableLaserlineViewfinderDefaults(
-                    laserViewfinder
-                ),
-                rectangularViewfinderDefaults = SerializableRectangularViewfinderDefaults(
-                    rectangularViewfinder
-                ),
-                spotlightViewfinderDefaults = SerializableSpotlightViewfinderDefaults(
-                        size = spotlightViewfinder.sizeWithUnitAndAspect.toJson(),
-                        enabledBorderColor = spotlightViewfinder.enabledBorderColor.hexString,
-                        disabledBorderColor = spotlightViewfinder.disabledBorderColor.hexString,
-                        backgroundColor = spotlightViewfinder.backgroundColor.hexString
-                ),
-                aimerViewfinderDefaults = SerializableAimerViewfinderDefaults(
-                        frameColor = aimerViewfinder.frameColor.hexString,
-                        dotColor = aimerViewfinder.dotColor.hexString
-                ),
-                brushDefaults = SerializableBrushDefaults(
-                        brush = brush
-                )
+                availablePositions = availableCameraPositions,
+                defaultPosition = Camera.getDefaultCamera()?.position?.toJson()
+            ),
+            dataCaptureViewDefaults = SerializableDataCaptureViewDefaults(dataCaptureView),
+            laserlineViewfinderDefaults = SerializableLaserlineViewfinderDefaults(
+                laserViewfinder
+            ),
+            rectangularViewfinderDefaults = SerializableRectangularViewfinderDefaults(
+                rectangularViewfinder
+            ),
+            spotlightViewfinderDefaults = SerializableSpotlightViewfinderDefaults(
+                size = spotlightViewfinder.sizeWithUnitAndAspect.toJson(),
+                enabledBorderColor = spotlightViewfinder.enabledBorderColor.hexString,
+                disabledBorderColor = spotlightViewfinder.disabledBorderColor.hexString,
+                backgroundColor = spotlightViewfinder.backgroundColor.hexString
+            ),
+            aimerViewfinderDefaults = SerializableAimerViewfinderDefaults(
+                frameColor = aimerViewfinder.frameColor.hexString,
+                dotColor = aimerViewfinder.dotColor.hexString
+            ),
+            brushDefaults = SerializableBrushDefaults(
+                brush = brush
+            )
         )
     }
 
@@ -138,8 +146,8 @@ class ScanditDataCaptureCoreModule(
     override fun getName(): String = "ScanditDataCaptureCore"
 
     override fun getConstants(): MutableMap<String, Any> = mutableMapOf(
-            VERSION_KEY to DataCaptureVersion.VERSION_STRING,
-            DEFAULTS_KEY to defaults.toWritableMap()
+        VERSION_KEY to DataCaptureVersion.VERSION_STRING,
+        DEFAULTS_KEY to defaults.toWritableMap()
     )
 
     @ReactMethod
@@ -205,10 +213,10 @@ class ScanditDataCaptureCoreModule(
                 TreeLifecycleObserver.dispatchParsersRemoved()
 
                 val result = deserializers.dataCaptureContextDeserializer.updateContextFromJson(
-                        dataCaptureContext,
-                        DataCaptureViewHandler.dataCaptureView,
-                        emptyList(),
-                        newJson
+                    dataCaptureContext,
+                    DataCaptureViewHandler.dataCaptureView,
+                    emptyList(),
+                    newJson
                 )
 
                 DataCaptureViewHandler.dataCaptureView?.removeListener(this)
@@ -224,6 +232,18 @@ class ScanditDataCaptureCoreModule(
 
         // Since dataCaptureContext is null, initialize it instead of updating it.
         contextFromJSON(json, promise)
+    }
+
+    @ReactMethod
+    fun getLastFrame(promise: Promise) {
+        val lastFrame = ScanditDataCaptureCoreModule.lastFrame
+
+        if (lastFrame == null) {
+            promise.reject(ERROR_NULL_FRAME)
+            return
+        }
+
+        promise.resolve(lastFrame.toJson())
     }
 
     @ReactMethod
@@ -263,10 +283,11 @@ class ScanditDataCaptureCoreModule(
 
         try {
             val mappedPoint = view.mapFramePointToView(
-                    PointDeserializer.fromJson(json)
+                PointDeserializer.fromJson(json)
             ).densityIndependent
             promise.resolve(mappedPoint.toJson())
         } catch (e: JSONException) {
+            println(e)
             promise.reject(ERROR_DESERIALIZATION_FAILED)
         }
     }
@@ -280,20 +301,21 @@ class ScanditDataCaptureCoreModule(
 
         try {
             val mappedQuadrilateral = view.mapFrameQuadrilateralToView(
-                    QuadrilateralDeserializer.fromJson(json)
+                QuadrilateralDeserializer.fromJson(json)
             ).densityIndependent
             promise.resolve(mappedQuadrilateral.toJson())
         } catch (e: JSONException) {
+            println(e)
             promise.reject(ERROR_DESERIALIZATION_FAILED)
         }
     }
 
     private val Quadrilateral.densityIndependent: Quadrilateral
         get() = Quadrilateral(
-                topLeft.densityIndependent,
-                topRight.densityIndependent,
-                bottomRight.densityIndependent,
-                bottomLeft.densityIndependent
+            topLeft.densityIndependent,
+            topRight.densityIndependent,
+            bottomRight.densityIndependent,
+            bottomLeft.densityIndependent
         )
 
     private val Point.densityIndependent: Point
@@ -307,11 +329,11 @@ class ScanditDataCaptureCoreModule(
         try {
             @Suppress("UseCheckOrError") // Explicit exception for readability.
             camera
-                    ?.takeIf { it.position == CameraPositionDeserializer.fromJson(cameraPosition) }
-                    ?.let { promise.resolve(it.currentState.toJson()) }
-                    ?: throw IllegalStateException(
-                            "Camera at $cameraPosition has yet not been instantiated."
-                    )
+                ?.takeIf { it.position == CameraPositionDeserializer.fromJson(cameraPosition) }
+                ?.let { promise.resolve(it.currentState.toJson()) }
+                ?: throw IllegalStateException(
+                    "Camera at $cameraPosition has yet not been instantiated."
+                )
         } catch (e: IllegalStateException) {
             promise.reject(e)
         }
@@ -342,14 +364,16 @@ class ScanditDataCaptureCoreModule(
         camera?.let {
             if (json.contains("desiredTorchState")) {
                 it.desiredTorchState = TorchStateDeserializer.fromJson(
-                        json.requireByKeyAsString("desiredTorchState")
+                    json.requireByKeyAsString("desiredTorchState")
                 )
             }
 
             if (json.contains("desiredState")) {
-                it.switchToDesiredState(FrameSourceStateDeserializer.fromJson(
+                it.switchToDesiredState(
+                    FrameSourceStateDeserializer.fromJson(
                         json.requireByKeyAsString("desiredState")
-                ))
+                    )
+                )
             }
         }
     }

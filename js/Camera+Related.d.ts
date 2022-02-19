@@ -46,3 +46,15 @@ export declare class CameraSettings extends DefaultSerializeable {
     setProperty(name: string, value: any): void;
     getProperty(name: string): any;
 }
+export interface FrameData {
+    readonly imageBuffers: ImageBuffer[];
+    readonly orientation: number;
+}
+export declare class ImageBuffer {
+    private _width;
+    private _height;
+    private _data;
+    get width(): number;
+    get height(): number;
+    get data(): string;
+}

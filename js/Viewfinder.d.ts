@@ -1,6 +1,6 @@
 import { Color, NumberWithUnit, SizeWithUnit, SizeWithUnitAndAspect } from './Common';
 import { DefaultSerializeable } from './private/Serializeable';
-import { RectangularViewfinderLineStyle, RectangularViewfinderStyle, LaserlineViewfinderStyle, RectangularViewfinderAnimation } from './Viewfinder+Related';
+import { LaserlineViewfinderStyle, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle } from './Viewfinder+Related';
 export interface Viewfinder {
 }
 export declare const NoViewfinder: {
@@ -21,17 +21,25 @@ export declare class RectangularViewfinder extends DefaultSerializeable implemen
     private readonly _style;
     private readonly _lineStyle;
     private _dimming;
+    private _disabledDimming;
     private _animation;
     private _sizeWithUnitAndAspect;
-    color: Color;
+    private _color;
+    private _disabledColor;
     get sizeWithUnitAndAspect(): SizeWithUnitAndAspect;
     constructor();
     constructor(style: RectangularViewfinderStyle);
     constructor(style: RectangularViewfinderStyle, lineStyle: RectangularViewfinderLineStyle);
     get style(): RectangularViewfinderStyle;
     get lineStyle(): RectangularViewfinderLineStyle;
+    get color(): Color;
+    set color(value: Color);
+    get disabledColor(): Color;
+    set disabledColor(value: Color);
     get dimming(): number;
     set dimming(value: number);
+    get disabledDimming(): number;
+    set disabledDimming(value: number);
     get animation(): RectangularViewfinderAnimation | null;
     set animation(animation: RectangularViewfinderAnimation | null);
     setSize(size: SizeWithUnit): void;

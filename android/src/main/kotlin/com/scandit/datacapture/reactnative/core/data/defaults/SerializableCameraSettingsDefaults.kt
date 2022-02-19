@@ -22,12 +22,12 @@ data class SerializableCameraSettingsDefaults(
 ) : SerializableData {
 
     constructor(settings: CameraSettings) : this(
-            prefResolution = settings.preferredResolution.toJson(),
-            zoomFactor = settings.zoomFactor,
-            focusRange = "full",
-            zoomGestureZoomFactor = settings.zoomGestureZoomFactor,
-            focusGestureStrategy = settings.focusGestureStrategy.toJson(),
-            shouldPreferSmoothAutoFocus = settings.shouldPreferSmoothAutoFocus
+        prefResolution = settings.preferredResolution.toJson(),
+        zoomFactor = settings.zoomFactor,
+        focusRange = "full",
+        zoomGestureZoomFactor = settings.zoomGestureZoomFactor,
+        focusGestureStrategy = settings.focusGestureStrategy.toJson(),
+        shouldPreferSmoothAutoFocus = settings.shouldPreferSmoothAutoFocus
     )
 
     override fun toWritableMap(): WritableMap = writableMap {

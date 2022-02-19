@@ -13,7 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
+exports.ImageBuffer = exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
 var TorchState;
@@ -137,4 +137,31 @@ var CameraSettings = /** @class */ (function (_super) {
     return CameraSettings;
 }(Serializeable_1.DefaultSerializeable));
 exports.CameraSettings = CameraSettings;
+var ImageBuffer = /** @class */ (function () {
+    function ImageBuffer() {
+    }
+    Object.defineProperty(ImageBuffer.prototype, "width", {
+        get: function () {
+            return this._width;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ImageBuffer.prototype, "height", {
+        get: function () {
+            return this._height;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ImageBuffer.prototype, "data", {
+        get: function () {
+            return this._data;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return ImageBuffer;
+}());
+exports.ImageBuffer = ImageBuffer;
 //# sourceMappingURL=Camera+Related.js.map

@@ -20,14 +20,14 @@ internal inline fun withRnViewsRemovedOnUiThread(json: JsonString, update: (Json
         val jsonObject = JSONObject(json)
         val view = DataCaptureViewHandler.dataCaptureView
         val barcodeTrackingAdvancedOverlay =
-                view?.getOverlay(Barcode.barcodeTrackingAdvancedOverlayClass)
+            view?.getOverlay(Barcode.barcodeTrackingAdvancedOverlayClass)
 
         if (barcodeTrackingAdvancedOverlay != null) {
             withBarcodeTrackingAdvancedOverlayViewsRemovedOnUiThread(
-                    view,
-                    barcodeTrackingAdvancedOverlay,
-                    jsonObject,
-                    update
+                view,
+                barcodeTrackingAdvancedOverlay,
+                jsonObject,
+                update
             )
 
             return
@@ -71,7 +71,7 @@ private inline fun withBarcodeTrackingAdvancedOverlayViewsRemovedOnUiThread(
 
 internal object Barcode {
     private const val BARCODE_TRACKING_ADVANCED_OVERLAY_CLASS_NAME =
-            "com.scandit.datacapture.barcode.tracking.ui.overlay.BarcodeTrackingAdvancedOverlay"
+        "com.scandit.datacapture.barcode.tracking.ui.overlay.BarcodeTrackingAdvancedOverlay"
 
     lateinit var barcodeTrackingAdvancedOverlayClass: Class<*>
         private set
@@ -91,10 +91,11 @@ internal object Barcode {
     private fun checkClasspath() {
         try {
             barcodeTrackingAdvancedOverlayClass =
-                    Class.forName(BARCODE_TRACKING_ADVANCED_OVERLAY_CLASS_NAME)
+                Class.forName(BARCODE_TRACKING_ADVANCED_OVERLAY_CLASS_NAME)
             isInClasspath = true
         } catch (e: ClassNotFoundException) {
             // Barcode not in classpath.
+            println(e)
         }
 
         classpathChecked = true

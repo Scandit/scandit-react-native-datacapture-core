@@ -30,6 +30,9 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
     }
 
     deinit {
+        if bridge == nil {
+            return;
+        }
         guard let coreModule =
             bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore else { return }
         coreModule.removeRNTDataCaptureViewListener(self)

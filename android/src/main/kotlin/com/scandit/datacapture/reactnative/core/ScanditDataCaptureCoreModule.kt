@@ -72,6 +72,7 @@ class ScanditDataCaptureCoreModule(
         private val ERROR_NULL_FRAME = Error(5, "Frame is null, it might've been reused already.")
 
         var lastFrame: FrameData? = null
+        var context: DataCaptureContext? = null
     }
 
     @get:VisibleForTesting
@@ -80,6 +81,7 @@ class ScanditDataCaptureCoreModule(
             field?.removeListener(this)
             field?.release()
             field = value?.also { it.addListener(this) }
+            context = value
         }
 
     private var camera: Camera? = null

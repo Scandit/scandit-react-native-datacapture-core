@@ -50,6 +50,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
         didSet {
             context?.addListener(self)
+            ScanditDataCaptureCore.dataCaptureContext = context
         }
     }
 
@@ -68,6 +69,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
     
     public static var lastFrame: FrameData?
+    public static var dataCaptureContext: DataCaptureContext?
 
     lazy internal var contextDeserializer: DataCaptureContextDeserializer = {
         return DataCaptureContextDeserializer(frameSourceDeserializer: frameSourceDeserializer,

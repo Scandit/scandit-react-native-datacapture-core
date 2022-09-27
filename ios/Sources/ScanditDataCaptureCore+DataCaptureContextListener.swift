@@ -15,22 +15,35 @@ extension ScanditDataCaptureCore: FrameSourceDeserializerDelegate {
     public func frameSourceDeserializer(_ deserializer: FrameSourceDeserializer,
                                         didFinishDeserializingFrameSource frameSource: FrameSource,
                                         from JSONValue: JSONValue) {
-        guard let camera = frameSource as? Camera else { return }
-        camera.addListener(self)
-
-        if JSONValue.containsKey("desiredState") {
-            let desiredStateJson = JSONValue.string(forKey: "desiredState")
-            var desiredState = FrameSourceState.on
-            if SDCFrameSourceStateFromJSONString(desiredStateJson, &desiredState) {
-                camera.switch(toDesiredState: desiredState)
-            }
-        }
-
-        if JSONValue.containsKey("desiredTorchState") {
-            let desiredTorchStateJson = JSONValue.string(forKey: "desiredTorchState")
-            var desiredTorchState = TorchState.off
-            if SDCTorchStateFromJSONString(desiredTorchStateJson, &desiredTorchState) {
-                camera.desiredTorchState = desiredTorchState
+        if JSONValue.containsKey("type") {
+            let type = JSONValue.string(forKey: "type")
+            if type == "camera" {
+                guard let camera = frameSource as? Camera else { return }
+                camera.addListener(self)
+                if JSONValue.containsKey("desiredState") {
+                    let desiredStateJson = JSONValue.string(forKey: "desiredState")
+                    var desiredState = FrameSourceState.on
+                    if SDCFrameSourceStateFromJSONString(desiredStateJson, &desiredState) {
+                        camera.switch(toDesiredState: desiredState)
+                    }
+                }
+                if JSONValue.containsKey("desiredTorchState") {
+                    let desiredTorchStateJson = JSONValue.string(forKey: "desiredTorchState")
+                    var desiredTorchState = TorchState.off
+                    if SDCTorchStateFromJSONString(desiredTorchStateJson, &desiredTorchState) {
+                        camera.desiredTorchState = desiredTorchState
+                    }
+                }
+            } else {
+                guard let imageFrameSource = frameSource as? ImageFrameSource else { return }
+                imageFrameSource.addListener(self)
+                if JSONValue.containsKey("desiredState") {
+                    let desiredStateJson = JSONValue.string(forKey: "desiredState")
+                    var desiredState = FrameSourceState.on
+                    if SDCFrameSourceStateFromJSONString(desiredStateJson, &desiredState) {
+                        imageFrameSource.switch(toDesiredState: desiredState)
+                    }
+                }
             }
         }
     }

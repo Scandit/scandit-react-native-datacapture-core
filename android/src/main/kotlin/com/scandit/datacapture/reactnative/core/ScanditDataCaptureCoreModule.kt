@@ -90,6 +90,12 @@ class ScanditDataCaptureCoreModule(
             field = value?.also { it.addListener(this) }
         }
 
+    private var imageFrameSource: BitmapFrameSource? = null
+        private set(value) {
+            field?.removeListener(this)
+            field = value?.also { it.addListener(this) }
+        }
+
     private var latestFeedback: Feedback? = null
 
     private val defaults: SerializableCoreDefaults by lazy {
@@ -255,6 +261,7 @@ class ScanditDataCaptureCoreModule(
         dataCaptureContext?.release()
         dataCaptureContext = null
         camera = null
+        imageFrameSource = null
 
         DataCaptureViewHandler.dataCaptureView?.removeListener(this)
         DataCaptureViewHandler.dataCaptureView = null
@@ -361,7 +368,7 @@ class ScanditDataCaptureCoreModule(
         frameSource: FrameSource,
         json: JsonValue
     ) {
-        camera = frameSource as? Camera ?: return
+        camera = frameSource as? Camera
 
         camera?.let {
             if (json.contains("desiredTorchState")) {
@@ -376,6 +383,18 @@ class ScanditDataCaptureCoreModule(
                         json.requireByKeyAsString("desiredState")
                     )
                 )
+            }
+        } ?: run {
+            imageFrameSource = frameSource as? BitmapFrameSource
+
+            imageFrameSource?.let {
+                if (json.contains("desiredState")) {
+                    it.switchToDesiredState(
+                        FrameSourceStateDeserializer.fromJson(
+                            json.requireByKeyAsString("desiredState")
+                        )
+                    )
+                }
             }
         }
     }

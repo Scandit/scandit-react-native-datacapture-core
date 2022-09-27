@@ -1,4 +1,5 @@
 import { DefaultSerializeable } from './private/Serializeable';
+import { FrameSource, FrameSourceListener, FrameSourceState } from './FrameSource';
 export declare enum TorchState {
     On = "on",
     Off = "off",
@@ -57,4 +58,25 @@ export declare class ImageBuffer {
     get width(): number;
     get height(): number;
     get data(): string;
+}
+export declare class ImageFrameSource extends DefaultSerializeable implements FrameSource {
+    private set context(value);
+    private get context();
+    get desiredState(): FrameSourceState;
+    private position;
+    private type;
+    private image;
+    private _id;
+    private _desiredState;
+    private listeners;
+    private _context;
+    private proxy;
+    static create(image: string): ImageFrameSource;
+    private static fromJSON;
+    private constructor();
+    private didChange;
+    switchToDesiredState(state: FrameSourceState): Promise<void>;
+    addListener(listener: FrameSourceListener | null): void;
+    removeListener(listener: FrameSourceListener | null): void;
+    getCurrentState(): Promise<FrameSourceState>;
 }

@@ -12,10 +12,18 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ImageBuffer = exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
+exports.ImageFrameSource = exports.ImageBuffer = exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
 var Defaults_1 = require("./private/Defaults");
 var Serializeable_1 = require("./private/Serializeable");
+var FrameSource_1 = require("./FrameSource");
+var ImageFrameSourceProxy_1 = require("./native/ImageFrameSourceProxy");
 var TorchState;
 (function (TorchState) {
     TorchState["On"] = "on";
@@ -164,4 +172,99 @@ var ImageBuffer = /** @class */ (function () {
     return ImageBuffer;
 }());
 exports.ImageBuffer = ImageBuffer;
+var ImageFrameSource = /** @class */ (function (_super) {
+    __extends(ImageFrameSource, _super);
+    function ImageFrameSource() {
+        var _this = _super.call(this) || this;
+        _this.type = 'image';
+        _this.image = '';
+        _this._id = "" + Date.now();
+        _this._desiredState = FrameSource_1.FrameSourceState.Off;
+        _this.listeners = [];
+        _this._context = null;
+        _this.proxy = ImageFrameSourceProxy_1.ImageFrameSourceProxy.forImage(_this);
+        return _this;
+    }
+    Object.defineProperty(ImageFrameSource.prototype, "context", {
+        get: function () {
+            return this._context;
+        },
+        set: function (newContext) {
+            if (newContext == null) {
+                this.proxy.unsubscribeListener();
+            }
+            else if (this._context == null) {
+                this.proxy.subscribeListener();
+            }
+            this._context = newContext;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ImageFrameSource.prototype, "desiredState", {
+        get: function () {
+            return this._desiredState;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    ImageFrameSource.create = function (image) {
+        var imageFrameSource = new ImageFrameSource();
+        imageFrameSource.image = image;
+        return imageFrameSource;
+    };
+    ImageFrameSource.fromJSON = function (json) {
+        return ImageFrameSource.create(json.image);
+    };
+    ImageFrameSource.prototype.didChange = function () {
+        if (this.context) {
+            return this.context.update();
+        }
+        else {
+            return Promise.resolve();
+        }
+    };
+    ImageFrameSource.prototype.switchToDesiredState = function (state) {
+        this._desiredState = state;
+        return this.didChange();
+    };
+    ImageFrameSource.prototype.addListener = function (listener) {
+        if (listener == null) {
+            return;
+        }
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    };
+    ImageFrameSource.prototype.removeListener = function (listener) {
+        if (listener == null) {
+            return;
+        }
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+    };
+    ImageFrameSource.prototype.getCurrentState = function () {
+        return this.proxy.getCurrentState();
+    };
+    __decorate([
+        Serializeable_1.nameForSerialization('id')
+    ], ImageFrameSource.prototype, "_id", void 0);
+    __decorate([
+        Serializeable_1.nameForSerialization('desiredState')
+    ], ImageFrameSource.prototype, "_desiredState", void 0);
+    __decorate([
+        Serializeable_1.ignoreFromSerialization
+    ], ImageFrameSource.prototype, "listeners", void 0);
+    __decorate([
+        Serializeable_1.ignoreFromSerialization
+    ], ImageFrameSource.prototype, "_context", void 0);
+    __decorate([
+        Serializeable_1.ignoreFromSerialization
+    ], ImageFrameSource.prototype, "proxy", void 0);
+    return ImageFrameSource;
+}(Serializeable_1.DefaultSerializeable));
+exports.ImageFrameSource = ImageFrameSource;
 //# sourceMappingURL=Camera+Related.js.map

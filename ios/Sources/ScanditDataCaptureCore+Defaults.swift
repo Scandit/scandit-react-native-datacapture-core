@@ -47,10 +47,7 @@ extension ScanditDataCaptureCore {
     }
 
     var dataCaptureViewDefaults: [String: Any] {
-        var view: DataCaptureView!
-        DispatchQueue.main.sync {
-            view = DataCaptureView(frame: .zero)
-        }
+        var view = DataCaptureView(frame: .zero)
         return ["scanAreaMargins": DataCaptureView.defaultScanAreaMargins.jsonString,
                 "pointOfInterest": DataCaptureView.defaultPointOfInterest.jsonString,
                 "logoAnchor": DataCaptureView.defaultLogoAnchor.jsonString,

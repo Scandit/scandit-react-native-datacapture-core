@@ -128,7 +128,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     internal var hasListeners = false
 
     public override class func requiresMainQueueSetup() -> Bool {
-        return false
+        return true
     }
 
     public override var methodQueue: DispatchQueue! {

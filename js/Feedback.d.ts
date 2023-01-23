@@ -1,11 +1,25 @@
 import { DefaultSerializeable } from './private/Serializeable';
+declare enum VibrationType {
+    default = "default",
+    selectionHaptic = "selectionHaptic",
+    successHaptic = "successHaptic",
+    waveForm = "waveForm"
+}
 export declare class Vibration extends DefaultSerializeable {
     private type;
     static get defaultVibration(): Vibration;
     static get selectionHapticFeedback(): Vibration;
     static get successHapticFeedback(): Vibration;
     private static fromJSON;
-    private constructor();
+    protected constructor(type: VibrationType);
+}
+export declare class WaveFormVibration extends Vibration {
+    private _timings;
+    get timings(): number[];
+    private _amplitudes;
+    get amplitudes(): number[] | null;
+    constructor(timings: number[], amplitudes?: number[] | null);
+    toJSON(): object;
 }
 export declare class Sound extends DefaultSerializeable {
     resource: string | null;
@@ -24,3 +38,4 @@ export declare class Feedback extends DefaultSerializeable {
     constructor(vibration: Vibration | null, sound: Sound | null);
     emit(): void;
 }
+export {};

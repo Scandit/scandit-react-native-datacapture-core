@@ -11,10 +11,6 @@ public protocol RNTDataCaptureViewListener: class {
     func didUpdate(dataCaptureView: DataCaptureView?)
 }
 
-public protocol RNTDataCaptureContextListener: class {
-    func didUpdate(dataCaptureContext: DataCaptureContext?)
-}
-
 public let SDCSharedMethodQeueue = DispatchQueue(label: "com.scandit.reactnative.methodQueue",
                                                  qos: .userInteractive)
 
@@ -23,12 +19,10 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
     case nilDataCaptureView
     case nilFrame
 
-    var domain: String {
-        "ScanditDataCaptureCoreErrorDomain"
-    }
+    var domain: String { return "ScanditDataCaptureCoreErrorDomain" }
 
     var code: Int {
-        rawValue
+        return rawValue
     }
 
     var message: String {
@@ -43,7 +37,7 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
     }
 
     var errorUserInfo: [String: Any] {
-        [NSLocalizedDescriptionKey: message]
+        return [NSLocalizedDescriptionKey: message]
     }
 }
 
@@ -56,11 +50,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
         didSet {
             context?.addListener(self)
-            pthread_mutex_lock(&dataCaptureContextListenersLock)
-            defer { pthread_mutex_unlock(&dataCaptureContextListenersLock) }
-            dataCaptureContextListeners
-                .compactMap { $0 as? RNTDataCaptureContextListener }
-                .forEach { $0.didUpdate(dataCaptureContext: context) }
+            ScanditDataCaptureCore.dataCaptureContext = context
         }
     }
 
@@ -68,7 +58,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         didSet {
             guard oldValue != dataCaptureView else { return }
 
-            dataCaptureView?.addListener(self)
+            self.dataCaptureView?.addListener(self)
 
             pthread_mutex_lock(&dataCaptureViewListenersLock)
             defer {pthread_mutex_unlock(&dataCaptureViewListenersLock)}
@@ -79,16 +69,17 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
     
     public static var lastFrame: FrameData?
+    public static var dataCaptureContext: DataCaptureContext?
 
     lazy internal var contextDeserializer: DataCaptureContextDeserializer = {
-        DataCaptureContextDeserializer(frameSourceDeserializer: frameSourceDeserializer,
-                                       viewDeserializer: dataCaptureViewDeserializer,
-                                       modeDeserializers: modeDeserializers,
-                                       componentDeserializers: componentDeserializers)
+        return DataCaptureContextDeserializer(frameSourceDeserializer: frameSourceDeserializer,
+                                              viewDeserializer: dataCaptureViewDeserializer,
+                                              modeDeserializers: modeDeserializers,
+                                              componentDeserializers: componentDeserializers)
     }()
 
     lazy internal var dataCaptureViewDeserializer: DataCaptureViewDeserializer = {
-        DataCaptureViewDeserializer(modeDeserializers: modeDeserializers)
+        return DataCaptureViewDeserializer(modeDeserializers: modeDeserializers)
     }()
 
     lazy internal var frameSourceDeserializer: FrameSourceDeserializer = {
@@ -100,7 +91,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     static var RNTSDCModeDeserializers = [DataCaptureModeDeserializer]()
     internal var modeDeserializers: [DataCaptureModeDeserializer] {
-        ScanditDataCaptureCore.RNTSDCModeDeserializers
+        return ScanditDataCaptureCore.RNTSDCModeDeserializers
     }
 
     static public func register(modeDeserializer: DataCaptureModeDeserializer) {
@@ -112,7 +103,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     static var RNTSDCComponentDeserializers = [DataCaptureComponentDeserializer]()
     internal var componentDeserializers: [DataCaptureComponentDeserializer] {
-        ScanditDataCaptureCore.RNTSDCComponentDeserializers
+        return ScanditDataCaptureCore.RNTSDCComponentDeserializers
     }
 
     static public func register(componentDeserializer: DataCaptureComponentDeserializer) {
@@ -127,24 +118,21 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     fileprivate var componentsSet = Set<String>()
     public func hasComponent(with id: String) -> Bool {
-        componentsSet.contains(id)
+        return componentsSet.contains(id)
     }
 
     // dataCaptureViewListeners
     private var dataCaptureViewListenersLock = pthread_mutex_t()
     private lazy var dataCaptureViewListeners = NSMutableSet()
 
-    private var dataCaptureContextListenersLock = pthread_mutex_t()
-    private lazy var dataCaptureContextListeners = NSMutableSet()
-
     internal var hasListeners = false
 
     public override class func requiresMainQueueSetup() -> Bool {
-        true
+        return true
     }
 
     public override var methodQueue: DispatchQueue! {
-        SDCSharedMethodQeueue
+        return SDCSharedMethodQeueue
     }
 
     deinit {
@@ -280,12 +268,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         resolve(lastFrame.jsonString)
     }
 
-    @objc(getLastFrameOrNull:reject:)
-    func getLastFrameOrNull(resolve: @escaping RCTPromiseResolveBlock,
-                            reject: @escaping RCTPromiseRejectBlock) {
-        resolve(ScanditDataCaptureCore.lastFrame?.jsonString)
-    }
-
     public func addRNTDataCaptureViewListener(_ listener: RNTDataCaptureViewListener) {
         pthread_mutex_lock(&dataCaptureViewListenersLock)
         defer {pthread_mutex_unlock(&dataCaptureViewListenersLock)}
@@ -298,20 +280,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         pthread_mutex_lock(&dataCaptureViewListenersLock)
         defer {pthread_mutex_unlock(&dataCaptureViewListenersLock)}
         dataCaptureViewListeners.remove(listener)
-    }
-
-    public func addRNTDataCaptureContextListener(_ listener: RNTDataCaptureContextListener) {
-        pthread_mutex_lock(&dataCaptureContextListenersLock)
-        defer { pthread_mutex_unlock(&dataCaptureContextListenersLock) }
-        guard !dataCaptureContextListeners.contains(listener) else { return }
-        dataCaptureContextListeners.add(listener)
-        listener.didUpdate(dataCaptureContext: context)
-    }
-
-    public func removeRNTDataCaptureContextListener(_ listener: RNTDataCaptureContextListener) {
-        pthread_mutex_lock(&dataCaptureContextListenersLock)
-        defer {pthread_mutex_unlock(&dataCaptureContextListenersLock)}
-        dataCaptureContextListeners.remove(listener)
     }
 
     // Empty methods to unify the logic on the TS side for supporting functionality automatically provided by RN on iOS,

@@ -1,8 +1,6 @@
 import { Feedback, Sound, Vibration } from '../Feedback';
 export interface VibrationJSON {
     type: string;
-    timings: number[] | null;
-    amplitudes: number[] | null;
 }
 export interface PrivateVibration {
     fromJSON(json: VibrationJSON): Vibration;

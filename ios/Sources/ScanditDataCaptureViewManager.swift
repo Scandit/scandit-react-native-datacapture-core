@@ -26,7 +26,7 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
     }
 
     override class func requiresMainQueueSetup() -> Bool {
-        true
+        return true
     }
 
     deinit {

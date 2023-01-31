@@ -25,13 +25,6 @@ var CameraProxy = /** @class */ (function () {
             return PrivateCamera_Related_1.FrameData.fromJSON(JSON.parse(frameDataJSONString));
         });
     };
-    CameraProxy.getLastFrameOrNull = function () {
-        return NativeModule.getLastFrameOrNull().then(function (frameDataJSONString) {
-            if (!frameDataJSONString)
-                return null;
-            return PrivateCamera_Related_1.FrameData.fromJSON(JSON.parse(frameDataJSONString));
-        });
-    };
     CameraProxy.prototype.getCurrentState = function () {
         return NativeModule.getCurrentCameraState(this.camera.position);
     };

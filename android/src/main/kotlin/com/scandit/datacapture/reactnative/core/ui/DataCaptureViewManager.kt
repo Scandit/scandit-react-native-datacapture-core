@@ -9,7 +9,6 @@ package com.scandit.datacapture.reactnative.core.ui
 import android.view.Choreographer
 import android.view.View
 import android.view.View.MeasureSpec.makeMeasureSpec
-import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
@@ -23,17 +22,12 @@ class DataCaptureViewManager :
     DataCaptureViewHandler.ViewListener {
 
     @get:VisibleForTesting
-    val currentContainer: FrameLayout?
-        get() {
-            return if (containers.size > 0) containers[containers.size - 1] else null
-        }
+    var container: FrameLayout? = null
 
-    private val containers = mutableListOf<FrameLayout>()
-
-    private val frameCallback: Choreographer.FrameCallback = object : Choreographer.FrameCallback {
+    val frameCallback: Choreographer.FrameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             manuallyLayoutChildren()
-            currentContainer?.viewTreeObserver?.dispatchOnGlobalLayout()
+            container?.viewTreeObserver?.dispatchOnGlobalLayout()
             Choreographer.getInstance().postFrameCallback(this)
         }
     }
@@ -45,18 +39,7 @@ class DataCaptureViewManager :
     }
 
     override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
-        val container = FrameLayout(reactContext).also {
-            addDataCaptureViewToContainer(it)
-            containers.add(it)
-        }
-
-        if (containers.size == 1) {
-            scheduleMeasureAndLayout()
-        }
-        return container
-    }
-
-    private fun addDataCaptureViewToContainer(container: FrameLayout) {
+        container = FrameLayout(reactContext)
         DataCaptureViewHandler.dataCaptureView?.let { view ->
             /*
             During hot reloading, DataCaptureViewManager recreates the view instance with
@@ -66,11 +49,14 @@ class DataCaptureViewManager :
             DataCaptureViewHandler.dataCaptureView to the newly created container.
             */
             view.parent?.let {
-                (it as ViewGroup).removeView(view)
+                removeView(it as FrameLayout, view)
             }
-            container.removeAllViews()
-            container.addView(view, MATCH_PARENT, MATCH_PARENT)
+            container?.removeAllViews()
+            container?.addView(view, MATCH_PARENT, MATCH_PARENT)
         }
+
+        scheduleMeasureAndLayout()
+        return container!!
     }
 
     /**
@@ -88,7 +74,7 @@ class DataCaptureViewManager :
     }
 
     private fun manuallyLayoutChildren() {
-        currentContainer?.let { container ->
+        container?.let { container ->
             for (i in 0 until container.childCount) {
                 val child = container.getChildAt(i)
                 child.measure(
@@ -101,14 +87,8 @@ class DataCaptureViewManager :
     }
 
     override fun onDropViewInstance(view: FrameLayout) {
-        containers.remove(view)
-        if (containers.size == 0) {
-            cancelMeasureAndLayout()
-        } else {
-            currentContainer?.let {
-                addDataCaptureViewToContainer(it)
-            }
-        }
+        cancelMeasureAndLayout()
+        container?.removeView(view)
     }
 
     override fun onViewDeserialized(view: DataCaptureView) {
@@ -116,10 +96,8 @@ class DataCaptureViewManager :
             // If the view has a parent it means that the view is already added to the container.
             // In this scenario we should not remove and add it again because with trial licenses
             // it's going to show the license popup over and over again.
-            view.parent?.let {
-                (it as ViewGroup).removeView(view)
-            }
-            currentContainer?.addView(view, MATCH_PARENT, MATCH_PARENT)
+            if (view.parent != null) return@post
+            container?.addView(view, MATCH_PARENT, MATCH_PARENT)
         }
     }
 }

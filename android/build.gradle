@@ -1,7 +1,3 @@
-def DEFAULT_COMPILE_SDK_VERSION = 32
-def DEFAULT_MIN_SDK_VERSION = 24
-def DEFAULT_TARGET_SDK_VERSION = 32
-
 def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
@@ -27,11 +23,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
+    compileSdkVersion safeExtGet('compileSdkVersion', 32)
 
     defaultConfig {
-        minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
-        targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
+        minSdkVersion safeExtGet('minSdkVersion', 21)
+        targetSdkVersion safeExtGet('targetSdkVersion', 32)
         versionCode 1
         versionName "1.0"
     }
@@ -42,11 +38,11 @@ android {
 }
 
 dependencies {
-    def sdk_version = "6.16.0"
+    def sdk_version = "6.15.2"
 
     api "com.scandit.datacapture:core:$sdk_version"
-
+    
     //noinspection GradleDynamicVersion
     implementation 'com.facebook.react:react-native:+'  // From node_modules
-    implementation "com.squareup.okhttp3:okhttp:4.9.2"
+    implementation "com.squareup.okhttp3:okhttp:4.9.0"
 }

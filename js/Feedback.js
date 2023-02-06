@@ -19,14 +19,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Feedback = exports.Sound = exports.Vibration = void 0;
+exports.Feedback = exports.Sound = exports.WaveFormVibration = exports.Vibration = void 0;
 var FeedbackProxy_1 = require("./native/FeedbackProxy");
 var Serializeable_1 = require("./private/Serializeable");
+var react_native_1 = require("react-native");
 var VibrationType;
 (function (VibrationType) {
     VibrationType["default"] = "default";
     VibrationType["selectionHaptic"] = "selectionHaptic";
     VibrationType["successHaptic"] = "successHaptic";
+    VibrationType["waveForm"] = "waveForm";
 })(VibrationType || (VibrationType = {}));
 var Vibration = /** @class */ (function (_super) {
     __extends(Vibration, _super);
@@ -57,11 +59,53 @@ var Vibration = /** @class */ (function (_super) {
         configurable: true
     });
     Vibration.fromJSON = function (json) {
+        if (json.type === 'waveForm') {
+            return new WaveFormVibration(json.timings, json.amplitudes);
+        }
         return new Vibration(json.type);
     };
     return Vibration;
 }(Serializeable_1.DefaultSerializeable));
 exports.Vibration = Vibration;
+var WaveFormVibration = /** @class */ (function (_super) {
+    __extends(WaveFormVibration, _super);
+    function WaveFormVibration(timings, amplitudes) {
+        if (amplitudes === void 0) { amplitudes = null; }
+        var _this = _super.call(this, VibrationType.waveForm) || this;
+        _this._timings = timings;
+        _this._amplitudes = amplitudes;
+        return _this;
+    }
+    Object.defineProperty(WaveFormVibration.prototype, "timings", {
+        get: function () {
+            return this._timings;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(WaveFormVibration.prototype, "amplitudes", {
+        get: function () {
+            return this._amplitudes;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    WaveFormVibration.prototype.toJSON = function () {
+        if (react_native_1.Platform.OS === 'ios') {
+            return Vibration.successHapticFeedback.toJSON();
+        }
+        return _super.prototype.toJSON.call(this);
+    };
+    __decorate([
+        Serializeable_1.nameForSerialization('timings')
+    ], WaveFormVibration.prototype, "_timings", void 0);
+    __decorate([
+        Serializeable_1.ignoreFromSerializationIfNull,
+        Serializeable_1.nameForSerialization('amplitudes')
+    ], WaveFormVibration.prototype, "_amplitudes", void 0);
+    return WaveFormVibration;
+}(Vibration));
+exports.WaveFormVibration = WaveFormVibration;
 var Sound = /** @class */ (function (_super) {
     __extends(Sound, _super);
     function Sound(resource) {

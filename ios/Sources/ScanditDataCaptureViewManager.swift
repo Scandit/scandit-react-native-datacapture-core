@@ -7,60 +7,67 @@
 import Foundation
 import ScanditCaptureCore
 
-@objc(RNTSDCDataCaptureViewManager)
-class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
+class RNTSDCDataCaptureViewWrapper: UIView {
+    weak var viewManager: RNTSDCDataCaptureViewManager?
 
-    internal var container = UIView()
-
-    var dataCaptureView: DataCaptureView? {
-        willSet {
-            dataCaptureView?.removeFromSuperview()
+    override func removeFromSuperview() {
+        if let viewManager = viewManager,
+           let index = viewManager.containers.firstIndex(of: self) {
+            viewManager.containers.remove(at: index)
+            viewManager.addCaptureViewToLastContainer()
         }
-
-        didSet {
-            guard let dataCaptureView = dataCaptureView else { return }
-            dataCaptureView.frame = container.bounds
-            dataCaptureView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            container.addSubview(dataCaptureView)
-        }
+        super.removeFromSuperview()
     }
+}
+
+@objc(RNTSDCDataCaptureViewManager)
+class RNTSDCDataCaptureViewManager: RCTViewManager {
+
+    internal var containers: [RNTSDCDataCaptureViewWrapper] = []
 
     override class func requiresMainQueueSetup() -> Bool {
-        return true
-    }
-
-    deinit {
-        if bridge == nil {
-            return;
-        }
-        guard let coreModule =
-            bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore else { return }
-        coreModule.removeRNTDataCaptureViewListener(self)
+        true
     }
 
     var isObserving = false
 
+    func addCaptureViewToLastContainer() {
+        guard let container = containers.last,
+              let coreModule = bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore,
+              let captureView = coreModule.dataCaptureView else {
+            return
+        }
+        if captureView.superview != nil {
+            captureView.removeFromSuperview()
+        }
+        captureView.frame = container.bounds
+        captureView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        container.addSubview(captureView)
+    }
+
     override func view() -> UIView! {
 
-        if !isObserving, let coreModule = bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore {
+        if !isObserving {
             isObserving = true
-            coreModule.addRNTDataCaptureViewListener(self)
+        }
+        
+        guard let coreModule = bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore else {
+            return nil
         }
 
-        container = UIView()
+        let container = RNTSDCDataCaptureViewWrapper()
 
-        if let dataCaptureview = dataCaptureView {
+        if let dataCaptureview = coreModule.dataCaptureView {
+            if dataCaptureview.superview != nil {
+                dataCaptureview.removeFromSuperview()
+            }
             dataCaptureview.frame = container.bounds
             dataCaptureview.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             container.addSubview(dataCaptureview)
         }
+        container.viewManager = self
+        containers.append(container)
 
         return container
-    }
-
-    func didUpdate(dataCaptureView: DataCaptureView?) {
-        DispatchQueue.main.async {
-            self.dataCaptureView = dataCaptureView
-        }
     }
 }

@@ -6,6 +6,7 @@ export declare class CameraProxy {
     private nativeListeners;
     static forCamera(camera: Camera): CameraProxy;
     static getLastFrame(): Promise<FrameData>;
+    static getLastFrameOrNull(): Promise<FrameData | null>;
     getCurrentState(): Promise<FrameSourceState>;
     getIsTorchAvailable(): Promise<boolean>;
     dispose(): void;

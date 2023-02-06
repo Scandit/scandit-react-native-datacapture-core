@@ -39,6 +39,10 @@ var RadiusLocationSelection = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    RadiusLocationSelection.fromJSON = function (JSON) {
+        var radius = Common_1.NumberWithUnit.fromJSON(JSON.radius);
+        return new RadiusLocationSelection(radius);
+    };
     __decorate([
         Serializeable_1.nameForSerialization('radius')
     ], RadiusLocationSelection.prototype, "_radius", void 0);
@@ -75,6 +79,38 @@ var RectangularLocationSelection = /** @class */ (function (_super) {
         locationSelection._sizeWithUnitAndAspect = Common_1.SizeWithUnitAndAspect
             .sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
         return locationSelection;
+    };
+    RectangularLocationSelection.fromJSON = function (rectangularLocationSelectionJSON) {
+        if (rectangularLocationSelectionJSON.aspect.width && rectangularLocationSelectionJSON.aspect.height) {
+            var width = Common_1.NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.width);
+            var height = Common_1.NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.height);
+            var size = new Common_1.SizeWithUnit(width, height);
+            return this.withSize(size);
+        }
+        else if (rectangularLocationSelectionJSON.aspect.width && rectangularLocationSelectionJSON.aspect.aspect) {
+            var width = Common_1.NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.width);
+            return this.withWidthAndAspectRatio(width, rectangularLocationSelectionJSON.aspect.aspect);
+        }
+        else if (rectangularLocationSelectionJSON.aspect.height && rectangularLocationSelectionJSON.aspect.aspect) {
+            var height = Common_1.NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.height);
+            return this.withHeightAndAspectRatio(height, rectangularLocationSelectionJSON.aspect.aspect);
+        }
+        else if (rectangularLocationSelectionJSON.aspect.shorterDimension && rectangularLocationSelectionJSON.aspect.aspect) {
+            var shorterDimension = Common_1.NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.shorterDimension);
+            var sizeWithUnitAndAspect = Common_1.SizeWithUnitAndAspect
+                .sizeWithShorterDimensionAndAspectRatio(shorterDimension, rectangularLocationSelectionJSON.aspect.aspect);
+            var locationSelection = new RectangularLocationSelection();
+            locationSelection._sizeWithUnitAndAspect = sizeWithUnitAndAspect;
+            return locationSelection;
+        }
+        else {
+            throw new Error("RectangularLocationSelectionJSON is malformed: " + JSON.stringify(rectangularLocationSelectionJSON));
+        }
     };
     __decorate([
         Serializeable_1.nameForSerialization('size')

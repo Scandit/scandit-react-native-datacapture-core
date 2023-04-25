@@ -9,5 +9,7 @@ extension ScanditDataCaptureCore: FrameSourceListener {
         guard sendEvent(withName: .didChangeState, body: ["state": newState.jsonString]) else { return }
     }
 
-    public func frameSource(_ source: FrameSource, didOutputFrame frame: FrameData) {}
+    public func frameSource(_ source: FrameSource, didOutputFrame frame: FrameData) {
+        // Empty on purpose
+    }
 }

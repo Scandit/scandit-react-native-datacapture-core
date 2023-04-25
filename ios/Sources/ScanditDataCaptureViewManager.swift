@@ -21,7 +21,7 @@ class RNTSDCDataCaptureViewWrapper: UIView {
 }
 
 @objc(RNTSDCDataCaptureViewManager)
-class RNTSDCDataCaptureViewManager: RCTViewManager {
+class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
 
     internal var containers: [RNTSDCDataCaptureViewWrapper] = []
 
@@ -54,6 +54,7 @@ class RNTSDCDataCaptureViewManager: RCTViewManager {
         guard let coreModule = bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore else {
             return nil
         }
+        coreModule.addRNTDataCaptureViewListener(self)
 
         let container = RNTSDCDataCaptureViewWrapper()
 
@@ -69,5 +70,25 @@ class RNTSDCDataCaptureViewManager: RCTViewManager {
         containers.append(container)
 
         return container
+    }
+    
+    func didUpdate(dataCaptureView: DataCaptureView?) {
+        guard let container = containers.last else {
+            return
+        }
+        
+        guard let dcView = dataCaptureView else {
+            container.subviews.forEach {
+                $0.removeFromSuperview()
+            }
+            return
+        }
+        
+        if dcView.superview != nil {
+            dcView.removeFromSuperview()
+        }
+        dcView.frame = container.bounds
+        dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        container.addSubview(dcView)
     }
 }

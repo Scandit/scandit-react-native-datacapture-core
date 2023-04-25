@@ -28,7 +28,9 @@ import com.scandit.datacapture.core.ui.DataCaptureViewListener
 import com.scandit.datacapture.core.ui.style.Brush
 import com.scandit.datacapture.core.ui.viewfinder.AimerViewfinder
 import com.scandit.datacapture.core.ui.viewfinder.LaserlineViewfinder
+import com.scandit.datacapture.core.ui.viewfinder.LaserlineViewfinderStyle
 import com.scandit.datacapture.core.ui.viewfinder.RectangularViewfinder
+import com.scandit.datacapture.core.ui.viewfinder.RectangularViewfinderStyle
 import com.scandit.datacapture.core.ui.viewfinder.SpotlightViewfinder
 import com.scandit.datacapture.reactnative.core.data.defaults.*
 import com.scandit.datacapture.reactnative.core.deserializers.Deserializers
@@ -99,9 +101,9 @@ class ScanditDataCaptureCoreModule(
     private val defaults: SerializableCoreDefaults by lazy {
         val cameraSettings = CameraSettings()
         val dataCaptureView = DataCaptureView.newInstance(reactContext, null)
-        val laserViewfinder = LaserlineViewfinder()
-        val rectangularViewfinder = RectangularViewfinder()
-        val spotlightViewfinder = SpotlightViewfinder()
+        val laserViewfinder = LaserlineViewfinder(LaserlineViewfinderStyle.LEGACY)
+        val rectangularViewfinder = RectangularViewfinder(RectangularViewfinderStyle.LEGACY)
+        @Suppress("DEPRECATION") val spotlightViewfinder = SpotlightViewfinder()
         val aimerViewfinder = AimerViewfinder()
         val brush = Brush.transparent()
         val availableCameraPositions = listOfNotNull(

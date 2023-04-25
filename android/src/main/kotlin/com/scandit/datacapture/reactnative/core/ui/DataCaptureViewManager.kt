@@ -6,54 +6,30 @@
 
 package com.scandit.datacapture.reactnative.core.ui
 
-import android.view.Choreographer
-import android.view.View
-import android.view.View.MeasureSpec.makeMeasureSpec
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
-import androidx.annotation.VisibleForTesting
 import com.facebook.react.uimanager.ThemedReactContext
-import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.reactnative.core.handler.DataCaptureViewHandler
 
 class DataCaptureViewManager :
-    ViewGroupManager<FrameLayout>(),
+    ScanditViewGroupManager<FrameLayout>(),
     DataCaptureViewHandler.ViewListener {
-
-    @get:VisibleForTesting
-    val currentContainer: FrameLayout?
-        get() {
-            return if (containers.size > 0) containers[containers.size - 1] else null
-        }
-
-    private val containers = mutableListOf<FrameLayout>()
-
-    private val frameCallback: Choreographer.FrameCallback = object : Choreographer.FrameCallback {
-        override fun doFrame(frameTimeNanos: Long) {
-            manuallyLayoutChildren()
-            currentContainer?.viewTreeObserver?.dispatchOnGlobalLayout()
-            Choreographer.getInstance().postFrameCallback(this)
-        }
-    }
-
-    override fun getName(): String = "RNTDataCaptureView"
 
     init {
         DataCaptureViewHandler.setViewListener(this)
     }
 
-    override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
-        val container = FrameLayout(reactContext).also {
-            addDataCaptureViewToContainer(it)
-            containers.add(it)
-        }
+    override fun getName(): String = "RNTDataCaptureView"
 
-        if (containers.size == 1) {
-            scheduleMeasureAndLayout()
+    override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
+        FrameLayout(reactContext)
+
+    override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
+        return super.createViewInstance(reactContext).also {
+            addDataCaptureViewToContainer(it)
         }
-        return container
     }
 
     private fun addDataCaptureViewToContainer(container: FrameLayout) {
@@ -73,41 +49,11 @@ class DataCaptureViewManager :
         }
     }
 
-    /**
-     * XXX RN is not calling measure() and layout() methods on dynamically added native Android
-     * Views. That's why we need to call those methods on our container (and it's children)
-     * ourselves - otherwise the views added by the BarcodeTrackingAdvancedOverlay won't be visible.
-     * The hack has been taken from: https://github.com/facebook/react-native/issues/17968
-     */
-    private fun scheduleMeasureAndLayout() {
-        Choreographer.getInstance().postFrameCallback(frameCallback)
-    }
-
-    private fun cancelMeasureAndLayout() {
-        Choreographer.getInstance().removeFrameCallback(frameCallback)
-    }
-
-    private fun manuallyLayoutChildren() {
-        currentContainer?.let { container ->
-            for (i in 0 until container.childCount) {
-                val child = container.getChildAt(i)
-                child.measure(
-                    makeMeasureSpec(container.measuredWidth, View.MeasureSpec.EXACTLY),
-                    makeMeasureSpec(container.measuredHeight, View.MeasureSpec.EXACTLY)
-                )
-                child.layout(0, 0, child.measuredWidth, child.measuredHeight)
-            }
-        }
-    }
-
     override fun onDropViewInstance(view: FrameLayout) {
-        containers.remove(view)
-        if (containers.size == 0) {
-            cancelMeasureAndLayout()
-        } else {
-            currentContainer?.let {
-                addDataCaptureViewToContainer(it)
-            }
+        super.onDropViewInstance(view)
+
+        currentContainer?.let {
+            addDataCaptureViewToContainer(it)
         }
     }
 

@@ -19,7 +19,6 @@ export declare class WaveFormVibration extends Vibration {
     private _amplitudes;
     get amplitudes(): number[] | null;
     constructor(timings: number[], amplitudes?: number[] | null);
-    toJSON(): object;
 }
 export declare class Sound extends DefaultSerializeable {
     resource: string | null;

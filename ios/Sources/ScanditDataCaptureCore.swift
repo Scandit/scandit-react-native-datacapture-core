@@ -15,8 +15,8 @@ public protocol RNTDataCaptureContextListener: class {
     func didUpdate(dataCaptureContext: DataCaptureContext?)
 }
 
-public let SDCSharedMethodQeueue = DispatchQueue(label: "com.scandit.reactnative.methodQueue",
-                                                 qos: .userInteractive)
+public let sdcSharedMethodQueue = DispatchQueue(label: "com.scandit.reactnative.methodQueue",
+                                                qos: .userInteractive)
 
 enum ScanditDataCaptureCoreError: Int, CustomNSError {
     case deserializationError = 1
@@ -81,10 +81,13 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     public static var lastFrame: FrameData?
 
     lazy internal var contextDeserializer: DataCaptureContextDeserializer = {
-        DataCaptureContextDeserializer(frameSourceDeserializer: frameSourceDeserializer,
+        let contextDeserializer = DataCaptureContextDeserializer(frameSourceDeserializer: frameSourceDeserializer,
                                        viewDeserializer: dataCaptureViewDeserializer,
                                        modeDeserializers: modeDeserializers,
                                        componentDeserializers: componentDeserializers)
+        
+        contextDeserializer.avoidThreadDependencies = true
+        return contextDeserializer
     }()
 
     lazy internal var dataCaptureViewDeserializer: DataCaptureViewDeserializer = {
@@ -98,25 +101,25 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         return frameSourceDeserializer
     }()
 
-    static var RNTSDCModeDeserializers = [DataCaptureModeDeserializer]()
+    static var rntSDCModeDeserializers = [DataCaptureModeDeserializer]()
     internal var modeDeserializers: [DataCaptureModeDeserializer] {
-        ScanditDataCaptureCore.RNTSDCModeDeserializers
+        ScanditDataCaptureCore.rntSDCModeDeserializers
     }
 
     static public func register(modeDeserializer: DataCaptureModeDeserializer) {
 
-        RNTSDCModeDeserializers.removeAll(where: {type(of: $0) == type(of: modeDeserializer)})
+        rntSDCModeDeserializers.removeAll(where: {type(of: $0) == type(of: modeDeserializer)})
 
-        RNTSDCModeDeserializers.append(modeDeserializer)
+        rntSDCModeDeserializers.append(modeDeserializer)
     }
 
-    static var RNTSDCComponentDeserializers = [DataCaptureComponentDeserializer]()
+    static var rntSDCComponentDeserializers = [DataCaptureComponentDeserializer]()
     internal var componentDeserializers: [DataCaptureComponentDeserializer] {
-        ScanditDataCaptureCore.RNTSDCComponentDeserializers
+        ScanditDataCaptureCore.rntSDCComponentDeserializers
     }
 
     static public func register(componentDeserializer: DataCaptureComponentDeserializer) {
-        RNTSDCComponentDeserializers.append(componentDeserializer)
+        rntSDCComponentDeserializers.append(componentDeserializer)
     }
 
     internal var components = [DataCaptureComponent]() {
@@ -144,7 +147,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     public override var methodQueue: DispatchQueue! {
-        SDCSharedMethodQeueue
+        sdcSharedMethodQueue
     }
 
     deinit {
@@ -152,12 +155,12 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(contextFromJSON:resolve:reject:)
-    func contextFromJSON(JSON: String,
+    func contextFromJSON(json: String,
                          resolve: @escaping RCTPromiseResolveBlock,
                          reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do {
-                let result = try self.contextDeserializer.context(fromJSONString: JSON)
+                let result = try self.contextDeserializer.context(fromJSONString: json)
                 self.context = result.context
                 self.dataCaptureView = result.view
                 self.components = result.components
@@ -169,12 +172,12 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(updateContextFromJSON:resolve:reject:)
-    func updateContextFromJSON(JSON: String,
+    func updateContextFromJSON(json: String,
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             guard let context = self.context else {
-                self.contextFromJSON(JSON: JSON, resolve: resolve, reject: reject)
+                self.contextFromJSON(json: json, resolve: resolve, reject: reject)
                 return
             }
 
@@ -182,7 +185,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                 let result = try self.contextDeserializer.update(context,
                                                                  view: self.dataCaptureView,
                                                                  components: self.components,
-                                                                 fromJSON: JSON)
+                                                                 fromJSON: json)
 
                 self.context = result.context
                 self.dataCaptureView = result.view
@@ -201,9 +204,9 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(emitFeedback:resolve:reject:)
-    func emitFeedback(JSON: String, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+    func emitFeedback(json: String, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         do {
-            let feedback = try Feedback(fromJSONString: JSON)
+            let feedback = try Feedback(fromJSONString: json)
             feedback.emit()
             resolve(nil)
         } catch let error as NSError {
@@ -212,11 +215,11 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(viewQuadrilateralForFrameQuadrilateral:resolve:reject:)
-    func viewQuadrilateralForFrameQuadrilateral(JSON: String,
+    func viewQuadrilateralForFrameQuadrilateral(json: String,
                                                 resolve: RCTPromiseResolveBlock,
                                                 reject: RCTPromiseRejectBlock) {
         var quadrilateral = Quadrilateral()
-        guard SDCQuadrilateralFromJSONString(JSON, &quadrilateral) else {
+        guard SDCQuadrilateralFromJSONString(json, &quadrilateral) else {
             let error = ScanditDataCaptureCoreError.deserializationError
             reject(String(error.code), error.message, error)
             return
@@ -235,8 +238,8 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(viewPointForFramePoint:resolve:reject:)
-    func viewPointForFramePoint(JSON: String, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
-        guard let framePoint = CGPoint(json: JSON) else {
+    func viewPointForFramePoint(json: String, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        guard let framePoint = CGPoint(json: json) else {
             let error = ScanditDataCaptureCoreError.deserializationError
             reject(String(error.code), error.message, error)
             return
@@ -316,11 +319,27 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     // Empty methods to unify the logic on the TS side for supporting functionality automatically provided by RN on iOS,
     // but custom implemented on Android.
+    @objc func registerListenerForCameraEvents() {
+        // Empty on purpose
+    }
 
-    @objc func registerListenerForCameraEvents() { }
-    @objc func unregisterListenerForCameraEvents() { }
-    @objc func registerListenerForEvents() { }
-    @objc func unregisterListenerForEvents() { }
-    @objc func registerListenerForViewEvents() { }
-    @objc func unregisterListenerForViewEvents() { }
+    @objc func unregisterListenerForCameraEvents() {
+        // Empty on purpose
+    }
+
+    @objc func registerListenerForEvents() {
+        // Empty on purpose
+    }
+
+    @objc func unregisterListenerForEvents() {
+        // Empty on purpose
+    }
+
+    @objc func registerListenerForViewEvents() {
+        // Empty on purpose
+    }
+
+    @objc func unregisterListenerForViewEvents() {
+        // Empty on purpose
+    }
 }

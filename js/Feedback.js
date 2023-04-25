@@ -22,7 +22,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Feedback = exports.Sound = exports.WaveFormVibration = exports.Vibration = void 0;
 var FeedbackProxy_1 = require("./native/FeedbackProxy");
 var Serializeable_1 = require("./private/Serializeable");
-var react_native_1 = require("react-native");
 var VibrationType;
 (function (VibrationType) {
     VibrationType["default"] = "default";
@@ -90,12 +89,6 @@ var WaveFormVibration = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
-    WaveFormVibration.prototype.toJSON = function () {
-        if (react_native_1.Platform.OS === 'ios') {
-            return Vibration.successHapticFeedback.toJSON();
-        }
-        return _super.prototype.toJSON.call(this);
-    };
     __decorate([
         Serializeable_1.nameForSerialization('timings')
     ], WaveFormVibration.prototype, "_timings", void 0);
@@ -163,7 +156,7 @@ var Feedback = /** @class */ (function (_super) {
         configurable: true
     });
     Feedback.fromJSON = function (json) {
-        return new Feedback(json.vibration ? Vibration.fromJSON(json.vibration) : null, json.sound ? Sound.fromJSON(json.sound) : null);
+        return new Feedback((json === null || json === void 0 ? void 0 : json.vibration) ? Vibration.fromJSON(json.vibration) : null, (json === null || json === void 0 ? void 0 : json.sound) ? Sound.fromJSON(json.sound) : null);
     };
     Feedback.prototype.emit = function () {
         this.proxy.emit();

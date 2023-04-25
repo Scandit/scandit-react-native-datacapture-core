@@ -47,7 +47,7 @@ extension ScanditDataCaptureCore {
     }
 
     var dataCaptureViewDefaults: [String: Any] {
-        var view = DataCaptureView(frame: .zero)
+        let view = DataCaptureView(frame: .zero)
         return ["scanAreaMargins": DataCaptureView.defaultScanAreaMargins.jsonString,
                 "pointOfInterest": DataCaptureView.defaultPointOfInterest.jsonString,
                 "logoAnchor": DataCaptureView.defaultLogoAnchor.jsonString,
@@ -60,13 +60,13 @@ extension ScanditDataCaptureCore {
     var laserlineViewfinderDefaults: [String: Any] {
         func createViewfinderDefaults(style: LaserlineViewfinderStyle) -> [String: Any] {
             let viewfinder = LaserlineViewfinder(style: style)
-            let defaults = [
+            let laserLineViewfinderDefaults = [
                 "style": viewfinder.style.jsonString,
                 "width": viewfinder.width.jsonString,
                 "enabledColor": viewfinder.enabledColor.sdcHexString,
                 "disabledColor": viewfinder.disabledColor.sdcHexString
             ]
-            return defaults
+            return laserLineViewfinderDefaults
         }
 
         return [
@@ -81,7 +81,7 @@ extension ScanditDataCaptureCore {
     var rectangularViewfinderDefaults: [String: Any] {
         func createViewfinderDefaults(style: RectangularViewfinderStyle) -> [String: Any] {
             let viewfinder = RectangularViewfinder(style: style)
-            let defaults = [
+            let rectangularViewfinderDefaults = [
                 "style": viewfinder.style.jsonString,
                 "size": viewfinder.sizeWithUnitAndAspect.jsonString,
                 "color": viewfinder.color.sdcHexString,
@@ -91,7 +91,7 @@ extension ScanditDataCaptureCore {
                 "disabledDimming": viewfinder.disabledDimming,
                 "animation": viewfinder.animation?.jsonString as Any
             ]
-            return defaults
+            return rectangularViewfinderDefaults
         }
 
         return [

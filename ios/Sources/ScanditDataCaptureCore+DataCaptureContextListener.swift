@@ -10,25 +10,27 @@ import ScanditCaptureCore
 extension ScanditDataCaptureCore: FrameSourceDeserializerDelegate {
     public func frameSourceDeserializer(_ deserializer: FrameSourceDeserializer,
                                         didStartDeserializingFrameSource frameSource: FrameSource,
-                                        from JSONValue: JSONValue) {}
+                                        from jsonValue: JSONValue) {
+        // Empty on purpose
+    }
 
     public func frameSourceDeserializer(_ deserializer: FrameSourceDeserializer,
                                         didFinishDeserializingFrameSource frameSource: FrameSource,
-                                        from JSONValue: JSONValue) {
-        if JSONValue.containsKey("type") {
-            let type = JSONValue.string(forKey: "type")
+                                        from jsonValue: JSONValue) {
+        if jsonValue.containsKey("type") {
+            let type = jsonValue.string(forKey: "type")
             if type == "camera" {
                 guard let camera = frameSource as? Camera else { return }
                 camera.addListener(self)
-                if JSONValue.containsKey("desiredState") {
-                    let desiredStateJson = JSONValue.string(forKey: "desiredState")
+                if jsonValue.containsKey("desiredState") {
+                    let desiredStateJson = jsonValue.string(forKey: "desiredState")
                     var desiredState = FrameSourceState.on
                     if SDCFrameSourceStateFromJSONString(desiredStateJson, &desiredState) {
                         camera.switch(toDesiredState: desiredState)
                     }
                 }
-                if JSONValue.containsKey("desiredTorchState") {
-                    let desiredTorchStateJson = JSONValue.string(forKey: "desiredTorchState")
+                if jsonValue.containsKey("desiredTorchState") {
+                    let desiredTorchStateJson = jsonValue.string(forKey: "desiredTorchState")
                     var desiredTorchState = TorchState.off
                     if SDCTorchStateFromJSONString(desiredTorchStateJson, &desiredTorchState) {
                         camera.desiredTorchState = desiredTorchState
@@ -37,8 +39,8 @@ extension ScanditDataCaptureCore: FrameSourceDeserializerDelegate {
             } else {
                 guard let imageFrameSource = frameSource as? ImageFrameSource else { return }
                 imageFrameSource.addListener(self)
-                if JSONValue.containsKey("desiredState") {
-                    let desiredStateJson = JSONValue.string(forKey: "desiredState")
+                if jsonValue.containsKey("desiredState") {
+                    let desiredStateJson = jsonValue.string(forKey: "desiredState")
                     var desiredState = FrameSourceState.on
                     if SDCFrameSourceStateFromJSONString(desiredStateJson, &desiredState) {
                         imageFrameSource.switch(toDesiredState: desiredState)
@@ -50,24 +52,28 @@ extension ScanditDataCaptureCore: FrameSourceDeserializerDelegate {
 
     public func frameSourceDeserializer(_ deserializer: FrameSourceDeserializer,
                                         didStartDeserializingCameraSettings settings: CameraSettings,
-                                        from JSONValue: JSONValue) {}
+                                        from jsonValue: JSONValue) {
+        // Empty on purpose
+    }
 
     public func frameSourceDeserializer(_ deserializer: FrameSourceDeserializer,
                                         didFinishDeserializingCameraSettings settings: CameraSettings,
-                                        from JSONValue: JSONValue) {}
+                                        from jsonValue: JSONValue) {
+        // Empty on purpose
+    }
 }
 
 extension ScanditDataCaptureCore: DataCaptureContextListener {
     public func context(_ context: DataCaptureContext, didChange frameSource: FrameSource?) {
-
+        // Empty on purpose
     }
 
     public func context(_ context: DataCaptureContext, didAdd mode: DataCaptureMode) {
-
+        // Empty on purpose
     }
 
     public func context(_ context: DataCaptureContext, didRemove mode: DataCaptureMode) {
-
+        // Empty on purpose
     }
 
     public func context(_ context: DataCaptureContext, didChange contextStatus: ContextStatus) {

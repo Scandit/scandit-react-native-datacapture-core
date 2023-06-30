@@ -9,7 +9,7 @@ var EventEmitter = new react_native_1.NativeEventEmitter(NativeModule);
 // tslint:enable:variable-name
 var FrameSourceListenerName;
 (function (FrameSourceListenerName) {
-    FrameSourceListenerName["didChangeState"] = "frameSourceListener-didChangeState";
+    FrameSourceListenerName["didChangeState"] = "FrameSourceListener.onStateChanged";
 })(FrameSourceListenerName || (FrameSourceListenerName = {}));
 var CameraProxy = /** @class */ (function () {
     function CameraProxy() {
@@ -46,7 +46,8 @@ var CameraProxy = /** @class */ (function () {
         var _this = this;
         NativeModule.registerListenerForCameraEvents();
         var didChangeState = EventEmitter.addListener(FrameSourceListenerName.didChangeState, function (body) {
-            var newState = body.state;
+            var payload = JSON.parse(body);
+            var newState = payload.state;
             _this.camera.listeners.forEach(function (listener) {
                 if (listener.didChangeState) {
                     listener.didChangeState(_this.camera, newState);

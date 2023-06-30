@@ -9,8 +9,8 @@ var EventEmitter = new react_native_1.NativeEventEmitter(NativeModule);
 // tslint:enable:variable-name
 var DataCaptureContextListenerName;
 (function (DataCaptureContextListenerName) {
-    DataCaptureContextListenerName["didChangeStatus"] = "dataCaptureContextListener-didChangeStatus";
-    DataCaptureContextListenerName["didStartObservingContext"] = "dataCaptureContextListener-didStartObservingContext";
+    DataCaptureContextListenerName["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
+    DataCaptureContextListenerName["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
 })(DataCaptureContextListenerName || (DataCaptureContextListenerName = {}));
 var DataCaptureContextProxy = /** @class */ (function () {
     function DataCaptureContextProxy() {
@@ -62,7 +62,8 @@ var DataCaptureContextProxy = /** @class */ (function () {
         var _this = this;
         NativeModule.registerListenerForEvents();
         var didChangeStatus = EventEmitter.addListener(DataCaptureContextListenerName.didChangeStatus, function (body) {
-            var contextStatus = DataCaptureContext_Related_1.ContextStatus.fromJSON(JSON.parse(body.status));
+            var payload = JSON.parse(body);
+            var contextStatus = DataCaptureContext_Related_1.ContextStatus.fromJSON(JSON.parse(payload.status));
             _this.notifyListenersOfDidChangeStatus(contextStatus);
         });
         var didStartObservingContext = EventEmitter.addListener(DataCaptureContextListenerName.didStartObservingContext, function (body) {

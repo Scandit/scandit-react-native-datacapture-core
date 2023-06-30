@@ -11,17 +11,20 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import com.facebook.react.uimanager.ThemedReactContext
 import com.scandit.datacapture.core.ui.DataCaptureView
-import com.scandit.datacapture.reactnative.core.handler.DataCaptureViewHandler
+import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
+import java.lang.ref.WeakReference
 
 class DataCaptureViewManager :
     ScanditViewGroupManager<FrameLayout>(),
-    DataCaptureViewHandler.ViewListener {
+    DeserializationLifecycleObserver.Observer {
 
     init {
-        DataCaptureViewHandler.setViewListener(this)
+        DeserializationLifecycleObserver.attach(this)
     }
 
     override fun getName(): String = "RNTDataCaptureView"
+
+    private var dataCaptureViewRef: WeakReference<DataCaptureView?> = WeakReference(null)
 
     override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
         FrameLayout(reactContext)
@@ -33,7 +36,7 @@ class DataCaptureViewManager :
     }
 
     private fun addDataCaptureViewToContainer(container: FrameLayout) {
-        DataCaptureViewHandler.dataCaptureView?.let { view ->
+        dataCaptureViewRef.get()?.let { view ->
             /*
             During hot reloading, DataCaptureViewManager recreates the view instance with
             a createViewInstance() call, without destroying the previous instance (with
@@ -57,15 +60,16 @@ class DataCaptureViewManager :
         }
     }
 
-    override fun onViewDeserialized(view: DataCaptureView) {
-        view.post {
+    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView) {
+        dataCaptureView.post {
             // If the view has a parent it means that the view is already added to the container.
             // In this scenario we should not remove and add it again because with trial licenses
             // it's going to show the license popup over and over again.
-            view.parent?.let {
-                (it as ViewGroup).removeView(view)
+            dataCaptureView.parent?.let {
+                (it as ViewGroup).removeView(dataCaptureView)
             }
-            currentContainer?.addView(view, MATCH_PARENT, MATCH_PARENT)
+            currentContainer?.addView(dataCaptureView, MATCH_PARENT, MATCH_PARENT)
         }
+        dataCaptureViewRef = WeakReference(dataCaptureView)
     }
 }

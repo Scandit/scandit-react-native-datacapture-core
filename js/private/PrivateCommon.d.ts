@@ -74,3 +74,13 @@ export interface BrushJSON {
         width: number;
     };
 }
+export interface DidChangeSizeEventPayload {
+    size: SizeJSON;
+    orientation: string;
+}
+export interface DidChangeStatusEventPayload {
+    status: string;
+}
+export interface DidChangeStateEventPayload {
+    state: string;
+}

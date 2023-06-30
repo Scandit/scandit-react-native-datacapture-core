@@ -192,6 +192,10 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                 self.components = result.components
                 resolve(nil)
             } catch let error as NSError {
+                if (error.localizedDescription.contains("The mode cannot be updated: already initialized but")) {
+                    self.contextFromJSON(json: json, resolve: resolve, reject: reject)
+                    return
+                }
                 reject("\(error.code)", error.localizedDescription, error)
             }
         }
@@ -230,11 +234,13 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
             reject(String(error.code), error.message, error)
             return
         }
-
-        let viewQuadrilateral = dataCaptureView.viewQuadrilateral(forFrameQuadrilateral: quadrilateral)
-        let viewQuadrilateralJSON = viewQuadrilateral.jsonString
-
-        resolve(viewQuadrilateralJSON)
+        
+        DispatchQueue.main.sync {
+            let viewQuadrilateral = dataCaptureView.viewQuadrilateral(forFrameQuadrilateral: quadrilateral)
+            let viewQuadrilateralJSON = viewQuadrilateral.jsonString
+            
+            resolve(viewQuadrilateralJSON)
+        }
     }
 
     @objc(viewPointForFramePoint:resolve:reject:)

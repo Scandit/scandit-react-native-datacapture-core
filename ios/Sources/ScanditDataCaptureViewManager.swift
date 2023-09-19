@@ -5,7 +5,7 @@
 */
 
 import Foundation
-import ScanditCaptureCore
+import ScanditFrameworksCore
 
 class RNTSDCDataCaptureViewWrapper: UIView {
     weak var viewManager: RNTSDCDataCaptureViewManager?
@@ -21,9 +21,38 @@ class RNTSDCDataCaptureViewWrapper: UIView {
 }
 
 @objc(RNTSDCDataCaptureViewManager)
-class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
+class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObserver {
 
     internal var containers: [RNTSDCDataCaptureViewWrapper] = []
+
+    var dataCaptureView: DataCaptureView? {
+        didSet {
+            guard let container = containers.last else {
+                return
+            }
+
+            guard let dcView = dataCaptureView else {
+                container.subviews.forEach {
+                    $0.removeFromSuperview()
+                }
+                return
+            }
+
+            if dcView.superview != nil && dcView.superview == container {
+            // if attached to the same container do nothing. Removing and adding
+            // it again might trigger something in the DataCaptureView that we don't
+            // want. (overlay re-drawn, black screen, etc.)
+            return
+        }
+
+            if dcView.superview != nil {
+                dcView.removeFromSuperview()
+            }
+            dcView.frame = container.bounds
+            dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            container.addSubview(dcView)
+        }
+    }
 
     override class func requiresMainQueueSetup() -> Bool {
         true
@@ -31,12 +60,23 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
 
     var isObserving = false
 
+    override init() {
+        super.init()
+        DeserializationLifeCycleDispatcher.shared.attach(observer: self)
+    }
+
     func addCaptureViewToLastContainer() {
         guard let container = containers.last,
-              let coreModule = bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore,
-              let captureView = coreModule.dataCaptureView else {
+              let captureView = dataCaptureView else {
             return
         }
+        if captureView.superview != nil && captureView.superview == container {
+            // if attached to the same container do nothing. Removing and adding
+            // it again might trigger something in the DataCaptureView that we don't
+            // want. (overlay re-drawn, black screen, etc.)
+            return
+        }
+
         if captureView.superview != nil {
             captureView.removeFromSuperview()
         }
@@ -50,15 +90,10 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
         if !isObserving {
             isObserving = true
         }
-        
-        guard let coreModule = bridge.module(for: ScanditDataCaptureCore.self) as? ScanditDataCaptureCore else {
-            return nil
-        }
-        coreModule.addRNTDataCaptureViewListener(self)
 
         let container = RNTSDCDataCaptureViewWrapper()
 
-        if let dataCaptureview = coreModule.dataCaptureView {
+        if let dataCaptureview = dataCaptureView {
             if dataCaptureview.superview != nil {
                 dataCaptureview.removeFromSuperview()
             }
@@ -71,24 +106,12 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, RNTDataCaptureViewListener {
 
         return container
     }
-    
-    func didUpdate(dataCaptureView: DataCaptureView?) {
-        guard let container = containers.last else {
-            return
-        }
-        
-        guard let dcView = dataCaptureView else {
-            container.subviews.forEach {
-                $0.removeFromSuperview()
-            }
-            return
-        }
-        
-        if dcView.superview != nil {
-            dcView.removeFromSuperview()
-        }
-        dcView.frame = container.bounds
-        dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        container.addSubview(dcView)
+
+    deinit {
+        DeserializationLifeCycleDispatcher.shared.detach(observer: self)
+    }
+
+    func dataCaptureView(deserialized view: DataCaptureView?) {
+        dataCaptureView = view
     }
 }

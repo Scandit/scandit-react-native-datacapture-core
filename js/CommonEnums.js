@@ -6,14 +6,14 @@ var MeasureUnit;
     MeasureUnit["DIP"] = "dip";
     MeasureUnit["Pixel"] = "pixel";
     MeasureUnit["Fraction"] = "fraction";
-})(MeasureUnit = exports.MeasureUnit || (exports.MeasureUnit = {}));
+})(MeasureUnit || (exports.MeasureUnit = MeasureUnit = {}));
 var SizingMode;
 (function (SizingMode) {
     SizingMode["WidthAndHeight"] = "widthAndHeight";
     SizingMode["WidthAndAspectRatio"] = "widthAndAspectRatio";
     SizingMode["HeightAndAspectRatio"] = "heightAndAspectRatio";
     SizingMode["ShorterDimensionAndAspectRatio"] = "shorterDimensionAndAspectRatio";
-})(SizingMode = exports.SizingMode || (exports.SizingMode = {}));
+})(SizingMode || (exports.SizingMode = SizingMode = {}));
 var Orientation;
 (function (Orientation) {
     Orientation["Unknown"] = "unknown";
@@ -21,7 +21,7 @@ var Orientation;
     Orientation["PortraitUpsideDown"] = "portraitUpsideDown";
     Orientation["LandscapeRight"] = "landscapeRight";
     Orientation["LandscapeLeft"] = "landscapeLeft";
-})(Orientation = exports.Orientation || (exports.Orientation = {}));
+})(Orientation || (exports.Orientation = Orientation = {}));
 var Direction;
 (function (Direction) {
     Direction["None"] = "none";
@@ -31,7 +31,7 @@ var Direction;
     Direction["Vertical"] = "vertical";
     Direction["TopToBottom"] = "topToBottom";
     Direction["BottomToTop"] = "bottomToTop";
-})(Direction = exports.Direction || (exports.Direction = {}));
+})(Direction || (exports.Direction = Direction = {}));
 var Anchor;
 (function (Anchor) {
     Anchor["TopLeft"] = "topLeft";
@@ -43,5 +43,5 @@ var Anchor;
     Anchor["BottomLeft"] = "bottomLeft";
     Anchor["BottomCenter"] = "bottomCenter";
     Anchor["BottomRight"] = "bottomRight";
-})(Anchor = exports.Anchor || (exports.Anchor = {}));
+})(Anchor || (exports.Anchor = Anchor = {}));
 //# sourceMappingURL=CommonEnums.js.map

@@ -3,10 +3,12 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -44,7 +46,7 @@ var RadiusLocationSelection = /** @class */ (function (_super) {
         return new RadiusLocationSelection(radius);
     };
     __decorate([
-        Serializeable_1.nameForSerialization('radius')
+        (0, Serializeable_1.nameForSerialization)('radius')
     ], RadiusLocationSelection.prototype, "_radius", void 0);
     return RadiusLocationSelection;
 }(Serializeable_1.DefaultSerializeable));
@@ -109,11 +111,11 @@ var RectangularLocationSelection = /** @class */ (function (_super) {
             return locationSelection;
         }
         else {
-            throw new Error("RectangularLocationSelectionJSON is malformed: " + JSON.stringify(rectangularLocationSelectionJSON));
+            throw new Error("RectangularLocationSelectionJSON is malformed: ".concat(JSON.stringify(rectangularLocationSelectionJSON)));
         }
     };
     __decorate([
-        Serializeable_1.nameForSerialization('size')
+        (0, Serializeable_1.nameForSerialization)('size')
     ], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", void 0);
     return RectangularLocationSelection;
 }(Serializeable_1.DefaultSerializeable));

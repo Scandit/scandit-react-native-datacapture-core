@@ -10,6 +10,7 @@ export interface CameraSettingsJSON {
     focusGestureStrategy: string;
     shouldPreferSmoothAutoFocus: boolean;
     api: number;
+    properties: any;
 }
 export interface PrivateCameraSettings {
     fromJSON(json: CameraSettingsJSON): CameraSettings;

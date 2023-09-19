@@ -3,10 +3,12 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -29,33 +31,33 @@ var TorchState;
     TorchState["On"] = "on";
     TorchState["Off"] = "off";
     TorchState["Auto"] = "auto";
-})(TorchState = exports.TorchState || (exports.TorchState = {}));
+})(TorchState || (exports.TorchState = TorchState = {}));
 var CameraPosition;
 (function (CameraPosition) {
     CameraPosition["WorldFacing"] = "worldFacing";
     CameraPosition["UserFacing"] = "userFacing";
     CameraPosition["Unspecified"] = "unspecified";
-})(CameraPosition = exports.CameraPosition || (exports.CameraPosition = {}));
+})(CameraPosition || (exports.CameraPosition = CameraPosition = {}));
 var VideoResolution;
 (function (VideoResolution) {
     VideoResolution["Auto"] = "auto";
     VideoResolution["HD"] = "hd";
     VideoResolution["FullHD"] = "fullHd";
     VideoResolution["UHD4K"] = "uhd4k";
-})(VideoResolution = exports.VideoResolution || (exports.VideoResolution = {}));
+})(VideoResolution || (exports.VideoResolution = VideoResolution = {}));
 var FocusRange;
 (function (FocusRange) {
     FocusRange["Full"] = "full";
     FocusRange["Near"] = "near";
     FocusRange["Far"] = "far";
-})(FocusRange = exports.FocusRange || (exports.FocusRange = {}));
+})(FocusRange || (exports.FocusRange = FocusRange = {}));
 var FocusGestureStrategy;
 (function (FocusGestureStrategy) {
     FocusGestureStrategy["None"] = "none";
     FocusGestureStrategy["Manual"] = "manual";
     FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
     FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
-})(FocusGestureStrategy = exports.FocusGestureStrategy || (exports.FocusGestureStrategy = {}));
+})(FocusGestureStrategy || (exports.FocusGestureStrategy = FocusGestureStrategy = {}));
 var PrivateCameraProperty;
 (function (PrivateCameraProperty) {
     PrivateCameraProperty["CameraAPI"] = "api";
@@ -134,6 +136,19 @@ var CameraSettings = /** @class */ (function (_super) {
         if (json.api !== undefined && json.api !== null) {
             settings.api = json.api;
         }
+        // Workaround for MS Pick recommended camera settings until we rework the implementation for all modes.
+        if (json.properties) {
+            if (json.properties.exposureTargetBias) {
+                settings.setProperty('exposureTargetBias', json.properties.exposureTargetBias);
+            }
+            if (json.properties.scanPhaseNoSreTimeout) {
+                settings.setProperty('scanPhaseNoSreTimeout', json.properties.scanPhaseNoSreTimeout);
+            }
+            if (json.properties.focusStrategy) {
+                // @ts-ignore
+                settings.focus.focusStrategy = json.properties.focusStrategy;
+            }
+        }
         return settings;
     };
     CameraSettings.prototype.setProperty = function (name, value) {
@@ -178,7 +193,7 @@ var ImageFrameSource = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.type = 'image';
         _this.image = '';
-        _this._id = "" + Date.now();
+        _this._id = "".concat(Date.now());
         _this._desiredState = FrameSource_1.FrameSourceState.Off;
         _this.listeners = [];
         _this._context = null;
@@ -250,10 +265,10 @@ var ImageFrameSource = /** @class */ (function (_super) {
         return this.proxy.getCurrentState();
     };
     __decorate([
-        Serializeable_1.nameForSerialization('id')
+        (0, Serializeable_1.nameForSerialization)('id')
     ], ImageFrameSource.prototype, "_id", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('desiredState')
+        (0, Serializeable_1.nameForSerialization)('desiredState')
     ], ImageFrameSource.prototype, "_desiredState", void 0);
     __decorate([
         Serializeable_1.ignoreFromSerialization

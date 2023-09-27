@@ -32,9 +32,8 @@ class ScanditDataCaptureCoreModule(
     init {
         coreModule.onCreate(reactContext)
     }
-
     override fun invalidate() {
-        dispose()
+        coreModule.onDestroy()
         super.invalidate()
     }
 
@@ -106,7 +105,7 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun dispose() {
-        coreModule.onDestroy()
+        coreModule.disposeContext()
     }
 
     @ReactMethod

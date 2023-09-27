@@ -17,6 +17,7 @@ exports.Defaults = {
             zoomGestureZoomFactor: NativeModule.Defaults.Camera.Settings.zoomGestureZoomFactor,
             focusGestureStrategy: NativeModule.Defaults.Camera.Settings.focusGestureStrategy,
             shouldPreferSmoothAutoFocus: NativeModule.Defaults.Camera.Settings.shouldPreferSmoothAutoFocus,
+            properties: NativeModule.Defaults.Camera.Settings.properties,
         },
         defaultPosition: (NativeModule.Defaults.Camera.defaultPosition || null),
         availablePositions: NativeModule.Defaults.Camera.availablePositions,

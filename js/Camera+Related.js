@@ -20,6 +20,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImageFrameSource = exports.ImageBuffer = exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
 var Defaults_1 = require("./private/Defaults");
@@ -58,18 +69,20 @@ var FocusGestureStrategy;
     FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
     FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
 })(FocusGestureStrategy || (exports.FocusGestureStrategy = FocusGestureStrategy = {}));
-var PrivateCameraProperty;
-(function (PrivateCameraProperty) {
-    PrivateCameraProperty["CameraAPI"] = "api";
-})(PrivateCameraProperty || (PrivateCameraProperty = {}));
 var CameraSettings = /** @class */ (function (_super) {
     __extends(CameraSettings, _super);
     function CameraSettings(settings) {
         var _this = _super.call(this) || this;
+        _this.focusHiddenProperties = [
+            'range',
+            'manualLensPosition',
+            'shouldPreferSmoothAutoFocus',
+            'focusStrategy',
+            'focusGestureStrategy'
+        ];
         _this.preferredResolution = Defaults_1.Defaults.Camera.Settings.preferredResolution;
         _this.zoomFactor = Defaults_1.Defaults.Camera.Settings.zoomFactor;
         _this.zoomGestureZoomFactor = Defaults_1.Defaults.Camera.Settings.zoomGestureZoomFactor;
-        _this.api = 0;
         _this.focus = {
             range: Defaults_1.Defaults.Camera.Settings.focusRange,
             focusGestureStrategy: Defaults_1.Defaults.Camera.Settings.focusGestureStrategy,
@@ -126,6 +139,7 @@ var CameraSettings = /** @class */ (function (_super) {
         configurable: true
     });
     CameraSettings.fromJSON = function (json) {
+        var e_1, _a;
         var settings = new CameraSettings();
         settings.preferredResolution = json.preferredResolution;
         settings.zoomFactor = json.zoomFactor;
@@ -133,8 +147,20 @@ var CameraSettings = /** @class */ (function (_super) {
         settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
         settings.focusGestureStrategy = json.focusGestureStrategy;
         settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
-        if (json.api !== undefined && json.api !== null) {
-            settings.api = json.api;
+        if (json.properties !== undefined) {
+            try {
+                for (var _b = __values(Object.keys(json.properties)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var key = _c.value;
+                    settings.setProperty(key, json.properties[key]);
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
         }
         // Workaround for MS Pick recommended camera settings until we rework the implementation for all modes.
         if (json.properties) {
@@ -152,11 +178,21 @@ var CameraSettings = /** @class */ (function (_super) {
         return settings;
     };
     CameraSettings.prototype.setProperty = function (name, value) {
+        if (this.focusHiddenProperties.includes(name)) {
+            this.focus[name] = value;
+            return;
+        }
         this[name] = value;
     };
     CameraSettings.prototype.getProperty = function (name) {
+        if (this.focusHiddenProperties.includes(name)) {
+            return this.focus[name];
+        }
         return this[name];
     };
+    __decorate([
+        Serializeable_1.ignoreFromSerialization
+    ], CameraSettings.prototype, "focusHiddenProperties", void 0);
     return CameraSettings;
 }(Serializeable_1.DefaultSerializeable));
 exports.CameraSettings = CameraSettings;

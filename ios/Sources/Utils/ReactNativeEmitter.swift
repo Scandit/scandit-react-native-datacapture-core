@@ -4,12 +4,19 @@
  * Copyright (C) 2023- Scandit AG. All rights reserved.
  */
 
+import React
 import ScanditFrameworksCore
 
-public class ReactNativeEmitter: Emitter {
+public protocol ReactNativeEmitting: Emitter {
+    init(emitter: RCTEventEmitter)
+    func emit(name: String, payload: [String: Any?])
+    func hasListener(for event: String) -> Bool
+}
+
+public class ReactNativeEmitter: ReactNativeEmitting {
     weak var emitter: RCTEventEmitter?
 
-    public init(emitter: RCTEventEmitter) {
+    public required init(emitter: RCTEventEmitter) {
         self.emitter = emitter
     }
 

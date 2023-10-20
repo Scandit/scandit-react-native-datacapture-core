@@ -5,6 +5,7 @@
  */
 
 import Foundation
+import React
 import ScanditCaptureCore
 import ScanditFrameworksCore
 

@@ -8,7 +8,6 @@ export interface PrivateDataCaptureContext {
     components: [DataCaptureComponent];
     listeners: [DataCaptureContextListener];
     view: PrivateDataCaptureView | null;
-    initialize: () => void;
     update: () => Promise<void>;
     addComponent: (component: DataCaptureComponent) => Promise<void>;
 }

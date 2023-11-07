@@ -56,7 +56,7 @@ var PrivateDataCaptureView = /** @class */ (function (_super) {
             this._context = context;
             if (this._context) {
                 this._context.view = this;
-                this._context.initialize();
+                this._context.update();
             }
         },
         enumerable: false,

@@ -57,6 +57,7 @@ var DataCaptureContext = /** @class */ (function (_super) {
         _this.modes = [];
         _this.components = [];
         _this.listeners = [];
+        _this.initialize();
         return _this;
     }
     Object.defineProperty(DataCaptureContext.prototype, "frameSource", {

@@ -162,6 +162,19 @@ var CameraSettings = /** @class */ (function (_super) {
                 finally { if (e_1) throw e_1.error; }
             }
         }
+        // Workaround for MS Pick recommended camera settings until we rework the implementation for all modes.
+        if (json.properties) {
+            if (json.properties.exposureTargetBias) {
+                settings.setProperty('exposureTargetBias', json.properties.exposureTargetBias);
+            }
+            if (json.properties.scanPhaseNoSreTimeout) {
+                settings.setProperty('scanPhaseNoSreTimeout', json.properties.scanPhaseNoSreTimeout);
+            }
+            if (json.properties.focusStrategy) {
+                // @ts-ignore
+                settings.focus.focusStrategy = json.properties.focusStrategy;
+            }
+        }
         return settings;
     };
     CameraSettings.prototype.setProperty = function (name, value) {

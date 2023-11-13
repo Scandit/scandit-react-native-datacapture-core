@@ -56,7 +56,7 @@ export interface PrivateMarginsWithUnit {
     readonly zero: MarginsWithUnit;
     fromJSON(json: MarginsWithUnitJSON): MarginsWithUnit;
 }
-export type ColorJSON = string;
+export declare type ColorJSON = string;
 export interface PrivateColor {
     fromJSON(json: ColorJSON): Color;
 }

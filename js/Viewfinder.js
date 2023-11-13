@@ -3,12 +3,10 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -48,7 +46,7 @@ var LaserlineViewfinder = /** @class */ (function (_super) {
         configurable: true
     });
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('style')
+        Serializeable_1.nameForSerialization('style')
     ], LaserlineViewfinder.prototype, "_style", void 0);
     return LaserlineViewfinder;
 }(Serializeable_1.DefaultSerializeable));
@@ -156,28 +154,28 @@ var RectangularViewfinder = /** @class */ (function (_super) {
         this._sizeWithUnitAndAspect = Common_1.SizeWithUnitAndAspect.sizeWithShorterDimensionAndAspectRatio(new Common_1.NumberWithUnit(fraction, CommonEnums_1.MeasureUnit.Fraction), aspectRatio);
     };
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('style')
+        Serializeable_1.nameForSerialization('style')
     ], RectangularViewfinder.prototype, "_style", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('lineStyle')
+        Serializeable_1.nameForSerialization('lineStyle')
     ], RectangularViewfinder.prototype, "_lineStyle", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('dimming')
+        Serializeable_1.nameForSerialization('dimming')
     ], RectangularViewfinder.prototype, "_dimming", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('disabledDimming')
+        Serializeable_1.nameForSerialization('disabledDimming')
     ], RectangularViewfinder.prototype, "_disabledDimming", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('animation')
+        Serializeable_1.nameForSerialization('animation')
     ], RectangularViewfinder.prototype, "_animation", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('size')
+        Serializeable_1.nameForSerialization('size')
     ], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('color')
+        Serializeable_1.nameForSerialization('color')
     ], RectangularViewfinder.prototype, "_color", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('disabledColor')
+        Serializeable_1.nameForSerialization('disabledColor')
     ], RectangularViewfinder.prototype, "_disabledColor", void 0);
     return RectangularViewfinder;
 }(Serializeable_1.DefaultSerializeable));
@@ -212,7 +210,7 @@ var SpotlightViewfinder = /** @class */ (function (_super) {
         this._sizeWithUnitAndAspect = Common_1.SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
     };
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('size')
+        Serializeable_1.nameForSerialization('size')
     ], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
     return SpotlightViewfinder;
 }(Serializeable_1.DefaultSerializeable));

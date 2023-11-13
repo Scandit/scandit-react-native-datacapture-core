@@ -12,5 +12,5 @@ var FrameSourceState;
     FrameSourceState["WakingUp"] = "wakingUp";
     FrameSourceState["GoingToSleep"] = "goingToSleep";
     FrameSourceState["ShuttingDown"] = "shuttingDown";
-})(FrameSourceState || (exports.FrameSourceState = FrameSourceState = {}));
+})(FrameSourceState = exports.FrameSourceState || (exports.FrameSourceState = {}));
 //# sourceMappingURL=FrameSource.js.map

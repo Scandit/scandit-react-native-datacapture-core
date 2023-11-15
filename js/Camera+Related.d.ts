@@ -28,10 +28,10 @@ export declare enum FocusGestureStrategy {
     AutoOnLocation = "autoOnLocation"
 }
 export declare class CameraSettings extends DefaultSerializeable {
+    private focusHiddenProperties;
     preferredResolution: VideoResolution;
     zoomFactor: number;
     zoomGestureZoomFactor: number;
-    private api;
     private focus;
     get focusRange(): FocusRange;
     set focusRange(newRange: FocusRange);

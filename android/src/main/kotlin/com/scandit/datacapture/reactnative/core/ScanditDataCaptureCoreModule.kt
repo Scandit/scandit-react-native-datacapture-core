@@ -30,11 +30,11 @@ class ScanditDataCaptureCoreModule(
     }
 
     init {
-        coreModule.onStart(reactContext)
+        coreModule.onCreate(reactContext)
     }
-
-    override fun onCatalystInstanceDestroy() {
-        dispose()
+    override fun invalidate() {
+        coreModule.onDestroy()
+        super.invalidate()
     }
 
     override fun getName(): String = "ScanditDataCaptureCore"
@@ -105,7 +105,7 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun dispose() {
-        coreModule.onStop()
+        coreModule.disposeContext()
     }
 
     @ReactMethod

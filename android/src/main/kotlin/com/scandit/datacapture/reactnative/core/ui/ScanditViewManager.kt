@@ -16,9 +16,7 @@ abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : View
     private val containers = mutableListOf<T>()
 
     val currentContainer: T?
-        get() {
-            return if (containers.size > 0) containers[containers.size - 1] else null
-        }
+        get() = if (containers.size > 0) containers[containers.size - 1] else null
 
     // Action to be executed after the container is created via the createViewInstance function
     var postContainerCreationAction: (() -> Unit)? = null
@@ -80,10 +78,12 @@ abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : View
                     val child = container.getChildAt(i)
                     child.measure(
                         View.MeasureSpec.makeMeasureSpec(
-                            container.measuredWidth, View.MeasureSpec.EXACTLY
+                            container.measuredWidth,
+                            View.MeasureSpec.EXACTLY
                         ),
                         View.MeasureSpec.makeMeasureSpec(
-                            container.measuredHeight, View.MeasureSpec.EXACTLY
+                            container.measuredHeight,
+                            View.MeasureSpec.EXACTLY
                         )
                     )
                     child.layout(0, 0, child.measuredWidth, child.measuredHeight)

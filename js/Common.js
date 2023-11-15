@@ -3,10 +3,12 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -48,10 +50,10 @@ var Point = /** @class */ (function (_super) {
         return new Point(json.x, json.y);
     };
     __decorate([
-        Serializeable_1.nameForSerialization('x')
+        (0, Serializeable_1.nameForSerialization)('x')
     ], Point.prototype, "_x", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('y')
+        (0, Serializeable_1.nameForSerialization)('y')
     ], Point.prototype, "_y", void 0);
     return Point;
 }(Serializeable_1.DefaultSerializeable));
@@ -98,16 +100,16 @@ var Quadrilateral = /** @class */ (function (_super) {
         return new Quadrilateral(Point.fromJSON(json.topLeft), Point.fromJSON(json.topRight), Point.fromJSON(json.bottomRight), Point.fromJSON(json.bottomLeft));
     };
     __decorate([
-        Serializeable_1.nameForSerialization('topLeft')
+        (0, Serializeable_1.nameForSerialization)('topLeft')
     ], Quadrilateral.prototype, "_topLeft", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('topRight')
+        (0, Serializeable_1.nameForSerialization)('topRight')
     ], Quadrilateral.prototype, "_topRight", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('bottomRight')
+        (0, Serializeable_1.nameForSerialization)('bottomRight')
     ], Quadrilateral.prototype, "_bottomRight", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('bottomLeft')
+        (0, Serializeable_1.nameForSerialization)('bottomLeft')
     ], Quadrilateral.prototype, "_bottomLeft", void 0);
     return Quadrilateral;
 }(Serializeable_1.DefaultSerializeable));
@@ -138,10 +140,10 @@ var NumberWithUnit = /** @class */ (function (_super) {
         return new NumberWithUnit(json.value, json.unit);
     };
     __decorate([
-        Serializeable_1.nameForSerialization('value')
+        (0, Serializeable_1.nameForSerialization)('value')
     ], NumberWithUnit.prototype, "_value", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('unit')
+        (0, Serializeable_1.nameForSerialization)('unit')
     ], NumberWithUnit.prototype, "_unit", void 0);
     return NumberWithUnit;
 }(Serializeable_1.DefaultSerializeable));
@@ -179,10 +181,10 @@ var PointWithUnit = /** @class */ (function (_super) {
         configurable: true
     });
     __decorate([
-        Serializeable_1.nameForSerialization('x')
+        (0, Serializeable_1.nameForSerialization)('x')
     ], PointWithUnit.prototype, "_x", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('y')
+        (0, Serializeable_1.nameForSerialization)('y')
     ], PointWithUnit.prototype, "_y", void 0);
     return PointWithUnit;
 }(Serializeable_1.DefaultSerializeable));
@@ -210,10 +212,10 @@ var Rect = /** @class */ (function (_super) {
         configurable: true
     });
     __decorate([
-        Serializeable_1.nameForSerialization('origin')
+        (0, Serializeable_1.nameForSerialization)('origin')
     ], Rect.prototype, "_origin", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('size')
+        (0, Serializeable_1.nameForSerialization)('size')
     ], Rect.prototype, "_size", void 0);
     return Rect;
 }(Serializeable_1.DefaultSerializeable));
@@ -241,10 +243,10 @@ var RectWithUnit = /** @class */ (function (_super) {
         configurable: true
     });
     __decorate([
-        Serializeable_1.nameForSerialization('origin')
+        (0, Serializeable_1.nameForSerialization)('origin')
     ], RectWithUnit.prototype, "_origin", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('size')
+        (0, Serializeable_1.nameForSerialization)('size')
     ], RectWithUnit.prototype, "_size", void 0);
     return RectWithUnit;
 }(Serializeable_1.DefaultSerializeable));
@@ -272,10 +274,10 @@ var SizeWithUnit = /** @class */ (function (_super) {
         configurable: true
     });
     __decorate([
-        Serializeable_1.nameForSerialization('width')
+        (0, Serializeable_1.nameForSerialization)('width')
     ], SizeWithUnit.prototype, "_width", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('height')
+        (0, Serializeable_1.nameForSerialization)('height')
     ], SizeWithUnit.prototype, "_height", void 0);
     return SizeWithUnit;
 }(Serializeable_1.DefaultSerializeable));
@@ -306,10 +308,10 @@ var Size = /** @class */ (function (_super) {
         return new Size(json.width, json.height);
     };
     __decorate([
-        Serializeable_1.nameForSerialization('width')
+        (0, Serializeable_1.nameForSerialization)('width')
     ], Size.prototype, "_width", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('height')
+        (0, Serializeable_1.nameForSerialization)('height')
     ], Size.prototype, "_height", void 0);
     return Size;
 }(Serializeable_1.DefaultSerializeable));
@@ -334,10 +336,10 @@ var SizeWithAspect = /** @class */ (function () {
         configurable: true
     });
     __decorate([
-        Serializeable_1.nameForSerialization('size')
+        (0, Serializeable_1.nameForSerialization)('size')
     ], SizeWithAspect.prototype, "_size", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('aspect')
+        (0, Serializeable_1.nameForSerialization)('aspect')
     ], SizeWithAspect.prototype, "_aspect", void 0);
     return SizeWithAspect;
 }());
@@ -427,7 +429,7 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
             return this.sizeWithShorterDimensionAndAspectRatio(NumberWithUnit.fromJSON(json.shorterDimension), json.aspect);
         }
         else {
-            throw new Error("SizeWithUnitAndAspectJSON is malformed: " + JSON.stringify(json));
+            throw new Error("SizeWithUnitAndAspectJSON is malformed: ".concat(JSON.stringify(json)));
         }
     };
     SizeWithUnitAndAspect.prototype.toJSON = function () {
@@ -455,16 +457,16 @@ var SizeWithUnitAndAspect = /** @class */ (function () {
         }
     };
     __decorate([
-        Serializeable_1.nameForSerialization('widthAndHeight')
+        (0, Serializeable_1.nameForSerialization)('widthAndHeight')
     ], SizeWithUnitAndAspect.prototype, "_widthAndHeight", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('widthAndAspectRatio')
+        (0, Serializeable_1.nameForSerialization)('widthAndAspectRatio')
     ], SizeWithUnitAndAspect.prototype, "_widthAndAspectRatio", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('heightAndAspectRatio')
+        (0, Serializeable_1.nameForSerialization)('heightAndAspectRatio')
     ], SizeWithUnitAndAspect.prototype, "_heightAndAspectRatio", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('shorterDimensionAndAspectRatio')
+        (0, Serializeable_1.nameForSerialization)('shorterDimensionAndAspectRatio')
     ], SizeWithUnitAndAspect.prototype, "_shorterDimensionAndAspectRatio", void 0);
     return SizeWithUnitAndAspect;
 }());
@@ -518,16 +520,16 @@ var MarginsWithUnit = /** @class */ (function (_super) {
         configurable: true
     });
     __decorate([
-        Serializeable_1.nameForSerialization('left')
+        (0, Serializeable_1.nameForSerialization)('left')
     ], MarginsWithUnit.prototype, "_left", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('right')
+        (0, Serializeable_1.nameForSerialization)('right')
     ], MarginsWithUnit.prototype, "_right", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('top')
+        (0, Serializeable_1.nameForSerialization)('top')
     ], MarginsWithUnit.prototype, "_top", void 0);
     __decorate([
-        Serializeable_1.nameForSerialization('bottom')
+        (0, Serializeable_1.nameForSerialization)('bottom')
     ], MarginsWithUnit.prototype, "_bottom", void 0);
     return MarginsWithUnit;
 }(Serializeable_1.DefaultSerializeable));

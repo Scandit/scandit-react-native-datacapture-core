@@ -70,10 +70,11 @@ class DataCaptureViewManager :
             /*
               During hot reloading, DataCaptureViewManager recreates the view instance with
               a createViewInstance() call, without destroying the previous instance (with
-              onDropViewInstance() callback). As a result, the DataCaptureViewHandler.dataCaptureView
-              still has a parent - we have to remove the reference to the old parent before adding
+              onDropViewInstance() callback). As a result, the
+              DataCaptureViewHandler.dataCaptureView still has a parent - we have to
+              remove the reference to the old parent before adding
               DataCaptureViewHandler.dataCaptureView to the newly created container.
-            */
+             */
             dataCaptureView.parent?.let {
                 (it as ViewGroup).removeView(dataCaptureView)
             }

@@ -9,6 +9,9 @@ export interface CameraSettingsDefaultsJSON {
     zoomGestureZoomFactor: number;
     focusGestureStrategy: string;
     shouldPreferSmoothAutoFocus: boolean;
+    properties: {
+        [key: string]: any;
+    };
 }
 export interface PrivateCameraSettingsDefaults {
     fromJSON(json: CameraSettingsDefaultsJSON): CameraSettings;
@@ -22,6 +25,7 @@ export declare const Defaults: {
             zoomGestureZoomFactor: any;
             focusGestureStrategy: FocusGestureStrategy;
             shouldPreferSmoothAutoFocus: any;
+            properties: any;
         };
         defaultPosition: CameraPosition | null;
         availablePositions: CameraPosition[];

@@ -13,6 +13,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.utils.LastFrameData
+import com.scandit.datacapture.frameworks.core.utils.MainThread
 import com.scandit.datacapture.reactnative.core.utils.Error
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 import com.scandit.datacapture.reactnative.core.utils.reject
@@ -81,7 +82,9 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun updateContextFromJSON(json: String, promise: Promise) {
-        coreModule.updateContextFromJson(json, ReactNativeResult(promise))
+        MainThread.runOnMainThread {
+            coreModule.updateContextFromJson(json, ReactNativeResult(promise))
+        }
     }
 
     @ReactMethod

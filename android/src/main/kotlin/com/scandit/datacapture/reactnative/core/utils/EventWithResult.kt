@@ -7,7 +7,6 @@
 package com.scandit.datacapture.reactnative.core.utils
 
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
-import com.scandit.datacapture.frameworks.core.utils.FrameworksLog
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -28,17 +27,15 @@ class EventWithResult<T>(
         resultHolder.clear()
         eventEmitter.emit(name, data)
 
-        return when (
-            val pendingResult: PendingResult? = resultHolder.poll(timeoutMillis, MILLISECONDS)
-        ) {
+        val pendingResult: PendingResult? = resultHolder.poll(timeoutMillis, MILLISECONDS)
+
+        return when (pendingResult) {
             null -> {
-                FrameworksLog.info(
-                    "Callback `$name` not finished after $timeoutMillis milliseconds."
-                )
+                Log.info("Callback `$name` not finished after $timeoutMillis milliseconds.")
                 timeoutResult
             }
             is Cancellation -> {
-                FrameworksLog.info("Callback `$name` not finished, because onCancel was called.")
+                Log.info("Callback `$name` not finished, because onCancel was called.")
                 timeoutResult
             }
             is Result<*> -> pendingResult.value as T

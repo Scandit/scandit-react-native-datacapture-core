@@ -9,7 +9,7 @@ var EventEmitter = new react_native_1.NativeEventEmitter(NativeModule);
 // tslint:enable:variable-name
 var DataCaptureViewListenerName;
 (function (DataCaptureViewListenerName) {
-    DataCaptureViewListenerName["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
+    DataCaptureViewListenerName["didChangeSize"] = "dataCaptureViewListener-didChangeSize";
 })(DataCaptureViewListenerName || (DataCaptureViewListenerName = {}));
 var DataCaptureViewProxy = /** @class */ (function () {
     function DataCaptureViewProxy() {
@@ -36,9 +36,8 @@ var DataCaptureViewProxy = /** @class */ (function () {
         var _this = this;
         NativeModule.registerListenerForViewEvents();
         var didChangeSize = EventEmitter.addListener(DataCaptureViewListenerName.didChangeSize, function (body) {
-            var payload = JSON.parse(body);
-            var size = Common_1.Size.fromJSON(payload.size);
-            var orientation = payload.orientation;
+            var size = Common_1.Size.fromJSON(body.size);
+            var orientation = body.orientation;
             _this.view.listeners.forEach(function (listener) {
                 if (listener.didChangeSize) {
                     listener.didChangeSize(_this.view.viewComponent, size, orientation);

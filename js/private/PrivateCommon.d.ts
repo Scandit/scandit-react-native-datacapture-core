@@ -56,7 +56,7 @@ export interface PrivateMarginsWithUnit {
     readonly zero: MarginsWithUnit;
     fromJSON(json: MarginsWithUnitJSON): MarginsWithUnit;
 }
-export type ColorJSON = string;
+export declare type ColorJSON = string;
 export interface PrivateColor {
     fromJSON(json: ColorJSON): Color;
 }
@@ -73,14 +73,4 @@ export interface BrushJSON {
         color: Color;
         width: number;
     };
-}
-export interface DidChangeSizeEventPayload {
-    size: SizeJSON;
-    orientation: string;
-}
-export interface DidChangeStatusEventPayload {
-    status: string;
-}
-export interface DidChangeStateEventPayload {
-    state: string;
 }

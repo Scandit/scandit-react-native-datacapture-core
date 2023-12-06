@@ -3,12 +3,10 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -19,17 +17,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImageFrameSource = exports.ImageBuffer = exports.CameraSettings = exports.FocusGestureStrategy = exports.FocusRange = exports.VideoResolution = exports.CameraPosition = exports.TorchState = void 0;
@@ -42,47 +29,45 @@ var TorchState;
     TorchState["On"] = "on";
     TorchState["Off"] = "off";
     TorchState["Auto"] = "auto";
-})(TorchState || (exports.TorchState = TorchState = {}));
+})(TorchState = exports.TorchState || (exports.TorchState = {}));
 var CameraPosition;
 (function (CameraPosition) {
     CameraPosition["WorldFacing"] = "worldFacing";
     CameraPosition["UserFacing"] = "userFacing";
     CameraPosition["Unspecified"] = "unspecified";
-})(CameraPosition || (exports.CameraPosition = CameraPosition = {}));
+})(CameraPosition = exports.CameraPosition || (exports.CameraPosition = {}));
 var VideoResolution;
 (function (VideoResolution) {
     VideoResolution["Auto"] = "auto";
     VideoResolution["HD"] = "hd";
     VideoResolution["FullHD"] = "fullHd";
     VideoResolution["UHD4K"] = "uhd4k";
-})(VideoResolution || (exports.VideoResolution = VideoResolution = {}));
+})(VideoResolution = exports.VideoResolution || (exports.VideoResolution = {}));
 var FocusRange;
 (function (FocusRange) {
     FocusRange["Full"] = "full";
     FocusRange["Near"] = "near";
     FocusRange["Far"] = "far";
-})(FocusRange || (exports.FocusRange = FocusRange = {}));
+})(FocusRange = exports.FocusRange || (exports.FocusRange = {}));
 var FocusGestureStrategy;
 (function (FocusGestureStrategy) {
     FocusGestureStrategy["None"] = "none";
     FocusGestureStrategy["Manual"] = "manual";
     FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
     FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
-})(FocusGestureStrategy || (exports.FocusGestureStrategy = FocusGestureStrategy = {}));
+})(FocusGestureStrategy = exports.FocusGestureStrategy || (exports.FocusGestureStrategy = {}));
+var PrivateCameraProperty;
+(function (PrivateCameraProperty) {
+    PrivateCameraProperty["CameraAPI"] = "api";
+})(PrivateCameraProperty || (PrivateCameraProperty = {}));
 var CameraSettings = /** @class */ (function (_super) {
     __extends(CameraSettings, _super);
     function CameraSettings(settings) {
         var _this = _super.call(this) || this;
-        _this.focusHiddenProperties = [
-            'range',
-            'manualLensPosition',
-            'shouldPreferSmoothAutoFocus',
-            'focusStrategy',
-            'focusGestureStrategy'
-        ];
         _this.preferredResolution = Defaults_1.Defaults.Camera.Settings.preferredResolution;
         _this.zoomFactor = Defaults_1.Defaults.Camera.Settings.zoomFactor;
         _this.zoomGestureZoomFactor = Defaults_1.Defaults.Camera.Settings.zoomGestureZoomFactor;
+        _this.api = 0;
         _this.focus = {
             range: Defaults_1.Defaults.Camera.Settings.focusRange,
             focusGestureStrategy: Defaults_1.Defaults.Camera.Settings.focusGestureStrategy,
@@ -139,7 +124,6 @@ var CameraSettings = /** @class */ (function (_super) {
         configurable: true
     });
     CameraSettings.fromJSON = function (json) {
-        var e_1, _a;
         var settings = new CameraSettings();
         settings.preferredResolution = json.preferredResolution;
         settings.zoomFactor = json.zoomFactor;
@@ -147,39 +131,17 @@ var CameraSettings = /** @class */ (function (_super) {
         settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
         settings.focusGestureStrategy = json.focusGestureStrategy;
         settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
-        if (json.properties !== undefined) {
-            try {
-                for (var _b = __values(Object.keys(json.properties)), _c = _b.next(); !_c.done; _c = _b.next()) {
-                    var key = _c.value;
-                    settings.setProperty(key, json.properties[key]);
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
+        if (json.api !== undefined && json.api !== null) {
+            settings.api = json.api;
         }
         return settings;
     };
     CameraSettings.prototype.setProperty = function (name, value) {
-        if (this.focusHiddenProperties.includes(name)) {
-            this.focus[name] = value;
-            return;
-        }
         this[name] = value;
     };
     CameraSettings.prototype.getProperty = function (name) {
-        if (this.focusHiddenProperties.includes(name)) {
-            return this.focus[name];
-        }
         return this[name];
     };
-    __decorate([
-        Serializeable_1.ignoreFromSerialization
-    ], CameraSettings.prototype, "focusHiddenProperties", void 0);
     return CameraSettings;
 }(Serializeable_1.DefaultSerializeable));
 exports.CameraSettings = CameraSettings;
@@ -216,7 +178,7 @@ var ImageFrameSource = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.type = 'image';
         _this.image = '';
-        _this._id = "".concat(Date.now());
+        _this._id = "" + Date.now();
         _this._desiredState = FrameSource_1.FrameSourceState.Off;
         _this.listeners = [];
         _this._context = null;
@@ -288,10 +250,10 @@ var ImageFrameSource = /** @class */ (function (_super) {
         return this.proxy.getCurrentState();
     };
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('id')
+        Serializeable_1.nameForSerialization('id')
     ], ImageFrameSource.prototype, "_id", void 0);
     __decorate([
-        (0, Serializeable_1.nameForSerialization)('desiredState')
+        Serializeable_1.nameForSerialization('desiredState')
     ], ImageFrameSource.prototype, "_desiredState", void 0);
     __decorate([
         Serializeable_1.ignoreFromSerialization

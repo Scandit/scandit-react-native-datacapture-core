@@ -11,61 +11,77 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import com.facebook.react.uimanager.ThemedReactContext
 import com.scandit.datacapture.core.ui.DataCaptureView
-import com.scandit.datacapture.reactnative.core.handler.DataCaptureViewHandler
+import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
+import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
+import com.scandit.datacapture.frameworks.core.utils.MainThread
+import java.lang.ref.WeakReference
 
-class DataCaptureViewManager :
+class DataCaptureViewManager(
+    private val mainThread: MainThread = DefaultMainThread.getInstance()
+) :
     ScanditViewGroupManager<FrameLayout>(),
-    DataCaptureViewHandler.ViewListener {
+    DeserializationLifecycleObserver.Observer {
 
     init {
-        DataCaptureViewHandler.setViewListener(this)
+        DeserializationLifecycleObserver.attach(this)
     }
 
     override fun getName(): String = "RNTDataCaptureView"
+
+    private var dataCaptureViewRef: WeakReference<DataCaptureView?> = WeakReference(null)
 
     override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
         FrameLayout(reactContext)
 
     override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
-        return super.createViewInstance(reactContext).also {
-            addDataCaptureViewToContainer(it)
+        val container = super.createViewInstance(reactContext)
+        dataCaptureViewRef.get()?.let { view ->
+            addDataCaptureViewToContainer(view, container)
         }
-    }
-
-    private fun addDataCaptureViewToContainer(container: FrameLayout) {
-        DataCaptureViewHandler.dataCaptureView?.let { view ->
-            /*
-            During hot reloading, DataCaptureViewManager recreates the view instance with
-            a createViewInstance() call, without destroying the previous instance (with
-            onDropViewInstance() callback). As a result, the DataCaptureViewHandler.dataCaptureView
-            still has a parent - we have to remove the reference to the old parent before adding
-            DataCaptureViewHandler.dataCaptureView to the newly created container.
-            */
-            view.parent?.let {
-                (it as ViewGroup).removeView(view)
-            }
-            container.removeAllViews()
-            container.addView(view, MATCH_PARENT, MATCH_PARENT)
-        }
+        return container
     }
 
     override fun onDropViewInstance(view: FrameLayout) {
         super.onDropViewInstance(view)
 
-        currentContainer?.let {
-            addDataCaptureViewToContainer(it)
+        currentContainer?.let { container ->
+            dataCaptureViewRef.get()?.let { view ->
+                addDataCaptureViewToContainer(view, container)
+            }
         }
     }
 
-    override fun onViewDeserialized(view: DataCaptureView) {
-        view.post {
-            // If the view has a parent it means that the view is already added to the container.
-            // In this scenario we should not remove and add it again because with trial licenses
-            // it's going to show the license popup over and over again.
-            view.parent?.let {
-                (it as ViewGroup).removeView(view)
+    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView) {
+        currentContainer?.let {
+            addDataCaptureViewToContainer(dataCaptureView, it)
+        }
+
+        dataCaptureViewRef = WeakReference(dataCaptureView)
+    }
+
+    private fun addDataCaptureViewToContainer(
+        dataCaptureView: DataCaptureView,
+        container: FrameLayout
+    ) {
+        mainThread.runOnMainThread {
+            if (container.childCount > 0 && container.getChildAt(0) === dataCaptureView) {
+                // Same instance already attached. No need to detach and attach it again because
+                // it will trigger some overlay cleanup that we don't want.
+                return@runOnMainThread
             }
-            currentContainer?.addView(view, MATCH_PARENT, MATCH_PARENT)
+
+            /*
+              During hot reloading, DataCaptureViewManager recreates the view instance with
+              a createViewInstance() call, without destroying the previous instance (with
+              onDropViewInstance() callback). As a result, the
+              DataCaptureViewHandler.dataCaptureView still has a parent - we have to
+              remove the reference to the old parent before adding
+              DataCaptureViewHandler.dataCaptureView to the newly created container.
+             */
+            dataCaptureView.parent?.let {
+                (it as ViewGroup).removeView(dataCaptureView)
+            }
+            container.addView(dataCaptureView, MATCH_PARENT, MATCH_PARENT)
         }
     }
 }

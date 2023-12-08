@@ -8,8 +8,8 @@ package com.scandit.datacapture.reactnative.core.data.defaults
 
 import com.facebook.react.bridge.WritableMap
 import com.scandit.datacapture.core.ui.style.Brush
+import com.scandit.datacapture.frameworks.core.extensions.hexString
 import com.scandit.datacapture.reactnative.core.data.SerializableData
-import com.scandit.datacapture.reactnative.core.utils.hexString
 import com.scandit.datacapture.reactnative.core.utils.writableMap
 import org.json.JSONObject
 

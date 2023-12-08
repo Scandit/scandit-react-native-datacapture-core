@@ -1,15 +1,18 @@
 {
   "name": "scandit-react-native-datacapture-core",
-  "version": "6.17.3",
+  "version": "6.21.0",
   "description": "Scandit Data Capture SDK for React Native",
   "homepage": "https://github.com/Scandit/scandit-react-native-datacapture-core",
-  "main": "js/index.js",
-  "types": "js/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/dts/index.d.ts",
   "scripts": {
     "test": "yarn lint",
     "lint": "tslint --project .",
-    "build": "tsc --build tsconfig.json --force",
-    "start": "yarn build -- --watch"
+    "tsc": "tsc",
+    "build": "npm run rollup",
+    "rollup": "rollup -c rollup.config.js --bundleConfigAsCjs",
+    "start": "yarn build -- --watch",
+    "clean": "../scripts/clean_package.py core"
   },
   "keywords": [
     "scandit",
@@ -27,6 +30,13 @@
   "devDependencies": {
     "@types/react-native": ">=0.60.0-rc.0 <1.0.x",
     "tslint": "^6.1.2",
-    "typescript": "^3.8.3"
+    "typescript": "4.9.5",
+    "rollup": "3.21.6",
+    "@rollup/plugin-node-resolve": "15.0.2",
+    "@rollup/plugin-typescript": "11.1.0",
+    "@rollup/plugin-commonjs": "24.1.0"
+  },
+  "dependencies": {
+    "scandit-datacapture-frameworks-core": "6.21.0"
   }
 }

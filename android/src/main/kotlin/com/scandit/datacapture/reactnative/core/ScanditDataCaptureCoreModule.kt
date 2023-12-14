@@ -12,8 +12,6 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
-import com.scandit.datacapture.frameworks.core.utils.DefaultLastFrameData
-import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.LastFrameData
 import com.scandit.datacapture.frameworks.core.utils.MainThread
 import com.scandit.datacapture.reactnative.core.utils.Error
@@ -22,9 +20,7 @@ import com.scandit.datacapture.reactnative.core.utils.reject
 
 class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
-    private val coreModule: CoreModule,
-    private val mainThread: MainThread = DefaultMainThread.getInstance(),
-    private val lastFrameData: LastFrameData = DefaultLastFrameData.getInstance()
+    private val coreModule: CoreModule
 ) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
@@ -86,14 +82,14 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun updateContextFromJSON(json: String, promise: Promise) {
-        mainThread.runOnMainThread {
+        MainThread.runOnMainThread {
             coreModule.updateContextFromJson(json, ReactNativeResult(promise))
         }
     }
 
     @ReactMethod
     fun getLastFrame(promise: Promise) {
-        lastFrameData.getLastFrameDataJson {
+        LastFrameData.getLastFrameDataJson {
             if (it == null) {
                 promise.reject(ERROR_NULL_FRAME)
                 return@getLastFrameDataJson
@@ -105,7 +101,7 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun getLastFrameOrNull(promise: Promise) {
-        lastFrameData.getLastFrameDataJson {
+        LastFrameData.getLastFrameDataJson {
             promise.resolve(it)
         }
     }

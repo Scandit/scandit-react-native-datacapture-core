@@ -12,13 +12,10 @@ import android.widget.FrameLayout
 import com.facebook.react.uimanager.ThemedReactContext
 import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
-import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.MainThread
 import java.lang.ref.WeakReference
 
-class DataCaptureViewManager(
-    private val mainThread: MainThread = DefaultMainThread.getInstance()
-) :
+class DataCaptureViewManager :
     ScanditViewGroupManager<FrameLayout>(),
     DeserializationLifecycleObserver.Observer {
 
@@ -63,7 +60,7 @@ class DataCaptureViewManager(
         dataCaptureView: DataCaptureView,
         container: FrameLayout
     ) {
-        mainThread.runOnMainThread {
+        MainThread.runOnMainThread {
             if (container.childCount > 0 && container.getChildAt(0) === dataCaptureView) {
                 // Same instance already attached. No need to detach and attach it again because
                 // it will trigger some overlay cleanup that we don't want.

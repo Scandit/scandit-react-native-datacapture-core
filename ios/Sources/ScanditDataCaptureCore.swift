@@ -86,6 +86,10 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         Deserializers.Factory.add(modeDeserializer)
     }
 
+    static public func unregister(modeDeserializer: DataCaptureModeDeserializer) {
+        Deserializers.Factory.remove(modeDeserializer)
+    }
+
     static var rntSDCComponentDeserializers = [DataCaptureComponentDeserializer]()
     internal var componentDeserializers: [DataCaptureComponentDeserializer] {
         ScanditDataCaptureCore.rntSDCComponentDeserializers
@@ -93,6 +97,10 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     static public func register(componentDeserializer: DataCaptureComponentDeserializer) {
         Deserializers.Factory.add(componentDeserializer)
+    }
+    
+    static public func unregister(componentDeserializer: DataCaptureComponentDeserializer) {
+        Deserializers.Factory.remove(componentDeserializer)
     }
 
     internal var components = [DataCaptureComponent]() {
@@ -138,7 +146,8 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         coreModule.didStop()
     }
 
-    deinit {
+    public override func invalidate() {
+        super.invalidate()
         dispose()
     }
 
@@ -230,30 +239,28 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         dataCaptureContextListeners.remove(listener)
     }
 
-    // Empty methods to unify the logic on the TS side for supporting functionality automatically provided by RN on iOS,
-    // but custom implemented on Android.
     @objc func registerListenerForCameraEvents() {
-        // Empty on purpose
+        coreModule.registerFrameSourceListener()
     }
 
     @objc func unregisterListenerForCameraEvents() {
-        // Empty on purpose
+        coreModule.unregisterFrameSourceListener()
     }
 
     @objc func registerListenerForEvents() {
-        // Empty on purpose
+        coreModule.registerDataCaptureContextListener()
     }
 
     @objc func unregisterListenerForEvents() {
-        // Empty on purpose
+        coreModule.unregisterDataCaptureContextListener()
     }
 
     @objc func registerListenerForViewEvents() {
-        // Empty on purpose
+        coreModule.registerDataCaptureViewListener()
     }
 
     @objc func unregisterListenerForViewEvents() {
-        // Empty on purpose
+        coreModule.unregisterDataCaptureViewListener()
     }
 }
 

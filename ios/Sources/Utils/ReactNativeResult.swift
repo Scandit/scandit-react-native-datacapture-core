@@ -29,10 +29,3 @@ public struct ReactNativeResult: FrameworksResult {
         self.rejecter(String(error._code), error.localizedDescription, error as NSError)
     }
 }
-
-public extension FrameworksResult where Self == ReactNativeResult {
-    static func create(_ resolve: @escaping RCTPromiseResolveBlock,
-                       _ reject: @escaping RCTPromiseRejectBlock) -> Self {
-        .init(resolve, reject)
-    }
-}

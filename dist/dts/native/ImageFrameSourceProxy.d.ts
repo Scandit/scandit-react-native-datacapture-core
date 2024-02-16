@@ -4,9 +4,8 @@ export declare class NativeImageFrameSourceProxy implements ImageFrameSourceProx
     private nativeListeners;
     constructor();
     getCurrentCameraState(position: CameraPosition): Promise<FrameSourceState>;
-    dispose(): void;
+    switchCameraToDesiredState(desiredStateJson: string): Promise<void>;
     registerListenerForEvents(): void;
     unregisterListenerForEvents(): void;
-    unsubscribeDidChangeState(): void;
     subscribeDidChangeState(): void;
 }

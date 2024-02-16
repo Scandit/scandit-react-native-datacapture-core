@@ -50,6 +50,11 @@ RCT_EXTERN_METHOD(isTorchAvailable
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(switchCameraToDesiredState
+                  : (NSString *)desiredStateJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(getLastFrame
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
@@ -69,5 +74,43 @@ RCT_EXTERN_METHOD(unregisterListenerForEvents)
 RCT_EXTERN_METHOD(registerListenerForViewEvents)
 
 RCT_EXTERN_METHOD(unregisterListenerForViewEvents)
+
+RCT_EXTERN_METHOD(addModeToContext
+                  : (NSString *)modeJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(removeModeFromContext
+                  : (NSString *)modeJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(removeAllModesFromContext
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(createDataCaptureView
+                  : (NSString *)viewJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(updateDataCaptureView
+                  : (NSString *)viewJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(addOverlay
+                  : (NSString *)overlayJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(removeOverlay
+                  : (NSString *)overlayJson resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(removeAllOverlays
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
 
 @end

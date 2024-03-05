@@ -139,49 +139,4 @@ class ScanditDataCaptureCoreModule(
     fun isTorchAvailable(cameraPosition: String, promise: Promise) {
         coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
     }
-
-    @ReactMethod
-    fun switchCameraToDesiredState(desiredStateJson: String, promise: Promise) {
-        coreModule.switchCameraToDesiredState(desiredStateJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun addModeToContext(modeJson: String, promise: Promise) {
-        coreModule.addModeToContext(modeJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeModeFromContext(modeJson: String, promise: Promise) {
-        coreModule.removeModeFromContext(modeJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeAllModesFromContext(promise: Promise) {
-        coreModule.removeAllModes(ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun createDataCaptureView(viewJson: String, promise: Promise) {
-        coreModule.createDataCaptureView(viewJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun updateDataCaptureView(viewJson: String, promise: Promise) {
-        coreModule.updateDataCaptureView(viewJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun addOverlay(overlayJson: String, promise: Promise) {
-        coreModule.addOverlayToView(overlayJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeOverlay(overlayJson: String, promise: Promise) {
-        coreModule.removeOverlayFromView(overlayJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeAllOverlays(promise: Promise) {
-        coreModule.removeAllOverlays(ReactNativeResult(promise))
-    }
 }

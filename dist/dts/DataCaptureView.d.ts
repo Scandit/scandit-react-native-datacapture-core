@@ -1,8 +1,8 @@
 import React from 'react';
-import { Control, FocusGesture, LogoStyle, MarginsWithUnit, Point, PointWithUnit, Quadrilateral, Size, ZoomGesture, Serializeable } from 'scandit-datacapture-frameworks-core';
+import { Control, FocusGesture, LogoStyle, MarginsWithUnit, Point, PointWithUnit, Quadrilateral, Size, ZoomGesture } from 'scandit-datacapture-frameworks-core';
 import { Anchor, Orientation } from 'scandit-datacapture-frameworks-core';
 import { DataCaptureContext } from 'scandit-datacapture-frameworks-core';
-export interface DataCaptureOverlay extends Serializeable {
+export interface DataCaptureOverlay {
 }
 export interface DataCaptureViewListener {
     didChangeSize?(view: DataCaptureView, size: Size, orientation: Orientation): void;
@@ -35,7 +35,6 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     viewPointForFramePoint(point: Point): Promise<Point>;
     viewQuadrilateralForFrameQuadrilateral(quadrilateral: Quadrilateral): Promise<Quadrilateral>;
     addControl(control: Control): void;
-    addControlWithAnchorAndOffset(control: Control, anchor: Anchor, offset: PointWithUnit): void;
     removeControl(control: Control): void;
     componentWillUnmount(): void;
     render(): React.JSX.Element;

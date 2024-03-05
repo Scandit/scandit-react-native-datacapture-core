@@ -1,6 +1,6 @@
-import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, ContextStatus, DataCaptureContextEvents, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
+import { FactoryMaker, ContextStatus, DataCaptureContextEvents, BaseNativeProxy, DataCaptureViewEvents, FrameSourceListenerEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
 export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, Platform, requireNativeComponent } from 'react-native';
+import { NativeModules, NativeEventEmitter, requireNativeComponent } from 'react-native';
 
 // tslint:disable-next-line:variable-name
 const NativeModule$6 = NativeModules.ScanditDataCaptureCore;
@@ -27,21 +27,23 @@ class NativeImageFrameSourceProxy {
     getCurrentCameraState(position) {
         return NativeModule$5.getCurrentCameraState(position);
     }
-    switchCameraToDesiredState(desiredStateJson) {
-        return NativeModule$5.switchCameraToDesiredState(desiredStateJson);
+    dispose() {
+        NativeModule$5.dispose();
     }
     registerListenerForEvents() {
         NativeModule$5.registerListenerForCameraEvents();
     }
     unregisterListenerForEvents() {
         NativeModule$5.unregisterListenerForCameraEvents();
+    }
+    unsubscribeDidChangeState() {
         this.nativeListeners.forEach(listener => listener.remove());
         this.nativeListeners = [];
     }
     subscribeDidChangeState() {
         const didChangeState = RNEventEmitter$3.addListener(FrameSourceListenerName$1.didChangeState, (body) => {
             const payload = JSON.parse(body);
-            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, payload);
+            this.eventEmitter.emit(ImageFrameSourceEvents.didChangeState, payload);
         });
         this.nativeListeners.push(didChangeState);
     }
@@ -56,29 +58,17 @@ var DataCaptureContextListenerName;
     DataCaptureContextListenerName["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
     DataCaptureContextListenerName["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
 })(DataCaptureContextListenerName || (DataCaptureContextListenerName = {}));
-const { major, minor, patch } = Platform.constants?.reactNativeVersion;
-class NativeDataCaptureContextProxy extends BaseNativeProxy {
+class NativeDataCaptureContextProxy {
+    eventEmitter;
     nativeListeners = [];
-    get framework() {
-        return 'react-native';
-    }
-    get frameworkVersion() {
-        return `${major}.${minor}.${patch}`;
+    constructor() {
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
     contextFromJSON(context) {
         return NativeModule$4.contextFromJSON(JSON.stringify(context.toJSON()));
     }
     updateContextFromJSON(context) {
         return NativeModule$4.updateContextFromJSON(JSON.stringify(context.toJSON()));
-    }
-    addModeToContext(modeJson) {
-        return NativeModule$4.addModeToContext(modeJson);
-    }
-    removeModeFromContext(modeJson) {
-        return NativeModule$4.removeModeFromContext(modeJson);
-    }
-    removeAllModesFromContext() {
-        return NativeModule$4.removeAllModesFromContext();
     }
     dispose() {
         return NativeModule$4.dispose();
@@ -119,30 +109,6 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
     nativeListeners = [];
     constructor() {
         super();
-    }
-    addOverlay(overlayJson) {
-        return NativeModule$3.addOverlay(overlayJson);
-    }
-    removeOverlay(overlayJson) {
-        return NativeModule$3.removeOverlay(overlayJson);
-    }
-    removeAllOverlays() {
-        return NativeModule$3.removeAllOverlays();
-    }
-    createView(viewJson) {
-        return NativeModule$3.createDataCaptureView(viewJson);
-    }
-    updateView(viewJson) {
-        return NativeModule$3.updateDataCaptureView(viewJson);
-    }
-    addOverlayToDCView(overlayJson) {
-        return NativeModule$3.addOverlayToView(overlayJson);
-    }
-    removeOverlayFromDCView(overlayJson) {
-        return NativeModule$3.removeOverlayFromView(overlayJson);
-    }
-    removeAllOverlaysFromDCView() {
-        return NativeModule$3.removeAllOverlays();
     }
     viewPointForFramePoint(pointJson) {
         return NativeModule$3.viewPointForFramePoint(pointJson);
@@ -203,14 +169,13 @@ class NativeCameraProxy {
     isTorchAvailable(position) {
         return NativeModule$2.isTorchAvailable(position);
     }
-    switchCameraToDesiredState(desiredStateJson) {
-        return NativeModule$2.switchCameraToDesiredState(desiredStateJson);
-    }
     registerListenerForCameraEvents() {
         NativeModule$2.registerListenerForCameraEvents();
     }
     unregisterListenerForCameraEvents() {
         NativeModule$2.unregisterListenerForCameraEvents();
+    }
+    unsubscribeDidChangeState() {
         this.nativeListeners.forEach(listener => listener.remove());
         this.nativeListeners = [];
     }
@@ -242,7 +207,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '6.22.0';
+        return '6.21.3';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -3137,9 +3102,6 @@ class DataCaptureView extends React.Component {
     ;
     addControl(control) {
         return this.view.addControl(control);
-    }
-    addControlWithAnchorAndOffset(control, anchor, offset) {
-        return this.view.addControlWithAnchorAndOffset(control, anchor, offset);
     }
     removeControl(control) {
         return this.view.removeControl(control);

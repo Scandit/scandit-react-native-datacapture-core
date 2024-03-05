@@ -95,6 +95,14 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         ScanditDataCaptureCore.rntSDCComponentDeserializers
     }
 
+    static public func register(componentDeserializer: DataCaptureComponentDeserializer) {
+        Deserializers.Factory.add(componentDeserializer)
+    }
+    
+    static public func unregister(componentDeserializer: DataCaptureComponentDeserializer) {
+        Deserializers.Factory.remove(componentDeserializer)
+    }
+
     internal var components = [DataCaptureComponent]() {
         didSet {
             componentsSet = Set<String>(components.map { $0.componentId })
@@ -141,10 +149,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     public override func invalidate() {
         super.invalidate()
         dispose()
-    }
-
-    deinit {
-        invalidate()
     }
 
     @objc(contextFromJSON:resolve:reject:)
@@ -202,16 +206,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         coreModule.isTorchAvailable(cameraPosition: cameraPosition, result: ReactNativeResult(resolve, reject))
     }
 
-    @objc(switchCameraToDesiredState:resolve:reject:)
-    func switchCameraToDesiredState(desiredStateJson: String,
-                                    resolve: @escaping RCTPromiseResolveBlock,
-                                    reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.switchCameraToDesiredState(
-            stateJson: desiredStateJson,
-            result: ReactNativeResult(resolve, reject)
-        )
-    }
-
     @objc(getLastFrame:reject:)
     func getLastFrame(resolve: @escaping RCTPromiseResolveBlock,
                       reject: @escaping RCTPromiseRejectBlock) {
@@ -267,60 +261,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     @objc func unregisterListenerForViewEvents() {
         coreModule.unregisterDataCaptureViewListener()
-    }
-
-    @objc(addModeToContext:resolve:reject:)
-    func addModeToContext(modeJson: String,
-                          resolve: @escaping RCTPromiseResolveBlock,
-                          reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.addModeToContext(modeJson: modeJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(removeModeFromContext:resolve:reject:)
-    func removeModeFromContext(modeJson: String,
-                               resolve: @escaping RCTPromiseResolveBlock,
-                               reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.removeModeFromContext(modeJson: modeJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(removeAllModesFromContext:reject:)
-    func removeAllModesFromContext(resolve: @escaping RCTPromiseResolveBlock,
-                        reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.removeAllModes(result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(createDataCaptureView:resolve:reject:)
-    func createDataCaptureView(viewJson: String,
-                               resolve: @escaping RCTPromiseResolveBlock,
-                               reject: @escaping RCTPromiseRejectBlock) {
-        _ = coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(updateDataCaptureView:resolve:reject:)
-    func updateDataCaptureView(viewJson: String,
-                               resolve: @escaping RCTPromiseResolveBlock,
-                               reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.updateDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(addOverlay:resolve:reject:)
-    func addOverlay(overlayJson: String,
-                    resolve: @escaping RCTPromiseResolveBlock,
-                    reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.addOverlayToView(overlayJson: overlayJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(removeOverlay:resolve:reject:)
-    func removeOverlay(overlayJson: String,
-                    resolve: @escaping RCTPromiseResolveBlock,
-                    reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.removeOverlayFromView(overlayJson: overlayJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(removeAllOverlays:reject:)
-    func removeAllOverlays(resolve: @escaping RCTPromiseResolveBlock,
-                          reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.removeAllOverlays(result: ReactNativeResult(resolve, reject))
     }
 }
 

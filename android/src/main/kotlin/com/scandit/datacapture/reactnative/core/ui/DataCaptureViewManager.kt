@@ -51,9 +51,7 @@ class DataCaptureViewManager(
         }
     }
 
-    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView?) {
-        if (dataCaptureView == null) return
-
+    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView) {
         currentContainer?.let {
             addDataCaptureViewToContainer(dataCaptureView, it)
         }

@@ -2,6 +2,14 @@ import { DataCaptureViewProxy, BaseNativeProxy } from 'scandit-datacapture-frame
 export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implements DataCaptureViewProxy {
     private nativeListeners;
     constructor();
+    addOverlay(overlayJson: string): Promise<void>;
+    removeOverlay(overlayJson: string): Promise<void>;
+    removeAllOverlays(): Promise<void>;
+    createView(viewJson: string): Promise<void>;
+    updateView(viewJson: string): Promise<void>;
+    addOverlayToDCView(overlayJson: string): Promise<void>;
+    removeOverlayFromDCView(overlayJson: string): Promise<void>;
+    removeAllOverlaysFromDCView(): Promise<void>;
     viewPointForFramePoint(pointJson: string): Promise<string>;
     viewQuadrilateralForFrameQuadrilateral(quadrilateralJson: string): Promise<string>;
     registerListenerForViewEvents(): void;

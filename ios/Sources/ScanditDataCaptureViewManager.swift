@@ -39,11 +39,11 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
             }
 
             if dcView.superview != nil && dcView.superview == container {
-            // if attached to the same container do nothing. Removing and adding
-            // it again might trigger something in the DataCaptureView that we don't
-            // want. (overlay re-drawn, black screen, etc.)
-            return
-        }
+                // if attached to the same container do nothing. Removing and adding
+                // it again might trigger something in the DataCaptureView that we don't
+                // want. (overlay re-drawn, black screen, etc.)
+                return
+            }
 
             if dcView.superview != nil {
                 dcView.removeFromSuperview()

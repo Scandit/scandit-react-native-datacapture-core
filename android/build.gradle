@@ -60,7 +60,7 @@ android {
 }
 
 dependencies {
-    def sdk_version = "6.21.3"
+    def sdk_version = "6.22.1"
 
     println("Version of the native sdk used in this build: ${safeExtGet('global_sdk_version', sdk_version)}")
     if (findProject(':scandit-datacapture-frameworks-core') != null) {
@@ -73,5 +73,4 @@ dependencies {
     // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
     //noinspection GradleDynamicVersion
     implementation 'com.facebook.react:react-native:+'  // From node_modules
-    implementation "com.squareup.okhttp3:okhttp:4.9.2"
 }

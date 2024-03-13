@@ -365,8 +365,10 @@ class FactoryMaker {
             console.warn(`Trying to get a non existing instance for ${clsName}`);
             return;
         }
-        const instance = item.instance ? item.instance : (_a = item.builder) === null || _a === void 0 ? void 0 : _a.call(item);
-        return instance;
+        if (!item.instance && item.builder) {
+            item.instance = (_a = item.builder) === null || _a === void 0 ? void 0 : _a.call(item);
+        }
+        return item.instance;
     }
 }
 FactoryMaker.instances = new Map();
@@ -590,6 +592,9 @@ class ImageFrameSourceController {
     getCurrentState() {
         return this._proxy.getCurrentCameraState(this.imageFrameSource.position);
     }
+    switchCameraToDesiredState(desiredStateJson) {
+        return this._proxy.switchCameraToDesiredState(desiredStateJson);
+    }
     subscribeListener() {
         this._proxy.registerListenerForEvents();
         this._proxy.subscribeDidChangeState();
@@ -652,7 +657,7 @@ class ImageFrameSource extends DefaultSerializeable {
     }
     switchToDesiredState(state) {
         this._desiredState = state;
-        return this.didChange();
+        return this.controller.switchCameraToDesiredState(state);
     }
     addListener(listener) {
         if (listener == null) {
@@ -751,9 +756,13 @@ class CameraController {
     getIsTorchAvailable() {
         return CameraController._proxy.isTorchAvailable(this.privateCamera.position);
     }
+    switchCameraToDesiredState(desiredState) {
+        return CameraController._proxy.switchCameraToDesiredState(desiredState);
+    }
     subscribeListener() {
+        var _a, _b;
         CameraController._proxy.registerListenerForCameraEvents();
-        CameraController._proxy.subscribeDidChangeState();
+        (_b = (_a = CameraController._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
         this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (state) => {
             this.privateCamera.listeners.forEach(listener => {
                 var _a;
@@ -763,7 +772,6 @@ class CameraController {
     }
     unsubscribeListener() {
         CameraController._proxy.unregisterListenerForCameraEvents();
-        CameraController._proxy.unsubscribeDidChangeState();
         this.eventEmitter.off(FrameSourceListenerEvents.didChangeState);
     }
 }
@@ -827,13 +835,20 @@ class Camera extends DefaultSerializeable {
     }
     switchToDesiredState(state) {
         this._desiredState = state;
-        return this.didChange();
+        return this.controller.switchCameraToDesiredState(state);
     }
     getCurrentState() {
         return this.controller.getCurrentState();
     }
     getIsTorchAvailable() {
         return this.controller.getIsTorchAvailable();
+    }
+    /**
+     * @deprecated
+     */
+    get isTorchAvailable() {
+        console.warn('isTorchAvailable is deprecated. Use getIsTorchAvailable instead.');
+        return false;
     }
     addListener(listener) {
         if (listener == null) {
@@ -878,7 +893,7 @@ __decorate([
     nameForSerialization('desiredTorchState')
 ], Camera.prototype, "_desiredTorchState", void 0);
 __decorate([
-    nameForSerialization('desiredState')
+    ignoreFromSerialization
 ], Camera.prototype, "_desiredState", void 0);
 __decorate([
     ignoreFromSerialization
@@ -902,6 +917,8 @@ class ZoomSwitchControl extends DefaultSerializeable {
             zoomedIn: { default: null, pressed: null },
         };
         this.view = null;
+        this.anchor = null;
+        this.offset = null;
     }
     get zoomedOutImage() {
         return this.icon.zoomedOut.default;
@@ -949,6 +966,8 @@ class TorchSwitchControl extends DefaultSerializeable {
             off: { default: null, pressed: null },
         };
         this.view = null;
+        this.anchor = null;
+        this.offset = null;
     }
     get torchOffImage() {
         return this.icon.off.default;
@@ -1947,6 +1966,12 @@ var DataCaptureContextEvents;
     DataCaptureContextEvents["didStartObservingContext"] = "didStartObservingContext";
 })(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
 class DataCaptureContextController {
+    get framework() {
+        return this._proxy.framework;
+    }
+    get frameworkVersion() {
+        return this._proxy.frameworkVersion;
+    }
     get privateContext() {
         return this.context;
     }
@@ -1970,6 +1995,15 @@ class DataCaptureContextController {
                 throw error;
             }
         });
+    }
+    addModeToContext(mode) {
+        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
+    }
+    removeModeFromContext(mode) {
+        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
+    }
+    removeAllModesFromContext() {
+        return this._proxy.removeAllModesFromContext();
     }
     dispose() {
         this.unsubscribeListener();
@@ -1996,9 +2030,10 @@ class DataCaptureContextController {
         });
     }
     subscribeListener() {
+        var _a, _b, _c, _d;
         this._proxy.registerListenerForEvents();
-        this._proxy.subscribeDidChangeStatus();
-        this._proxy.subscribeDidStartObservingContext();
+        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
         this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
             this.notifyListenersOfDidChangeStatus(contextStatus);
         });
@@ -2028,6 +2063,12 @@ class DataCaptureContextController {
 }
 
 class DataCaptureContext extends DefaultSerializeable {
+    get framework() {
+        return this.controller.framework;
+    }
+    get frameworkVersion() {
+        return this.controller.frameworkVersion;
+    }
     static get coreDefaults() {
         return getCoreDefaults();
     }
@@ -2036,6 +2077,13 @@ class DataCaptureContext extends DefaultSerializeable {
     }
     static get deviceID() {
         return DataCaptureContext.coreDefaults.deviceID;
+    }
+    /**
+     * @deprecated
+     */
+    get deviceID() {
+        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
+        return DataCaptureContext.deviceID;
     }
     static forLicenseKey(licenseKey) {
         return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
@@ -2057,16 +2105,10 @@ class DataCaptureContext extends DefaultSerializeable {
         super();
         this.licenseKey = licenseKey;
         this.deviceName = deviceName;
-        // TODO Needs to be changed
-        this.framework = 'capacitor';
-        this.frameworkVersion = `TODO:CHANGE`;
         this.settings = new DataCaptureContextSettings();
         this._frameSource = null;
-        // TODO: Change this
-        // private view: PrivateDataCaptureView | null = null;
         this.view = null;
         this.modes = [];
-        this.components = [];
         this.listeners = [];
         this.initialize();
     }
@@ -2096,14 +2138,14 @@ class DataCaptureContext extends DefaultSerializeable {
         if (!this.modes.includes(mode)) {
             this.modes.push(mode);
             mode._context = this;
-            this.update();
+            this.controller.addModeToContext(mode);
         }
     }
     removeMode(mode) {
         if (this.modes.includes(mode)) {
             this.modes.splice(this.modes.indexOf(mode), 1);
             mode._context = null;
-            this.update();
+            this.controller.removeModeFromContext(mode);
         }
     }
     removeAllModes() {
@@ -2111,7 +2153,7 @@ class DataCaptureContext extends DefaultSerializeable {
             mode._context = null;
         });
         this.modes = [];
-        this.update();
+        this.controller.removeAllModesFromContext();
     }
     dispose() {
         var _a;
@@ -2139,18 +2181,13 @@ class DataCaptureContext extends DefaultSerializeable {
         }
         return this.controller.updateContextFromJSON();
     }
-    addComponent(component) {
-        if (this.components.includes(component)) {
-            return Promise.resolve();
-        }
-        this.components.push(component);
-        component._context = this;
-        return this.update();
-    }
 }
 __decorate([
     nameForSerialization('frameSource')
 ], DataCaptureContext.prototype, "_frameSource", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "modes", void 0);
 __decorate([
     ignoreFromSerialization
 ], DataCaptureContext.prototype, "controller", void 0);
@@ -2161,6 +2198,15 @@ __decorate([
     ignoreFromSerialization
 ], DataCaptureContext, "coreDefaults", null);
 
+var VibrationType;
+(function (VibrationType) {
+    VibrationType["default"] = "default";
+    VibrationType["selectionHaptic"] = "selectionHaptic";
+    VibrationType["successHaptic"] = "successHaptic";
+    VibrationType["waveForm"] = "waveForm";
+    VibrationType["impactHaptic"] = "impactHaptic";
+})(VibrationType || (VibrationType = {}));
+
 class Vibration extends DefaultSerializeable {
     static get defaultVibration() {
         return new Vibration(VibrationType.default);
@@ -2170,6 +2216,9 @@ class Vibration extends DefaultSerializeable {
     }
     static get successHapticFeedback() {
         return new Vibration(VibrationType.successHaptic);
+    }
+    static get impactHapticFeedback() {
+        return new Vibration(VibrationType.impactHaptic);
     }
     static fromJSON(json) {
         if (json.type === 'waveForm') {
@@ -2182,13 +2231,6 @@ class Vibration extends DefaultSerializeable {
         this.type = type;
     }
 }
-var VibrationType;
-(function (VibrationType) {
-    VibrationType["default"] = "default";
-    VibrationType["selectionHaptic"] = "selectionHaptic";
-    VibrationType["successHaptic"] = "successHaptic";
-    VibrationType["waveForm"] = "waveForm";
-})(VibrationType || (VibrationType = {}));
 class WaveFormVibration extends Vibration {
     get timings() {
         return this._timings;
@@ -2371,6 +2413,7 @@ class DataCaptureViewController extends BaseController {
     static forDataCaptureView(view) {
         const controller = new DataCaptureViewController();
         controller.view = view;
+        controller.createView();
         controller.subscribeListener();
         return controller;
     }
@@ -2398,12 +2441,28 @@ class DataCaptureViewController extends BaseController {
     hide() {
         return this._proxy.hide();
     }
+    createView() {
+        return this._proxy.createView(JSON.stringify(this.view.toJSON()));
+    }
+    updateView() {
+        return this._proxy.updateView(JSON.stringify(this.view.toJSON()));
+    }
     dispose() {
         this.unsubscribeListener();
     }
+    addOverlay(overlay) {
+        return this._proxy.addOverlay(JSON.stringify(overlay.toJSON()));
+    }
+    removeOverlay(overlay) {
+        return this._proxy.removeOverlay(JSON.stringify(overlay.toJSON()));
+    }
+    removeAllOverlays() {
+        return this._proxy.removeAllOverlays();
+    }
     subscribeListener() {
+        var _a, _b;
         this._proxy.registerListenerForViewEvents();
-        this._proxy.subscribeDidChangeSize();
+        (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === void 0 ? void 0 : _b.call(_a);
         this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (payload) => {
             const payloadJSON = JSON.parse(payload);
             const size = Size.fromJSON(payloadJSON.size);
@@ -2433,11 +2492,59 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this._context = context;
         if (this._context) {
             this._context.view = this;
-            this._context.update();
         }
     }
     get coreDefaults() {
         return getCoreDefaults();
+    }
+    get scanAreaMargins() {
+        return this._scanAreaMargins;
+    }
+    set scanAreaMargins(newValue) {
+        this._scanAreaMargins = newValue;
+        this.controller.updateView();
+    }
+    get pointOfInterest() {
+        return this._pointOfInterest;
+    }
+    set pointOfInterest(newValue) {
+        this._pointOfInterest = newValue;
+        this.controller.updateView();
+    }
+    get logoAnchor() {
+        return this._logoAnchor;
+    }
+    set logoAnchor(newValue) {
+        this._logoAnchor = newValue;
+        this.controller.updateView();
+    }
+    get logoOffset() {
+        return this._logoOffset;
+    }
+    set logoOffset(newValue) {
+        this._logoOffset = newValue;
+        this.controller.updateView();
+    }
+    get focusGesture() {
+        return this._focusGesture;
+    }
+    set focusGesture(newValue) {
+        this._focusGesture = newValue;
+        this.controller.updateView();
+    }
+    get zoomGesture() {
+        return this._zoomGesture;
+    }
+    set zoomGesture(newValue) {
+        this._zoomGesture = newValue;
+        this.controller.updateView();
+    }
+    get logoStyle() {
+        return this._logoStyle;
+    }
+    set logoStyle(newValue) {
+        this._logoStyle = newValue;
+        this.controller.updateView();
     }
     get privateContext() {
         return this.context;
@@ -2454,13 +2561,13 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controls = [];
         this.listeners = [];
         this.controller = DataCaptureViewController.forDataCaptureView(this);
-        this.scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
-        this.pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
-        this.logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
-        this.logoOffset = this.coreDefaults.DataCaptureView.logoOffset;
-        this.focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
-        this.zoomGesture = this.coreDefaults.DataCaptureView.zoomGesture;
-        this.logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
+        this._scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
+        this._pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
+        this._logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
+        this._logoOffset = this.coreDefaults.DataCaptureView.logoOffset;
+        this._focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
+        this._zoomGesture = this.coreDefaults.DataCaptureView.zoomGesture;
+        this._logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
     }
     addOverlay(overlay) {
         if (this.overlays.includes(overlay)) {
@@ -2468,7 +2575,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         }
         overlay.view = this;
         this.overlays.push(overlay);
-        this.privateContext.update();
+        this.controller.addOverlay(overlay);
     }
     removeOverlay(overlay) {
         if (!this.overlays.includes(overlay)) {
@@ -2476,7 +2583,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         }
         overlay.view = null;
         this.overlays.splice(this.overlays.indexOf(overlay), 1);
-        this.privateContext.update();
+        this.controller.removeOverlay(overlay);
     }
     addListener(listener) {
         if (!this.listeners.includes(listener)) {
@@ -2498,21 +2605,31 @@ class BaseDataCaptureView extends DefaultSerializeable {
         if (!this.controls.includes(control)) {
             control.view = this;
             this.controls.push(control);
-            this.privateContext.update();
+            this.controller.updateView();
+        }
+    }
+    addControlWithAnchorAndOffset(control, anchor, offset) {
+        if (!this.controls.includes(control)) {
+            control.view = this;
+            control.anchor = anchor;
+            control.offset = offset;
+            this.controls.push(control);
+            this.controller.updateView();
         }
     }
     removeControl(control) {
         if (this.controls.includes(control)) {
             control.view = null;
-            this.controls.splice(this.overlays.indexOf(control), 1);
-            this.privateContext.update();
+            this.controls.splice(this.controls.indexOf(control), 1);
+            this.controller.updateView();
         }
     }
     controlUpdated() {
-        this.privateContext.update();
+        this.controller.updateView();
     }
     dispose() {
-        this.overlays.forEach(overlay => this.removeOverlay(overlay));
+        this.overlays = [];
+        this.controller.removeAllOverlays();
         this.listeners.forEach(listener => this.removeListener(listener));
         this.controller.dispose();
     }
@@ -2548,6 +2665,30 @@ __decorate([
 ], BaseDataCaptureView.prototype, "coreDefaults", null);
 __decorate([
     ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_logoOffset", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_focusGesture", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_zoomGesture", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_logoStyle", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "overlays", void 0);
+__decorate([
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "controller", void 0);
 __decorate([
     ignoreFromSerialization
@@ -2572,5 +2713,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

@@ -803,13 +803,6 @@ class Camera extends DefaultSerializeable {
             return null;
         }
     }
-    static withSettings(settings) {
-        const camera = Camera.default;
-        if (camera) {
-            camera.settings = settings;
-        }
-        return camera;
-    }
     static atPosition(cameraPosition) {
         if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
             const camera = new Camera();
@@ -915,305 +908,227 @@ __decorate([
     ignoreFromSerialization
 ], Camera, "coreDefaults", null);
 
-class ControlImage extends DefaultSerializeable {
-    constructor(type, data, name) {
-        super();
-        this.type = type;
-        this._data = data;
-        this._name = name;
+class ZoomSwitchControl extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.type = 'zoom';
+        this.icon = {
+            zoomedOut: { default: null, pressed: null },
+            zoomedIn: { default: null, pressed: null },
+        };
+        this.view = null;
+        this.anchor = null;
+        this.offset = null;
     }
-    static fromBase64EncodedImage(data) {
-        if (data === null)
-            return null;
-        return new ControlImage("base64", data, null);
+    get zoomedOutImage() {
+        return this.icon.zoomedOut.default;
     }
-    static fromResourceName(resource) {
-        return new ControlImage("resource", null, resource);
+    set zoomedOutImage(zoomedOutImage) {
+        var _a;
+        this.icon.zoomedOut.default = zoomedOutImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
     }
-    isBase64EncodedImage() {
-        return this.type === "base64";
+    get zoomedInImage() {
+        return this.icon.zoomedIn.default;
     }
-    get data() {
-        return this._data;
+    set zoomedInImage(zoomedInImage) {
+        var _a;
+        this.icon.zoomedIn.default = zoomedInImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get zoomedInPressedImage() {
+        return this.icon.zoomedIn.pressed;
+    }
+    set zoomedInPressedImage(zoomedInPressedImage) {
+        var _a;
+        this.icon.zoomedIn.pressed = zoomedInPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get zoomedOutPressedImage() {
+        return this.icon.zoomedOut.pressed;
+    }
+    set zoomedOutPressedImage(zoomedOutPressedImage) {
+        var _a;
+        this.icon.zoomedOut.pressed = zoomedOutPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
     }
 }
 __decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('data')
-], ControlImage.prototype, "_data", void 0);
+    ignoreFromSerialization
+], ZoomSwitchControl.prototype, "view", void 0);
+
+class TorchSwitchControl extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.type = 'torch';
+        this.icon = {
+            on: { default: null, pressed: null },
+            off: { default: null, pressed: null },
+        };
+        this.view = null;
+        this.anchor = null;
+        this.offset = null;
+    }
+    get torchOffImage() {
+        return this.icon.off.default;
+    }
+    set torchOffImage(torchOffImage) {
+        var _a;
+        this.icon.off.default = torchOffImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get torchOffPressedImage() {
+        return this.icon.off.pressed;
+    }
+    set torchOffPressedImage(torchOffPressedImage) {
+        var _a;
+        this.icon.off.pressed = torchOffPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get torchOnImage() {
+        return this.icon.on.default;
+    }
+    set torchOnImage(torchOnImage) {
+        var _a;
+        this.icon.on.default = torchOnImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get torchOnPressedImage() {
+        return this.icon.on.pressed;
+    }
+    set torchOnPressedImage(torchOnPressedImage) {
+        var _a;
+        this.icon.on.pressed = torchOnPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+}
 __decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('name')
-], ControlImage.prototype, "_name", void 0);
+    ignoreFromSerialization
+], TorchSwitchControl.prototype, "view", void 0);
 
-class ContextStatus {
-    static fromJSON(json) {
-        const status = new ContextStatus();
-        status._code = json.code;
-        status._message = json.message;
-        status._isValid = json.isValid;
-        return status;
-    }
-    get message() {
-        return this._message;
-    }
-    get code() {
-        return this._code;
-    }
-    get isValid() {
-        return this._isValid;
-    }
-}
+var VideoResolution;
+(function (VideoResolution) {
+    VideoResolution["Auto"] = "auto";
+    VideoResolution["HD"] = "hd";
+    VideoResolution["FullHD"] = "fullHd";
+    VideoResolution["UHD4K"] = "uhd4k";
+})(VideoResolution || (VideoResolution = {}));
 
-class DataCaptureContextSettings extends DefaultSerializeable {
-    constructor() {
-        super();
-    }
-    setProperty(name, value) {
-        this[name] = value;
-    }
-    getProperty(name) {
-        return this[name];
-    }
-}
+var FocusRange;
+(function (FocusRange) {
+    FocusRange["Full"] = "full";
+    FocusRange["Near"] = "near";
+    FocusRange["Far"] = "far";
+})(FocusRange || (FocusRange = {}));
 
-var DataCaptureContextEvents;
-(function (DataCaptureContextEvents) {
-    DataCaptureContextEvents["didChangeStatus"] = "didChangeStatus";
-    DataCaptureContextEvents["didStartObservingContext"] = "didStartObservingContext";
-})(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
-class DataCaptureContextController {
-    get framework() {
-        return this._proxy.framework;
-    }
-    get frameworkVersion() {
-        return this._proxy.frameworkVersion;
-    }
-    get privateContext() {
-        return this.context;
-    }
-    static forDataCaptureContext(context) {
-        const controller = new DataCaptureContextController();
-        controller.context = context;
-        controller.initialize();
-        return controller;
-    }
-    constructor() {
-        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-    }
-    updateContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield this._proxy.updateContextFromJSON(this.context);
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
-        });
-    }
-    addModeToContext(mode) {
-        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
-    }
-    removeModeFromContext(mode) {
-        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
-    }
-    removeAllModesFromContext() {
-        return this._proxy.removeAllModesFromContext();
-    }
-    dispose() {
-        this.unsubscribeListener();
-        this._proxy.dispose();
-    }
-    unsubscribeListener() {
-        this._proxy.unsubscribeListener();
-        this.eventEmitter.removeListener(DataCaptureContextEvents.didChangeStatus);
-        this.eventEmitter.removeListener(DataCaptureContextEvents.didStartObservingContext);
-    }
-    initialize() {
-        this.subscribeListener();
-        return this.initializeContextFromJSON();
-    }
-    initializeContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                this._proxy.contextFromJSON(this.context);
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
-        });
-    }
-    subscribeListener() {
-        var _a, _b, _c, _d;
-        this._proxy.registerListenerForEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
-        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
-        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
-            this.notifyListenersOfDidChangeStatus(contextStatus);
-        });
-        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
-            this.privateContext.listeners.forEach(listener => {
-                var _a;
-                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
-            });
-        });
-    }
-    notifyListenersOfDeserializationError(error) {
-        const contextStatus = ContextStatus
-            .fromJSON({
-            message: error,
-            code: -1,
-            isValid: true,
-        });
-        this.notifyListenersOfDidChangeStatus(contextStatus);
-    }
-    notifyListenersOfDidChangeStatus(contextStatus) {
-        this.privateContext.listeners.forEach(listener => {
-            if (listener.didChangeStatus) {
-                listener.didChangeStatus(this.context, contextStatus);
-            }
-        });
-    }
-}
+var FocusGestureStrategy;
+(function (FocusGestureStrategy) {
+    FocusGestureStrategy["None"] = "none";
+    FocusGestureStrategy["Manual"] = "manual";
+    FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
+    FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
+})(FocusGestureStrategy || (FocusGestureStrategy = {}));
 
-class DataCaptureContext extends DefaultSerializeable {
-    get framework() {
-        return this.controller.framework;
-    }
-    get frameworkVersion() {
-        return this.controller.frameworkVersion;
-    }
+var LogoStyle;
+(function (LogoStyle) {
+    LogoStyle["Minimal"] = "minimal";
+    LogoStyle["Extended"] = "extended";
+})(LogoStyle || (LogoStyle = {}));
+
+class CameraSettings extends DefaultSerializeable {
     static get coreDefaults() {
         return getCoreDefaults();
     }
-    get frameSource() {
-        return this._frameSource;
+    get focusRange() {
+        return this.focus.range;
     }
-    static get deviceID() {
-        return DataCaptureContext.coreDefaults.deviceID;
+    set focusRange(newRange) {
+        this.focus.range = newRange;
     }
-    /**
-     * @deprecated
-     */
-    get deviceID() {
-        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
-        return DataCaptureContext.deviceID;
+    get focusGestureStrategy() {
+        return this.focus.focusGestureStrategy;
     }
-    static forLicenseKey(licenseKey) {
-        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+    set focusGestureStrategy(newStrategy) {
+        this.focus.focusGestureStrategy = newStrategy;
     }
-    static forLicenseKeyWithSettings(licenseKey, settings) {
-        const context = this.forLicenseKey(licenseKey);
-        if (settings !== null) {
-            context.applySettings(settings);
+    get shouldPreferSmoothAutoFocus() {
+        return this.focus.shouldPreferSmoothAutoFocus;
+    }
+    set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
+        this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
+    }
+    get maxFrameRate() {
+        // tslint:disable-next-line:no-console
+        console.warn('maxFrameRate is deprecated');
+        return 0;
+    }
+    set maxFrameRate(newValue) {
+        // tslint:disable-next-line:no-console
+        console.warn('maxFrameRate is deprecated');
+    }
+    static fromJSON(json) {
+        const settings = new CameraSettings();
+        settings.preferredResolution = json.preferredResolution;
+        settings.zoomFactor = json.zoomFactor;
+        settings.focusRange = json.focusRange;
+        settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
+        settings.focusGestureStrategy = json.focusGestureStrategy;
+        settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
+        if (json.properties !== undefined) {
+            for (const key of Object.keys(json.properties)) {
+                settings.setProperty(key, json.properties[key]);
+            }
         }
-        return context;
+        return settings;
     }
-    static forLicenseKeyWithOptions(licenseKey, options) {
-        if (options == null) {
-            options = { deviceName: null };
-        }
-        return new DataCaptureContext(licenseKey, options.deviceName || '');
-    }
-    constructor(licenseKey, deviceName) {
+    constructor(settings) {
         super();
-        this.licenseKey = licenseKey;
-        this.deviceName = deviceName;
-        this.settings = new DataCaptureContextSettings();
-        this._frameSource = null;
-        this.view = null;
-        this.modes = [];
-        this.listeners = [];
-        this.initialize();
-    }
-    setFrameSource(frameSource) {
-        if (this._frameSource) {
-            this._frameSource.context = null;
+        this.focusHiddenProperties = [
+            'range',
+            'manualLensPosition',
+            'shouldPreferSmoothAutoFocus',
+            'focusStrategy',
+            'focusGestureStrategy'
+        ];
+        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
+        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
+        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
+        this.focus = {
+            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
+            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
+            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus
+        };
+        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
+        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
+        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
+        this.focus = {
+            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
+            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
+            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
+        };
+        if (settings !== undefined && settings !== null) {
+            Object.getOwnPropertyNames(settings).forEach(propertyName => {
+                this[propertyName] = settings[propertyName];
+            });
         }
-        this._frameSource = frameSource;
-        if (frameSource) {
-            frameSource.context = this;
-        }
-        return this.update();
     }
-    addListener(listener) {
-        if (this.listeners.includes(listener)) {
+    setProperty(name, value) {
+        if (this.focusHiddenProperties.includes(name)) {
+            this.focus[name] = value;
             return;
         }
-        this.listeners.push(listener);
+        this[name] = value;
     }
-    removeListener(listener) {
-        if (!this.listeners.includes(listener)) {
-            return;
+    getProperty(name) {
+        if (this.focusHiddenProperties.includes(name)) {
+            return this.focus[name];
         }
-        this.listeners.splice(this.listeners.indexOf(listener), 1);
-    }
-    addMode(mode) {
-        if (!this.modes.includes(mode)) {
-            this.modes.push(mode);
-            mode._context = this;
-            this.controller.addModeToContext(mode);
-        }
-    }
-    removeMode(mode) {
-        if (this.modes.includes(mode)) {
-            this.modes.splice(this.modes.indexOf(mode), 1);
-            mode._context = null;
-            this.controller.removeModeFromContext(mode);
-        }
-    }
-    removeAllModes() {
-        this.modes.forEach(mode => {
-            mode._context = null;
-        });
-        this.modes = [];
-        this.controller.removeAllModesFromContext();
-    }
-    dispose() {
-        var _a;
-        if (!this.controller) {
-            return;
-        }
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
-        this.removeAllModes();
-        this.controller.dispose();
-    }
-    applySettings(settings) {
-        this.settings = settings;
-        return this.update();
-    }
-    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
-    initialize() {
-        if (this.controller) {
-            return;
-        }
-        this.controller = DataCaptureContextController.forDataCaptureContext(this);
-    }
-    update() {
-        if (!this.controller) {
-            return Promise.resolve();
-        }
-        return this.controller.updateContextFromJSON();
+        return this[name];
     }
 }
 __decorate([
-    nameForSerialization('frameSource')
-], DataCaptureContext.prototype, "_frameSource", void 0);
-__decorate([
     ignoreFromSerialization
-], DataCaptureContext.prototype, "modes", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext, "coreDefaults", null);
+], CameraSettings.prototype, "focusHiddenProperties", void 0);
 
 class Point extends DefaultSerializeable {
     get x() {
@@ -1725,597 +1640,6 @@ var Direction;
     Direction["BottomToTop"] = "bottomToTop";
 })(Direction || (Direction = {}));
 
-var DataCaptureViewEvents;
-(function (DataCaptureViewEvents) {
-    DataCaptureViewEvents["didChangeSize"] = "didChangeSize";
-})(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
-class DataCaptureViewController extends BaseController {
-    static forDataCaptureView(view) {
-        const controller = new DataCaptureViewController();
-        controller.view = view;
-        controller.createView();
-        controller.subscribeListener();
-        return controller;
-    }
-    constructor() {
-        super('DataCaptureViewProxy');
-    }
-    viewPointForFramePoint(point) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const jsonString = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
-            return Point.fromJSON(JSON.parse(jsonString));
-        });
-    }
-    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const jsonString = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
-            return Quadrilateral.fromJSON(JSON.parse(jsonString));
-        });
-    }
-    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
-        return this._proxy.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
-    }
-    show() {
-        return this._proxy.show();
-    }
-    hide() {
-        return this._proxy.hide();
-    }
-    createView() {
-        return this._proxy.createView(JSON.stringify(this.view.toJSON()));
-    }
-    updateView() {
-        return this._proxy.updateView(JSON.stringify(this.view.toJSON()));
-    }
-    dispose() {
-        this.unsubscribeListener();
-    }
-    addOverlay(overlay) {
-        return this._proxy.addOverlay(JSON.stringify(overlay.toJSON()));
-    }
-    removeOverlay(overlay) {
-        return this._proxy.removeOverlay(JSON.stringify(overlay.toJSON()));
-    }
-    removeAllOverlays() {
-        return this._proxy.removeAllOverlays();
-    }
-    subscribeListener() {
-        var _a, _b;
-        this._proxy.registerListenerForViewEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (payload) => {
-            const payloadJSON = JSON.parse(payload);
-            const size = Size.fromJSON(payloadJSON.size);
-            const orientation = payloadJSON.orientation;
-            this.view.listeners.forEach(listener => {
-                if (listener.didChangeSize) {
-                    listener.didChangeSize(this.view.viewComponent, size, orientation);
-                }
-            });
-        });
-    }
-    unsubscribeListener() {
-        this._proxy.unregisterListenerForViewEvents();
-        this.eventEmitter.removeAllListeners();
-    }
-}
-
-class BaseDataCaptureView extends DefaultSerializeable {
-    get context() {
-        return this._context;
-    }
-    set context(context) {
-        if (!(context instanceof DataCaptureContext || context == null)) {
-            // This should never happen, but let's just be sure
-            throw new Error('The context for a capture view must be a DataCaptureContext');
-        }
-        this._context = context;
-        if (this._context) {
-            this._context.view = this;
-        }
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    get scanAreaMargins() {
-        return this._scanAreaMargins;
-    }
-    set scanAreaMargins(newValue) {
-        this._scanAreaMargins = newValue;
-        this.controller.updateView();
-    }
-    get pointOfInterest() {
-        return this._pointOfInterest;
-    }
-    set pointOfInterest(newValue) {
-        this._pointOfInterest = newValue;
-        this.controller.updateView();
-    }
-    get logoAnchor() {
-        return this._logoAnchor;
-    }
-    set logoAnchor(newValue) {
-        this._logoAnchor = newValue;
-        this.controller.updateView();
-    }
-    get logoOffset() {
-        return this._logoOffset;
-    }
-    set logoOffset(newValue) {
-        this._logoOffset = newValue;
-        this.controller.updateView();
-    }
-    get focusGesture() {
-        return this._focusGesture;
-    }
-    set focusGesture(newValue) {
-        this._focusGesture = newValue;
-        this.controller.updateView();
-    }
-    get zoomGesture() {
-        return this._zoomGesture;
-    }
-    set zoomGesture(newValue) {
-        this._zoomGesture = newValue;
-        this.controller.updateView();
-    }
-    get logoStyle() {
-        return this._logoStyle;
-    }
-    set logoStyle(newValue) {
-        this._logoStyle = newValue;
-        this.controller.updateView();
-    }
-    get privateContext() {
-        return this.context;
-    }
-    static forContext(context) {
-        const view = new BaseDataCaptureView();
-        view.context = context;
-        return view;
-    }
-    constructor() {
-        super();
-        this._context = null;
-        this.overlays = [];
-        this.controls = [];
-        this.listeners = [];
-        this.controller = DataCaptureViewController.forDataCaptureView(this);
-        this._scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
-        this._pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
-        this._logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
-        this._logoOffset = this.coreDefaults.DataCaptureView.logoOffset;
-        this._focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
-        this._zoomGesture = this.coreDefaults.DataCaptureView.zoomGesture;
-        this._logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
-    }
-    addOverlay(overlay) {
-        if (this.overlays.includes(overlay)) {
-            return;
-        }
-        overlay.view = this;
-        this.overlays.push(overlay);
-        this.controller.addOverlay(overlay);
-    }
-    removeOverlay(overlay) {
-        if (!this.overlays.includes(overlay)) {
-            return;
-        }
-        overlay.view = null;
-        this.overlays.splice(this.overlays.indexOf(overlay), 1);
-        this.controller.removeOverlay(overlay);
-    }
-    addListener(listener) {
-        if (!this.listeners.includes(listener)) {
-            this.listeners.push(listener);
-        }
-    }
-    removeListener(listener) {
-        if (this.listeners.includes(listener)) {
-            this.listeners.splice(this.listeners.indexOf(listener), 1);
-        }
-    }
-    viewPointForFramePoint(point) {
-        return this.controller.viewPointForFramePoint(point);
-    }
-    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
-        return this.controller.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
-    }
-    addControl(control) {
-        if (!this.controls.includes(control)) {
-            control.view = this;
-            this.controls.push(control);
-            this.controller.updateView();
-        }
-    }
-    addControlWithAnchorAndOffset(control, anchor, offset) {
-        if (!this.controls.includes(control)) {
-            control.view = this;
-            control.anchor = anchor;
-            control.offset = offset;
-            this.controls.push(control);
-            this.controller.updateView();
-        }
-    }
-    removeControl(control) {
-        if (this.controls.includes(control)) {
-            control.view = null;
-            this.controls.splice(this.controls.indexOf(control), 1);
-            this.controller.updateView();
-        }
-    }
-    controlUpdated() {
-        this.controller.updateView();
-    }
-    dispose() {
-        this.overlays = [];
-        this.controller.removeAllOverlays();
-        this.listeners.forEach(listener => this.removeListener(listener));
-        this.controller.dispose();
-    }
-    // HTML Views only
-    setFrame(frame, isUnderContent = false) {
-        return this.setPositionAndSize(frame.origin.y, frame.origin.x, frame.size.width, frame.size.height, isUnderContent);
-    }
-    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
-        return this.controller.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
-    }
-    show() {
-        if (!this.context) {
-            throw new Error('There should be a context attached to a view that should be shown');
-        }
-        this.privateContext.initialize();
-        return this.controller.show();
-    }
-    hide() {
-        if (!this.context) {
-            throw new Error('There should be a context attached to a view that should be shown');
-        }
-        return this.controller.hide();
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_context", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "viewComponent", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "coreDefaults", null);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_logoOffset", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_focusGesture", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_zoomGesture", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_logoStyle", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "overlays", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "listeners", void 0);
-
-class ZoomSwitchControl extends DefaultSerializeable {
-    constructor() {
-        super(...arguments);
-        this.type = 'zoom';
-        this.icon = {
-            zoomedOut: { default: null, pressed: null },
-            zoomedIn: { default: null, pressed: null },
-        };
-        this.view = null;
-        this.anchor = null;
-        this.offset = null;
-    }
-    get zoomedOutImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedOut.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedOut.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedOutImage(zoomedOutImage) {
-        var _a;
-        this.icon.zoomedOut.default = ControlImage.fromBase64EncodedImage(zoomedOutImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get zoomedInImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedIn.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedIn.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedInImage(zoomedInImage) {
-        var _a;
-        this.icon.zoomedIn.default = ControlImage.fromBase64EncodedImage(zoomedInImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get zoomedInPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedIn.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedIn.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedInPressedImage(zoomedInPressedImage) {
-        var _a;
-        this.icon.zoomedIn.pressed = ControlImage.fromBase64EncodedImage(zoomedInPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get zoomedOutPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedOut.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedOut.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedOutPressedImage(zoomedOutPressedImage) {
-        var _a;
-        this.icon.zoomedOut.pressed = ControlImage.fromBase64EncodedImage(zoomedOutPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedInImage(resource) {
-        var _a;
-        this.icon.zoomedIn.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedInPressedImage(resource) {
-        var _a;
-        this.icon.zoomedIn.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedOutImage(resource) {
-        var _a;
-        this.icon.zoomedOut.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedOutPressedImage(resource) {
-        var _a;
-        this.icon.zoomedOut.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], ZoomSwitchControl.prototype, "view", void 0);
-
-class TorchSwitchControl extends DefaultSerializeable {
-    constructor() {
-        super(...arguments);
-        this.type = 'torch';
-        this.icon = {
-            on: { default: null, pressed: null },
-            off: { default: null, pressed: null },
-        };
-        this.view = null;
-        this.anchor = null;
-        this.offset = null;
-    }
-    get torchOffImage() {
-        var _a, _b;
-        if (((_a = this.icon.off.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.off.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set torchOffImage(torchOffImage) {
-        var _a;
-        this.icon.off.default = ControlImage.fromBase64EncodedImage(torchOffImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get torchOffPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.off.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.off.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set torchOffPressedImage(torchOffPressedImage) {
-        var _a;
-        this.icon.off.pressed = ControlImage.fromBase64EncodedImage(torchOffPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get torchOnImage() {
-        var _a, _b;
-        if (((_a = this.icon.on.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.on.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set torchOnImage(torchOnImage) {
-        var _a;
-        this.icon.on.default = ControlImage.fromBase64EncodedImage(torchOnImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get torchOnPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.on.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.on.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    setTorchOffImage(resource) {
-        var _a;
-        this.icon.off.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setTorchOffPressedImage(resource) {
-        var _a;
-        this.icon.off.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setTorchOnImage(resource) {
-        var _a;
-        this.icon.on.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setTorchOnPressedImage(resource) {
-        var _a;
-        this.icon.on.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setImageResource(resource) {
-        var _a;
-        this.icon.off.default = ControlImage.fromResourceName(resource);
-        this.icon.off.pressed = ControlImage.fromResourceName(resource);
-        this.icon.on.default = ControlImage.fromResourceName(resource);
-        this.icon.on.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    set torchOnPressedImage(torchOnPressedImage) {
-        var _a;
-        this.icon.on.pressed = ControlImage.fromBase64EncodedImage(torchOnPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], TorchSwitchControl.prototype, "view", void 0);
-
-var VideoResolution;
-(function (VideoResolution) {
-    VideoResolution["Auto"] = "auto";
-    VideoResolution["HD"] = "hd";
-    VideoResolution["FullHD"] = "fullHd";
-    VideoResolution["UHD4K"] = "uhd4k";
-})(VideoResolution || (VideoResolution = {}));
-
-var FocusRange;
-(function (FocusRange) {
-    FocusRange["Full"] = "full";
-    FocusRange["Near"] = "near";
-    FocusRange["Far"] = "far";
-})(FocusRange || (FocusRange = {}));
-
-var FocusGestureStrategy;
-(function (FocusGestureStrategy) {
-    FocusGestureStrategy["None"] = "none";
-    FocusGestureStrategy["Manual"] = "manual";
-    FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
-    FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
-})(FocusGestureStrategy || (FocusGestureStrategy = {}));
-
-var LogoStyle;
-(function (LogoStyle) {
-    LogoStyle["Minimal"] = "minimal";
-    LogoStyle["Extended"] = "extended";
-})(LogoStyle || (LogoStyle = {}));
-
-class CameraSettings extends DefaultSerializeable {
-    static get coreDefaults() {
-        return getCoreDefaults();
-    }
-    get focusRange() {
-        return this.focus.range;
-    }
-    set focusRange(newRange) {
-        this.focus.range = newRange;
-    }
-    get focusGestureStrategy() {
-        return this.focus.focusGestureStrategy;
-    }
-    set focusGestureStrategy(newStrategy) {
-        this.focus.focusGestureStrategy = newStrategy;
-    }
-    get shouldPreferSmoothAutoFocus() {
-        return this.focus.shouldPreferSmoothAutoFocus;
-    }
-    set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
-        this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
-    }
-    get maxFrameRate() {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-        return 0;
-    }
-    set maxFrameRate(newValue) {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-    }
-    static fromJSON(json) {
-        const settings = new CameraSettings();
-        settings.preferredResolution = json.preferredResolution;
-        settings.zoomFactor = json.zoomFactor;
-        settings.focusRange = json.focusRange;
-        settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
-        settings.focusGestureStrategy = json.focusGestureStrategy;
-        settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
-        if (json.properties !== undefined) {
-            for (const key of Object.keys(json.properties)) {
-                settings.setProperty(key, json.properties[key]);
-            }
-        }
-        return settings;
-    }
-    constructor(settings) {
-        super();
-        this.focusHiddenProperties = [
-            'range',
-            'manualLensPosition',
-            'shouldPreferSmoothAutoFocus',
-            'focusStrategy',
-            'focusGestureStrategy'
-        ];
-        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
-        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
-        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
-        this.focus = {
-            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
-            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
-            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus
-        };
-        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
-        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
-        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
-        this.focus = {
-            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
-            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
-            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
-        };
-        if (settings !== undefined && settings !== null) {
-            Object.getOwnPropertyNames(settings).forEach(propertyName => {
-                this[propertyName] = settings[propertyName];
-            });
-        }
-    }
-    setProperty(name, value) {
-        if (this.focusHiddenProperties.includes(name)) {
-            this.focus[name] = value;
-            return;
-        }
-        this[name] = value;
-    }
-    getProperty(name) {
-        if (this.focusHiddenProperties.includes(name)) {
-            return this.focus[name];
-        }
-        return this[name];
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], CameraSettings.prototype, "focusHiddenProperties", void 0);
-
 const NoViewfinder = { type: 'none' };
 
 class RectangularViewfinderAnimation extends DefaultSerializeable {
@@ -2605,6 +1929,275 @@ function loadCoreDefaults(jsonDefaults) {
     FactoryMaker.bindInstanceIfNotExists('CoreDefaults', coreDefaults);
 }
 
+class ContextStatus {
+    static fromJSON(json) {
+        const status = new ContextStatus();
+        status._code = json.code;
+        status._message = json.message;
+        status._isValid = json.isValid;
+        return status;
+    }
+    get message() {
+        return this._message;
+    }
+    get code() {
+        return this._code;
+    }
+    get isValid() {
+        return this._isValid;
+    }
+}
+
+class DataCaptureContextSettings extends DefaultSerializeable {
+    constructor() {
+        super();
+    }
+    setProperty(name, value) {
+        this[name] = value;
+    }
+    getProperty(name) {
+        return this[name];
+    }
+}
+
+var DataCaptureContextEvents;
+(function (DataCaptureContextEvents) {
+    DataCaptureContextEvents["didChangeStatus"] = "didChangeStatus";
+    DataCaptureContextEvents["didStartObservingContext"] = "didStartObservingContext";
+})(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
+class DataCaptureContextController {
+    get framework() {
+        return this._proxy.framework;
+    }
+    get frameworkVersion() {
+        return this._proxy.frameworkVersion;
+    }
+    get privateContext() {
+        return this.context;
+    }
+    static forDataCaptureContext(context) {
+        const controller = new DataCaptureContextController();
+        controller.context = context;
+        controller.initialize();
+        return controller;
+    }
+    constructor() {
+        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
+    }
+    updateContextFromJSON() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this._proxy.updateContextFromJSON(this.context);
+            }
+            catch (error) {
+                this.notifyListenersOfDeserializationError(error);
+                throw error;
+            }
+        });
+    }
+    addModeToContext(mode) {
+        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
+    }
+    removeModeFromContext(mode) {
+        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
+    }
+    removeAllModesFromContext() {
+        return this._proxy.removeAllModesFromContext();
+    }
+    dispose() {
+        this.unsubscribeListener();
+        this._proxy.dispose();
+    }
+    unsubscribeListener() {
+        this._proxy.unsubscribeListener();
+        this.eventEmitter.removeListener(DataCaptureContextEvents.didChangeStatus);
+        this.eventEmitter.removeListener(DataCaptureContextEvents.didStartObservingContext);
+    }
+    initialize() {
+        this.subscribeListener();
+        return this.initializeContextFromJSON();
+    }
+    initializeContextFromJSON() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                this._proxy.contextFromJSON(this.context);
+            }
+            catch (error) {
+                this.notifyListenersOfDeserializationError(error);
+                throw error;
+            }
+        });
+    }
+    subscribeListener() {
+        var _a, _b, _c, _d;
+        this._proxy.registerListenerForEvents();
+        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
+        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
+            this.notifyListenersOfDidChangeStatus(contextStatus);
+        });
+        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
+            this.privateContext.listeners.forEach(listener => {
+                var _a;
+                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
+            });
+        });
+    }
+    notifyListenersOfDeserializationError(error) {
+        const contextStatus = ContextStatus
+            .fromJSON({
+            message: error,
+            code: -1,
+            isValid: true,
+        });
+        this.notifyListenersOfDidChangeStatus(contextStatus);
+    }
+    notifyListenersOfDidChangeStatus(contextStatus) {
+        this.privateContext.listeners.forEach(listener => {
+            if (listener.didChangeStatus) {
+                listener.didChangeStatus(this.context, contextStatus);
+            }
+        });
+    }
+}
+
+class DataCaptureContext extends DefaultSerializeable {
+    get framework() {
+        return this.controller.framework;
+    }
+    get frameworkVersion() {
+        return this.controller.frameworkVersion;
+    }
+    static get coreDefaults() {
+        return getCoreDefaults();
+    }
+    get frameSource() {
+        return this._frameSource;
+    }
+    static get deviceID() {
+        return DataCaptureContext.coreDefaults.deviceID;
+    }
+    /**
+     * @deprecated
+     */
+    get deviceID() {
+        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
+        return DataCaptureContext.deviceID;
+    }
+    static forLicenseKey(licenseKey) {
+        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+    }
+    static forLicenseKeyWithSettings(licenseKey, settings) {
+        const context = this.forLicenseKey(licenseKey);
+        if (settings !== null) {
+            context.applySettings(settings);
+        }
+        return context;
+    }
+    static forLicenseKeyWithOptions(licenseKey, options) {
+        if (options == null) {
+            options = { deviceName: null };
+        }
+        return new DataCaptureContext(licenseKey, options.deviceName || '');
+    }
+    constructor(licenseKey, deviceName) {
+        super();
+        this.licenseKey = licenseKey;
+        this.deviceName = deviceName;
+        this.settings = new DataCaptureContextSettings();
+        this._frameSource = null;
+        this.view = null;
+        this.modes = [];
+        this.listeners = [];
+        this.initialize();
+    }
+    setFrameSource(frameSource) {
+        if (this._frameSource) {
+            this._frameSource.context = null;
+        }
+        this._frameSource = frameSource;
+        if (frameSource) {
+            frameSource.context = this;
+        }
+        return this.update();
+    }
+    addListener(listener) {
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+    }
+    addMode(mode) {
+        if (!this.modes.includes(mode)) {
+            this.modes.push(mode);
+            mode._context = this;
+            this.controller.addModeToContext(mode);
+        }
+    }
+    removeMode(mode) {
+        if (this.modes.includes(mode)) {
+            this.modes.splice(this.modes.indexOf(mode), 1);
+            mode._context = null;
+            this.controller.removeModeFromContext(mode);
+        }
+    }
+    removeAllModes() {
+        this.modes.forEach(mode => {
+            mode._context = null;
+        });
+        this.modes = [];
+        this.controller.removeAllModesFromContext();
+    }
+    dispose() {
+        var _a;
+        if (!this.controller) {
+            return;
+        }
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
+        this.removeAllModes();
+        this.controller.dispose();
+    }
+    applySettings(settings) {
+        this.settings = settings;
+        return this.update();
+    }
+    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
+    initialize() {
+        if (this.controller) {
+            return;
+        }
+        this.controller = DataCaptureContextController.forDataCaptureContext(this);
+    }
+    update() {
+        if (!this.controller) {
+            return Promise.resolve();
+        }
+        return this.controller.updateContextFromJSON();
+    }
+}
+__decorate([
+    nameForSerialization('frameSource')
+], DataCaptureContext.prototype, "_frameSource", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "modes", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext, "coreDefaults", null);
+
 var VibrationType;
 (function (VibrationType) {
     VibrationType["default"] = "default";
@@ -2812,6 +2405,295 @@ __decorate([
     nameForSerialization('size')
 ], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", void 0);
 
+var DataCaptureViewEvents;
+(function (DataCaptureViewEvents) {
+    DataCaptureViewEvents["didChangeSize"] = "didChangeSize";
+})(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
+class DataCaptureViewController extends BaseController {
+    static forDataCaptureView(view) {
+        const controller = new DataCaptureViewController();
+        controller.view = view;
+        controller.createView();
+        controller.subscribeListener();
+        return controller;
+    }
+    constructor() {
+        super('DataCaptureViewProxy');
+    }
+    viewPointForFramePoint(point) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const jsonString = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
+            return Point.fromJSON(JSON.parse(jsonString));
+        });
+    }
+    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const jsonString = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
+            return Quadrilateral.fromJSON(JSON.parse(jsonString));
+        });
+    }
+    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
+        return this._proxy.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
+    }
+    show() {
+        return this._proxy.show();
+    }
+    hide() {
+        return this._proxy.hide();
+    }
+    createView() {
+        return this._proxy.createView(JSON.stringify(this.view.toJSON()));
+    }
+    updateView() {
+        return this._proxy.updateView(JSON.stringify(this.view.toJSON()));
+    }
+    dispose() {
+        this.unsubscribeListener();
+    }
+    addOverlay(overlay) {
+        return this._proxy.addOverlay(JSON.stringify(overlay.toJSON()));
+    }
+    removeOverlay(overlay) {
+        return this._proxy.removeOverlay(JSON.stringify(overlay.toJSON()));
+    }
+    removeAllOverlays() {
+        return this._proxy.removeAllOverlays();
+    }
+    subscribeListener() {
+        var _a, _b;
+        this._proxy.registerListenerForViewEvents();
+        (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (payload) => {
+            const payloadJSON = JSON.parse(payload);
+            const size = Size.fromJSON(payloadJSON.size);
+            const orientation = payloadJSON.orientation;
+            this.view.listeners.forEach(listener => {
+                if (listener.didChangeSize) {
+                    listener.didChangeSize(this.view.viewComponent, size, orientation);
+                }
+            });
+        });
+    }
+    unsubscribeListener() {
+        this._proxy.unregisterListenerForViewEvents();
+        this.eventEmitter.removeAllListeners();
+    }
+}
+
+class BaseDataCaptureView extends DefaultSerializeable {
+    get context() {
+        return this._context;
+    }
+    set context(context) {
+        if (!(context instanceof DataCaptureContext || context == null)) {
+            // This should never happen, but let's just be sure
+            throw new Error('The context for a capture view must be a DataCaptureContext');
+        }
+        this._context = context;
+        if (this._context) {
+            this._context.view = this;
+        }
+    }
+    get coreDefaults() {
+        return getCoreDefaults();
+    }
+    get scanAreaMargins() {
+        return this._scanAreaMargins;
+    }
+    set scanAreaMargins(newValue) {
+        this._scanAreaMargins = newValue;
+        this.controller.updateView();
+    }
+    get pointOfInterest() {
+        return this._pointOfInterest;
+    }
+    set pointOfInterest(newValue) {
+        this._pointOfInterest = newValue;
+        this.controller.updateView();
+    }
+    get logoAnchor() {
+        return this._logoAnchor;
+    }
+    set logoAnchor(newValue) {
+        this._logoAnchor = newValue;
+        this.controller.updateView();
+    }
+    get logoOffset() {
+        return this._logoOffset;
+    }
+    set logoOffset(newValue) {
+        this._logoOffset = newValue;
+        this.controller.updateView();
+    }
+    get focusGesture() {
+        return this._focusGesture;
+    }
+    set focusGesture(newValue) {
+        this._focusGesture = newValue;
+        this.controller.updateView();
+    }
+    get zoomGesture() {
+        return this._zoomGesture;
+    }
+    set zoomGesture(newValue) {
+        this._zoomGesture = newValue;
+        this.controller.updateView();
+    }
+    get logoStyle() {
+        return this._logoStyle;
+    }
+    set logoStyle(newValue) {
+        this._logoStyle = newValue;
+        this.controller.updateView();
+    }
+    get privateContext() {
+        return this.context;
+    }
+    static forContext(context) {
+        const view = new BaseDataCaptureView();
+        view.context = context;
+        return view;
+    }
+    constructor() {
+        super();
+        this._context = null;
+        this.overlays = [];
+        this.controls = [];
+        this.listeners = [];
+        this.controller = DataCaptureViewController.forDataCaptureView(this);
+        this._scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
+        this._pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
+        this._logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
+        this._logoOffset = this.coreDefaults.DataCaptureView.logoOffset;
+        this._focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
+        this._zoomGesture = this.coreDefaults.DataCaptureView.zoomGesture;
+        this._logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
+    }
+    addOverlay(overlay) {
+        if (this.overlays.includes(overlay)) {
+            return;
+        }
+        overlay.view = this;
+        this.overlays.push(overlay);
+        this.controller.addOverlay(overlay);
+    }
+    removeOverlay(overlay) {
+        if (!this.overlays.includes(overlay)) {
+            return;
+        }
+        overlay.view = null;
+        this.overlays.splice(this.overlays.indexOf(overlay), 1);
+        this.controller.removeOverlay(overlay);
+    }
+    addListener(listener) {
+        if (!this.listeners.includes(listener)) {
+            this.listeners.push(listener);
+        }
+    }
+    removeListener(listener) {
+        if (this.listeners.includes(listener)) {
+            this.listeners.splice(this.listeners.indexOf(listener), 1);
+        }
+    }
+    viewPointForFramePoint(point) {
+        return this.controller.viewPointForFramePoint(point);
+    }
+    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
+        return this.controller.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
+    }
+    addControl(control) {
+        if (!this.controls.includes(control)) {
+            control.view = this;
+            this.controls.push(control);
+            this.controller.updateView();
+        }
+    }
+    addControlWithAnchorAndOffset(control, anchor, offset) {
+        if (!this.controls.includes(control)) {
+            control.view = this;
+            control.anchor = anchor;
+            control.offset = offset;
+            this.controls.push(control);
+            this.controller.updateView();
+        }
+    }
+    removeControl(control) {
+        if (this.controls.includes(control)) {
+            control.view = null;
+            this.controls.splice(this.controls.indexOf(control), 1);
+            this.controller.updateView();
+        }
+    }
+    controlUpdated() {
+        this.controller.updateView();
+    }
+    dispose() {
+        this.overlays = [];
+        this.controller.removeAllOverlays();
+        this.listeners.forEach(listener => this.removeListener(listener));
+        this.controller.dispose();
+    }
+    // HTML Views only
+    setFrame(frame, isUnderContent = false) {
+        return this.setPositionAndSize(frame.origin.y, frame.origin.x, frame.size.width, frame.size.height, isUnderContent);
+    }
+    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
+        return this.controller.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
+    }
+    show() {
+        if (!this.context) {
+            throw new Error('There should be a context attached to a view that should be shown');
+        }
+        this.privateContext.initialize();
+        return this.controller.show();
+    }
+    hide() {
+        if (!this.context) {
+            throw new Error('There should be a context attached to a view that should be shown');
+        }
+        return this.controller.hide();
+    }
+}
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_context", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "viewComponent", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "coreDefaults", null);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_logoOffset", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_focusGesture", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_zoomGesture", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_logoStyle", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "overlays", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "listeners", void 0);
+
 class LicenseInfo extends DefaultSerializeable {
     get expiration() {
         return this._expiration;
@@ -2831,5 +2713,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

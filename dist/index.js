@@ -16,7 +16,7 @@ const RNEventEmitter$3 = new NativeEventEmitter(NativeModule$5);
 // tslint:enable:variable-name
 var FrameSourceListenerName$1;
 (function (FrameSourceListenerName) {
-    FrameSourceListenerName["didChangeState"] = "FrameSourceListener.didChangeState";
+    FrameSourceListenerName["didChangeState"] = "FrameSourceListener.onStateChanged";
 })(FrameSourceListenerName$1 || (FrameSourceListenerName$1 = {}));
 class NativeImageFrameSourceProxy {
     eventEmitter;
@@ -242,7 +242,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '6.22.2';
+        return '6.23.2';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -3054,7 +3054,7 @@ class DataCaptureView extends React.Component {
     view;
     constructor(props) {
         super(props);
-        this.view = BaseDataCaptureView.forContext(this.props.context);
+        this.view = BaseDataCaptureView.forContext(props.context);
         this.view.viewComponent = this;
     }
     get scanAreaMargins() {

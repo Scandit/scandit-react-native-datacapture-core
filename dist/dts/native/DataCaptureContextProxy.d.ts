@@ -9,8 +9,8 @@ export declare class NativeDataCaptureContextProxy extends BaseNativeProxy imple
     removeModeFromContext(modeJson: string): Promise<void>;
     removeAllModesFromContext(): Promise<void>;
     dispose(): void;
-    registerListenerForDataCaptureContext(): void;
-    unregisterListenerForDataCaptureContext(): Promise<void>;
+    registerListenerForEvents(): void;
+    unsubscribeListener(): void;
     subscribeDidChangeStatus(): void;
     subscribeDidStartObservingContext(): void;
 }

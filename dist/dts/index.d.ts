@@ -3,7 +3,7 @@ import { initCoreDefaults } from './private/Defaults';
 export { initCoreDefaults };
 export { initCoreProxy };
 export { Point, Quadrilateral, NumberWithUnit, PointWithUnit, Rect, RectWithUnit, SizeWithUnit, Size, SizeWithAspect, SizeWithUnitAndAspect, MarginsWithUnit, Color, Brush } from 'scandit-datacapture-frameworks-core';
-export { MeasureUnit, SizingMode, Anchor, Orientation, Direction, ScanIntention } from 'scandit-datacapture-frameworks-core';
+export { MeasureUnit, SizingMode, Anchor, Orientation, Direction } from 'scandit-datacapture-frameworks-core';
 export { Control, ZoomSwitchControl, TorchSwitchControl } from 'scandit-datacapture-frameworks-core';
 export { FrameSourceState, FrameSourceListener, FrameSource } from 'scandit-datacapture-frameworks-core';
 export { DataCaptureContextListener, ContextStatus } from 'scandit-datacapture-frameworks-core';

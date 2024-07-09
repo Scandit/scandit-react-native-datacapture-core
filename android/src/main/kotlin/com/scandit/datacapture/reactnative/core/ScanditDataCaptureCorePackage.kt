@@ -21,23 +21,11 @@ class ScanditDataCaptureCorePackage : ReactPackage {
     override fun createNativeModules(
         reactContext: ReactApplicationContext
     ): MutableList<NativeModule> =
-        mutableListOf(
-            ScanditDataCaptureCoreModule(
-                reactContext,
-                getCoreModule(
-                    reactContext
-                ),
-                dataCaptureViewManager
-            )
-        )
-
-    private val dataCaptureViewManager: DataCaptureViewManager by lazy {
-        DataCaptureViewManager()
-    }
+        mutableListOf(ScanditDataCaptureCoreModule(reactContext, getCoreModule(reactContext)))
 
     override fun createViewManagers(
         reactContext: ReactApplicationContext
-    ): MutableList<ViewManager<*, *>> = mutableListOf(dataCaptureViewManager)
+    ): MutableList<ViewManager<*, *>> = mutableListOf(DataCaptureViewManager())
 
     private fun getCoreModule(reactContext: ReactApplicationContext): CoreModule {
         val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)

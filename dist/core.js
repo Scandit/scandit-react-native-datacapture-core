@@ -375,7 +375,7 @@ FactoryMaker.instances = new Map();
 
 function createEventEmitter() {
     const ee = new EventEmitter();
-    FactoryMaker.bindInstanceIfNotExists('EventEmitter', ee);
+    FactoryMaker.bindInstance('EventEmitter', ee);
 }
 
 class BaseController {
@@ -609,7 +609,7 @@ class ImageFrameSourceController {
     }
     unsubscribeListener() {
         this._proxy.unregisterListenerForEvents();
-        this.eventEmitter.removeAllListeners(FrameSourceListenerEvents.didChangeState);
+        this.eventEmitter.removeAllListeners();
     }
 }
 
@@ -803,24 +803,6 @@ class Camera extends DefaultSerializeable {
             return null;
         }
     }
-    static withSettings(settings) {
-        const camera = Camera.default;
-        if (camera) {
-            camera.settings = settings;
-        }
-        return camera;
-    }
-    static asPositionWithSettings(cameraPosition, settings) {
-        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
-            const camera = new Camera();
-            camera.settings = settings;
-            camera.position = cameraPosition;
-            return camera;
-        }
-        else {
-            return null;
-        }
-    }
     static atPosition(cameraPosition) {
         if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
             const camera = new Camera();
@@ -926,305 +908,227 @@ __decorate([
     ignoreFromSerialization
 ], Camera, "coreDefaults", null);
 
-class ControlImage extends DefaultSerializeable {
-    constructor(type, data, name) {
-        super();
-        this.type = type;
-        this._data = data;
-        this._name = name;
+class ZoomSwitchControl extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.type = 'zoom';
+        this.icon = {
+            zoomedOut: { default: null, pressed: null },
+            zoomedIn: { default: null, pressed: null },
+        };
+        this.view = null;
+        this.anchor = null;
+        this.offset = null;
     }
-    static fromBase64EncodedImage(data) {
-        if (data === null)
-            return null;
-        return new ControlImage("base64", data, null);
+    get zoomedOutImage() {
+        return this.icon.zoomedOut.default;
     }
-    static fromResourceName(resource) {
-        return new ControlImage("resource", null, resource);
+    set zoomedOutImage(zoomedOutImage) {
+        var _a;
+        this.icon.zoomedOut.default = zoomedOutImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
     }
-    isBase64EncodedImage() {
-        return this.type === "base64";
+    get zoomedInImage() {
+        return this.icon.zoomedIn.default;
     }
-    get data() {
-        return this._data;
+    set zoomedInImage(zoomedInImage) {
+        var _a;
+        this.icon.zoomedIn.default = zoomedInImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get zoomedInPressedImage() {
+        return this.icon.zoomedIn.pressed;
+    }
+    set zoomedInPressedImage(zoomedInPressedImage) {
+        var _a;
+        this.icon.zoomedIn.pressed = zoomedInPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get zoomedOutPressedImage() {
+        return this.icon.zoomedOut.pressed;
+    }
+    set zoomedOutPressedImage(zoomedOutPressedImage) {
+        var _a;
+        this.icon.zoomedOut.pressed = zoomedOutPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
     }
 }
 __decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('data')
-], ControlImage.prototype, "_data", void 0);
+    ignoreFromSerialization
+], ZoomSwitchControl.prototype, "view", void 0);
+
+class TorchSwitchControl extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.type = 'torch';
+        this.icon = {
+            on: { default: null, pressed: null },
+            off: { default: null, pressed: null },
+        };
+        this.view = null;
+        this.anchor = null;
+        this.offset = null;
+    }
+    get torchOffImage() {
+        return this.icon.off.default;
+    }
+    set torchOffImage(torchOffImage) {
+        var _a;
+        this.icon.off.default = torchOffImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get torchOffPressedImage() {
+        return this.icon.off.pressed;
+    }
+    set torchOffPressedImage(torchOffPressedImage) {
+        var _a;
+        this.icon.off.pressed = torchOffPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get torchOnImage() {
+        return this.icon.on.default;
+    }
+    set torchOnImage(torchOnImage) {
+        var _a;
+        this.icon.on.default = torchOnImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+    get torchOnPressedImage() {
+        return this.icon.on.pressed;
+    }
+    set torchOnPressedImage(torchOnPressedImage) {
+        var _a;
+        this.icon.on.pressed = torchOnPressedImage;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+    }
+}
 __decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('name')
-], ControlImage.prototype, "_name", void 0);
+    ignoreFromSerialization
+], TorchSwitchControl.prototype, "view", void 0);
 
-class ContextStatus {
-    static fromJSON(json) {
-        const status = new ContextStatus();
-        status._code = json.code;
-        status._message = json.message;
-        status._isValid = json.isValid;
-        return status;
-    }
-    get message() {
-        return this._message;
-    }
-    get code() {
-        return this._code;
-    }
-    get isValid() {
-        return this._isValid;
-    }
-}
+var VideoResolution;
+(function (VideoResolution) {
+    VideoResolution["Auto"] = "auto";
+    VideoResolution["HD"] = "hd";
+    VideoResolution["FullHD"] = "fullHd";
+    VideoResolution["UHD4K"] = "uhd4k";
+})(VideoResolution || (VideoResolution = {}));
 
-class DataCaptureContextSettings extends DefaultSerializeable {
-    constructor() {
-        super();
-    }
-    setProperty(name, value) {
-        this[name] = value;
-    }
-    getProperty(name) {
-        return this[name];
-    }
-}
+var FocusRange;
+(function (FocusRange) {
+    FocusRange["Full"] = "full";
+    FocusRange["Near"] = "near";
+    FocusRange["Far"] = "far";
+})(FocusRange || (FocusRange = {}));
 
-var DataCaptureContextEvents;
-(function (DataCaptureContextEvents) {
-    DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
-    DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
-})(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
-class DataCaptureContextController {
-    get framework() {
-        return this._proxy.framework;
-    }
-    get frameworkVersion() {
-        return this._proxy.frameworkVersion;
-    }
-    get privateContext() {
-        return this.context;
-    }
-    static forDataCaptureContext(context) {
-        const controller = new DataCaptureContextController();
-        controller.context = context;
-        controller.initialize();
-        return controller;
-    }
-    constructor() {
-        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-    }
-    updateContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield this._proxy.updateContextFromJSON(this.context);
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
-        });
-    }
-    addModeToContext(mode) {
-        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
-    }
-    removeModeFromContext(mode) {
-        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
-    }
-    removeAllModesFromContext() {
-        return this._proxy.removeAllModesFromContext();
-    }
-    dispose() {
-        this.unsubscribeListener();
-        this._proxy.dispose();
-    }
-    unsubscribeListener() {
-        this._proxy.unregisterListenerForDataCaptureContext();
-        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didChangeStatus);
-        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didStartObservingContext);
-    }
-    initialize() {
-        this.subscribeListener();
-        return this.initializeContextFromJSON();
-    }
-    initializeContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield this._proxy.contextFromJSON(this.context);
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
-        });
-    }
-    subscribeListener() {
-        var _a, _b, _c, _d;
-        this._proxy.registerListenerForDataCaptureContext();
-        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
-        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
-        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
-            this.notifyListenersOfDidChangeStatus(contextStatus);
-        });
-        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
-            this.privateContext.listeners.forEach(listener => {
-                var _a;
-                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
-            });
-        });
-    }
-    notifyListenersOfDeserializationError(error) {
-        const contextStatus = ContextStatus
-            .fromJSON({
-            message: error,
-            code: -1,
-            isValid: true,
-        });
-        this.notifyListenersOfDidChangeStatus(contextStatus);
-    }
-    notifyListenersOfDidChangeStatus(contextStatus) {
-        this.privateContext.listeners.forEach(listener => {
-            if (listener.didChangeStatus) {
-                listener.didChangeStatus(this.context, contextStatus);
-            }
-        });
-    }
-}
+var FocusGestureStrategy;
+(function (FocusGestureStrategy) {
+    FocusGestureStrategy["None"] = "none";
+    FocusGestureStrategy["Manual"] = "manual";
+    FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
+    FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
+})(FocusGestureStrategy || (FocusGestureStrategy = {}));
 
-class DataCaptureContext extends DefaultSerializeable {
-    get framework() {
-        return this.controller.framework;
-    }
-    get frameworkVersion() {
-        return this.controller.frameworkVersion;
-    }
+var LogoStyle;
+(function (LogoStyle) {
+    LogoStyle["Minimal"] = "minimal";
+    LogoStyle["Extended"] = "extended";
+})(LogoStyle || (LogoStyle = {}));
+
+class CameraSettings extends DefaultSerializeable {
     static get coreDefaults() {
         return getCoreDefaults();
     }
-    get frameSource() {
-        return this._frameSource;
+    get focusRange() {
+        return this.focus.range;
     }
-    static get deviceID() {
-        return DataCaptureContext.coreDefaults.deviceID;
+    set focusRange(newRange) {
+        this.focus.range = newRange;
     }
-    /**
-     * @deprecated
-     */
-    get deviceID() {
-        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
-        return DataCaptureContext.deviceID;
+    get focusGestureStrategy() {
+        return this.focus.focusGestureStrategy;
     }
-    static forLicenseKey(licenseKey) {
-        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+    set focusGestureStrategy(newStrategy) {
+        this.focus.focusGestureStrategy = newStrategy;
     }
-    static forLicenseKeyWithSettings(licenseKey, settings) {
-        const context = this.forLicenseKey(licenseKey);
-        if (settings !== null) {
-            context.applySettings(settings);
+    get shouldPreferSmoothAutoFocus() {
+        return this.focus.shouldPreferSmoothAutoFocus;
+    }
+    set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
+        this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
+    }
+    get maxFrameRate() {
+        // tslint:disable-next-line:no-console
+        console.warn('maxFrameRate is deprecated');
+        return 0;
+    }
+    set maxFrameRate(newValue) {
+        // tslint:disable-next-line:no-console
+        console.warn('maxFrameRate is deprecated');
+    }
+    static fromJSON(json) {
+        const settings = new CameraSettings();
+        settings.preferredResolution = json.preferredResolution;
+        settings.zoomFactor = json.zoomFactor;
+        settings.focusRange = json.focusRange;
+        settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
+        settings.focusGestureStrategy = json.focusGestureStrategy;
+        settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
+        if (json.properties !== undefined) {
+            for (const key of Object.keys(json.properties)) {
+                settings.setProperty(key, json.properties[key]);
+            }
         }
-        return context;
+        return settings;
     }
-    static forLicenseKeyWithOptions(licenseKey, options) {
-        if (options == null) {
-            options = { deviceName: null };
-        }
-        return new DataCaptureContext(licenseKey, options.deviceName || '');
-    }
-    constructor(licenseKey, deviceName) {
+    constructor(settings) {
         super();
-        this.licenseKey = licenseKey;
-        this.deviceName = deviceName;
-        this.settings = new DataCaptureContextSettings();
-        this._frameSource = null;
-        this.view = null;
-        this.modes = [];
-        this.listeners = [];
-        this.initialize();
-    }
-    setFrameSource(frameSource) {
-        if (this._frameSource) {
-            this._frameSource.context = null;
+        this.focusHiddenProperties = [
+            'range',
+            'manualLensPosition',
+            'shouldPreferSmoothAutoFocus',
+            'focusStrategy',
+            'focusGestureStrategy'
+        ];
+        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
+        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
+        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
+        this.focus = {
+            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
+            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
+            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus
+        };
+        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
+        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
+        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
+        this.focus = {
+            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
+            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
+            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
+        };
+        if (settings !== undefined && settings !== null) {
+            Object.getOwnPropertyNames(settings).forEach(propertyName => {
+                this[propertyName] = settings[propertyName];
+            });
         }
-        this._frameSource = frameSource;
-        if (frameSource) {
-            frameSource.context = this;
-        }
-        return this.update();
     }
-    addListener(listener) {
-        if (this.listeners.includes(listener)) {
+    setProperty(name, value) {
+        if (this.focusHiddenProperties.includes(name)) {
+            this.focus[name] = value;
             return;
         }
-        this.listeners.push(listener);
+        this[name] = value;
     }
-    removeListener(listener) {
-        if (!this.listeners.includes(listener)) {
-            return;
+    getProperty(name) {
+        if (this.focusHiddenProperties.includes(name)) {
+            return this.focus[name];
         }
-        this.listeners.splice(this.listeners.indexOf(listener), 1);
-    }
-    addMode(mode) {
-        if (!this.modes.includes(mode)) {
-            this.modes.push(mode);
-            mode._context = this;
-            this.controller.addModeToContext(mode);
-        }
-    }
-    removeMode(mode) {
-        if (this.modes.includes(mode)) {
-            this.modes.splice(this.modes.indexOf(mode), 1);
-            mode._context = null;
-            this.controller.removeModeFromContext(mode);
-        }
-    }
-    removeAllModes() {
-        this.modes.forEach(mode => {
-            mode._context = null;
-        });
-        this.modes = [];
-        this.controller.removeAllModesFromContext();
-    }
-    dispose() {
-        var _a;
-        if (!this.controller) {
-            return;
-        }
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
-        this.removeAllModes();
-        this.controller.dispose();
-    }
-    applySettings(settings) {
-        this.settings = settings;
-        return this.update();
-    }
-    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
-    initialize() {
-        if (this.controller) {
-            return;
-        }
-        this.controller = DataCaptureContextController.forDataCaptureContext(this);
-    }
-    update() {
-        if (!this.controller) {
-            return Promise.resolve();
-        }
-        return this.controller.updateContextFromJSON();
+        return this[name];
     }
 }
 __decorate([
-    nameForSerialization('frameSource')
-], DataCaptureContext.prototype, "_frameSource", void 0);
-__decorate([
     ignoreFromSerialization
-], DataCaptureContext.prototype, "modes", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext, "coreDefaults", null);
+], CameraSettings.prototype, "focusHiddenProperties", void 0);
 
 class Point extends DefaultSerializeable {
     get x() {
@@ -1736,15 +1640,774 @@ var Direction;
     Direction["BottomToTop"] = "bottomToTop";
 })(Direction || (Direction = {}));
 
-var ScanIntention;
-(function (ScanIntention) {
-    ScanIntention["Manual"] = "manual";
-    ScanIntention["Smart"] = "smart";
-})(ScanIntention || (ScanIntention = {}));
+const NoViewfinder = { type: 'none' };
+
+class RectangularViewfinderAnimation extends DefaultSerializeable {
+    static fromJSON(json) {
+        if (json === null) {
+            return null;
+        }
+        return new RectangularViewfinderAnimation(json.looping);
+    }
+    get isLooping() {
+        return this._isLooping;
+    }
+    constructor(isLooping) {
+        super();
+        this._isLooping = false;
+        this._isLooping = isLooping;
+    }
+}
+__decorate([
+    nameForSerialization('isLooping')
+], RectangularViewfinderAnimation.prototype, "_isLooping", void 0);
+
+class SpotlightViewfinder extends DefaultSerializeable {
+    get sizeWithUnitAndAspect() {
+        return this._sizeWithUnitAndAspect;
+    }
+    get coreDefaults() {
+        return getCoreDefaults();
+    }
+    constructor() {
+        super();
+        this.type = 'spotlight';
+        console.warn('SpotlightViewfinder is deprecated and will be removed in a future release. Use RectangularViewfinder instead.');
+        this._sizeWithUnitAndAspect = this.coreDefaults.SpotlightViewfinder.size;
+        this.enabledBorderColor = this.coreDefaults.SpotlightViewfinder.enabledBorderColor;
+        this.disabledBorderColor = this.coreDefaults.SpotlightViewfinder.disabledBorderColor;
+        this.backgroundColor = this.coreDefaults.SpotlightViewfinder.backgroundColor;
+    }
+    setSize(size) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
+    }
+    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
+    }
+    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
+    }
+}
+__decorate([
+    nameForSerialization('size')
+], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
+
+class LaserlineViewfinder extends DefaultSerializeable {
+    get coreDefaults() {
+        return getCoreDefaults();
+    }
+    constructor(style) {
+        super();
+        this.type = 'laserline';
+        const viewfinderStyle = style || this.coreDefaults.LaserlineViewfinder.defaultStyle;
+        this._style = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].style;
+        this.width = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].width;
+        this.enabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].enabledColor;
+        this.disabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].disabledColor;
+    }
+    get style() {
+        return this._style;
+    }
+}
+__decorate([
+    nameForSerialization('style')
+], LaserlineViewfinder.prototype, "_style", void 0);
+
+var LaserlineViewfinderStyle;
+(function (LaserlineViewfinderStyle) {
+    LaserlineViewfinderStyle["Legacy"] = "legacy";
+    LaserlineViewfinderStyle["Animated"] = "animated";
+})(LaserlineViewfinderStyle || (LaserlineViewfinderStyle = {}));
+
+class RectangularViewfinder extends DefaultSerializeable {
+    get sizeWithUnitAndAspect() {
+        return this._sizeWithUnitAndAspect;
+    }
+    get coreDefaults() {
+        return getCoreDefaults();
+    }
+    constructor(style, lineStyle) {
+        super();
+        this.type = 'rectangular';
+        const viewfinderStyle = style || this.coreDefaults.RectangularViewfinder.defaultStyle;
+        this._style = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].style;
+        this._lineStyle = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].lineStyle;
+        this._dimming = parseFloat(this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].dimming);
+        this._disabledDimming =
+            parseFloat(this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].disabledDimming);
+        this._animation = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].animation;
+        this.color = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].color;
+        this._sizeWithUnitAndAspect = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].size;
+        this._disabledColor = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].disabledColor;
+        if (lineStyle !== undefined) {
+            this._lineStyle = lineStyle;
+        }
+    }
+    get style() {
+        return this._style;
+    }
+    get lineStyle() {
+        return this._lineStyle;
+    }
+    get dimming() {
+        return this._dimming;
+    }
+    set dimming(value) {
+        this._dimming = value;
+    }
+    get disabledDimming() {
+        return this._disabledDimming;
+    }
+    set disabledDimming(value) {
+        this._disabledDimming = value;
+    }
+    get animation() {
+        return this._animation;
+    }
+    set animation(animation) {
+        this._animation = animation;
+    }
+    setSize(size) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
+    }
+    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
+    }
+    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
+    }
+    setShorterDimensionAndAspectRatio(fraction, aspectRatio) {
+        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithShorterDimensionAndAspectRatio(new NumberWithUnit(fraction, MeasureUnit.Fraction), aspectRatio);
+    }
+    get disabledColor() {
+        return this._disabledColor;
+    }
+    set disabledColor(value) {
+        this._disabledColor = value;
+    }
+}
+__decorate([
+    nameForSerialization('style')
+], RectangularViewfinder.prototype, "_style", void 0);
+__decorate([
+    nameForSerialization('lineStyle')
+], RectangularViewfinder.prototype, "_lineStyle", void 0);
+__decorate([
+    nameForSerialization('dimming')
+], RectangularViewfinder.prototype, "_dimming", void 0);
+__decorate([
+    nameForSerialization('disabledDimming')
+], RectangularViewfinder.prototype, "_disabledDimming", void 0);
+__decorate([
+    nameForSerialization('animation'),
+    ignoreFromSerialization
+], RectangularViewfinder.prototype, "_animation", void 0);
+__decorate([
+    nameForSerialization('size')
+], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
+__decorate([
+    nameForSerialization('disabledColor')
+], RectangularViewfinder.prototype, "_disabledColor", void 0);
+
+var RectangularViewfinderStyle;
+(function (RectangularViewfinderStyle) {
+    RectangularViewfinderStyle["Legacy"] = "legacy";
+    RectangularViewfinderStyle["Rounded"] = "rounded";
+    RectangularViewfinderStyle["Square"] = "square";
+})(RectangularViewfinderStyle || (RectangularViewfinderStyle = {}));
+
+var RectangularViewfinderLineStyle;
+(function (RectangularViewfinderLineStyle) {
+    RectangularViewfinderLineStyle["Light"] = "light";
+    RectangularViewfinderLineStyle["Bold"] = "bold";
+})(RectangularViewfinderLineStyle || (RectangularViewfinderLineStyle = {}));
+
+class AimerViewfinder extends DefaultSerializeable {
+    get coreDefaults() {
+        return getCoreDefaults();
+    }
+    constructor() {
+        super();
+        this.type = 'aimer';
+        this.frameColor = this.coreDefaults.AimerViewfinder.frameColor;
+        this.dotColor = this.coreDefaults.AimerViewfinder.dotColor;
+    }
+}
+
+function parseDefaults(jsonDefaults) {
+    const coreDefaults = {
+        Camera: {
+            Settings: {
+                preferredResolution: jsonDefaults.Camera.Settings.preferredResolution,
+                zoomFactor: jsonDefaults.Camera.Settings.zoomFactor,
+                focusRange: jsonDefaults.Camera.Settings.focusRange,
+                zoomGestureZoomFactor: jsonDefaults.Camera.Settings.zoomGestureZoomFactor,
+                focusGestureStrategy: jsonDefaults.Camera.Settings.focusGestureStrategy,
+                shouldPreferSmoothAutoFocus: jsonDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
+                properties: jsonDefaults.Camera.Settings.properties,
+            },
+            defaultPosition: (jsonDefaults.Camera.defaultPosition || null),
+            availablePositions: jsonDefaults.Camera.availablePositions,
+        },
+        DataCaptureView: {
+            scanAreaMargins: MarginsWithUnit
+                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.scanAreaMargins)),
+            pointOfInterest: PointWithUnit
+                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.pointOfInterest)),
+            logoAnchor: jsonDefaults.DataCaptureView.logoAnchor,
+            logoOffset: PointWithUnit
+                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.logoOffset)),
+            focusGesture: PrivateFocusGestureDeserializer
+                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.focusGesture)),
+            zoomGesture: PrivateZoomGestureDeserializer
+                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.zoomGesture)),
+            logoStyle: jsonDefaults.DataCaptureView.logoStyle,
+        },
+        LaserlineViewfinder: Object
+            .keys(jsonDefaults.LaserlineViewfinder.styles)
+            .reduce((acc, key) => {
+            const viewfinder = jsonDefaults.LaserlineViewfinder.styles[key];
+            acc.styles[key] = {
+                width: NumberWithUnit
+                    .fromJSON(JSON.parse(viewfinder.width)),
+                enabledColor: Color
+                    .fromJSON(viewfinder.enabledColor),
+                disabledColor: Color
+                    .fromJSON(viewfinder.disabledColor),
+                style: viewfinder.style,
+            };
+            return acc;
+        }, { defaultStyle: jsonDefaults.LaserlineViewfinder.defaultStyle, styles: {} }),
+        RectangularViewfinder: Object
+            .keys(jsonDefaults.RectangularViewfinder.styles)
+            .reduce((acc, key) => {
+            const viewfinder = jsonDefaults.RectangularViewfinder.styles[key];
+            acc.styles[key] = {
+                size: SizeWithUnitAndAspect
+                    .fromJSON(JSON.parse(viewfinder.size)),
+                color: Color.fromJSON(viewfinder.color),
+                disabledColor: Color.fromJSON(viewfinder.disabledColor),
+                style: viewfinder.style,
+                lineStyle: viewfinder.lineStyle,
+                dimming: viewfinder.dimming,
+                disabledDimming: viewfinder.disabledDimming,
+                animation: RectangularViewfinderAnimation
+                    .fromJSON(JSON.parse(viewfinder.animation)),
+            };
+            return acc;
+        }, { defaultStyle: jsonDefaults.RectangularViewfinder.defaultStyle, styles: {} }),
+        SpotlightViewfinder: {
+            size: SizeWithUnitAndAspect
+                .fromJSON(JSON.parse(jsonDefaults.SpotlightViewfinder.size)),
+            enabledBorderColor: Color
+                .fromJSON(jsonDefaults.SpotlightViewfinder.enabledBorderColor),
+            disabledBorderColor: Color
+                .fromJSON(jsonDefaults.SpotlightViewfinder.disabledBorderColor),
+            backgroundColor: Color
+                .fromJSON(jsonDefaults.SpotlightViewfinder.backgroundColor),
+        },
+        AimerViewfinder: {
+            frameColor: Color.fromJSON(jsonDefaults.AimerViewfinder.frameColor),
+            dotColor: Color.fromJSON(jsonDefaults.AimerViewfinder.dotColor),
+        },
+        Brush: {
+            fillColor: Color
+                .fromJSON(jsonDefaults.Brush.fillColor),
+            strokeColor: Color
+                .fromJSON(jsonDefaults.Brush.strokeColor),
+            strokeWidth: jsonDefaults.Brush.strokeWidth,
+        },
+        deviceID: jsonDefaults.deviceID,
+    };
+    // Inject defaults to avoid a circular dependency between these classes and the defaults
+    Brush.defaults = coreDefaults.Brush;
+    return coreDefaults;
+}
+
+function loadCoreDefaults(jsonDefaults) {
+    const coreDefaults = parseDefaults(jsonDefaults);
+    FactoryMaker.bindInstanceIfNotExists('CoreDefaults', coreDefaults);
+}
+
+class ContextStatus {
+    static fromJSON(json) {
+        const status = new ContextStatus();
+        status._code = json.code;
+        status._message = json.message;
+        status._isValid = json.isValid;
+        return status;
+    }
+    get message() {
+        return this._message;
+    }
+    get code() {
+        return this._code;
+    }
+    get isValid() {
+        return this._isValid;
+    }
+}
+
+class DataCaptureContextSettings extends DefaultSerializeable {
+    constructor() {
+        super();
+    }
+    setProperty(name, value) {
+        this[name] = value;
+    }
+    getProperty(name) {
+        return this[name];
+    }
+}
+
+var DataCaptureContextEvents;
+(function (DataCaptureContextEvents) {
+    DataCaptureContextEvents["didChangeStatus"] = "didChangeStatus";
+    DataCaptureContextEvents["didStartObservingContext"] = "didStartObservingContext";
+})(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
+class DataCaptureContextController {
+    get framework() {
+        return this._proxy.framework;
+    }
+    get frameworkVersion() {
+        return this._proxy.frameworkVersion;
+    }
+    get privateContext() {
+        return this.context;
+    }
+    static forDataCaptureContext(context) {
+        const controller = new DataCaptureContextController();
+        controller.context = context;
+        controller.initialize();
+        return controller;
+    }
+    constructor() {
+        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
+    }
+    updateContextFromJSON() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this._proxy.updateContextFromJSON(this.context);
+            }
+            catch (error) {
+                this.notifyListenersOfDeserializationError(error);
+                throw error;
+            }
+        });
+    }
+    addModeToContext(mode) {
+        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
+    }
+    removeModeFromContext(mode) {
+        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
+    }
+    removeAllModesFromContext() {
+        return this._proxy.removeAllModesFromContext();
+    }
+    dispose() {
+        this.unsubscribeListener();
+        this._proxy.dispose();
+    }
+    unsubscribeListener() {
+        this._proxy.unsubscribeListener();
+        this.eventEmitter.removeListener(DataCaptureContextEvents.didChangeStatus);
+        this.eventEmitter.removeListener(DataCaptureContextEvents.didStartObservingContext);
+    }
+    initialize() {
+        this.subscribeListener();
+        return this.initializeContextFromJSON();
+    }
+    initializeContextFromJSON() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                this._proxy.contextFromJSON(this.context);
+            }
+            catch (error) {
+                this.notifyListenersOfDeserializationError(error);
+                throw error;
+            }
+        });
+    }
+    subscribeListener() {
+        var _a, _b, _c, _d;
+        this._proxy.registerListenerForEvents();
+        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
+        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
+            this.notifyListenersOfDidChangeStatus(contextStatus);
+        });
+        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
+            this.privateContext.listeners.forEach(listener => {
+                var _a;
+                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
+            });
+        });
+    }
+    notifyListenersOfDeserializationError(error) {
+        const contextStatus = ContextStatus
+            .fromJSON({
+            message: error,
+            code: -1,
+            isValid: true,
+        });
+        this.notifyListenersOfDidChangeStatus(contextStatus);
+    }
+    notifyListenersOfDidChangeStatus(contextStatus) {
+        this.privateContext.listeners.forEach(listener => {
+            if (listener.didChangeStatus) {
+                listener.didChangeStatus(this.context, contextStatus);
+            }
+        });
+    }
+}
+
+class DataCaptureContext extends DefaultSerializeable {
+    get framework() {
+        return this.controller.framework;
+    }
+    get frameworkVersion() {
+        return this.controller.frameworkVersion;
+    }
+    static get coreDefaults() {
+        return getCoreDefaults();
+    }
+    get frameSource() {
+        return this._frameSource;
+    }
+    static get deviceID() {
+        return DataCaptureContext.coreDefaults.deviceID;
+    }
+    /**
+     * @deprecated
+     */
+    get deviceID() {
+        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
+        return DataCaptureContext.deviceID;
+    }
+    static forLicenseKey(licenseKey) {
+        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+    }
+    static forLicenseKeyWithSettings(licenseKey, settings) {
+        const context = this.forLicenseKey(licenseKey);
+        if (settings !== null) {
+            context.applySettings(settings);
+        }
+        return context;
+    }
+    static forLicenseKeyWithOptions(licenseKey, options) {
+        if (options == null) {
+            options = { deviceName: null };
+        }
+        return new DataCaptureContext(licenseKey, options.deviceName || '');
+    }
+    constructor(licenseKey, deviceName) {
+        super();
+        this.licenseKey = licenseKey;
+        this.deviceName = deviceName;
+        this.settings = new DataCaptureContextSettings();
+        this._frameSource = null;
+        this.view = null;
+        this.modes = [];
+        this.listeners = [];
+        this.initialize();
+    }
+    setFrameSource(frameSource) {
+        if (this._frameSource) {
+            this._frameSource.context = null;
+        }
+        this._frameSource = frameSource;
+        if (frameSource) {
+            frameSource.context = this;
+        }
+        return this.update();
+    }
+    addListener(listener) {
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+    }
+    addMode(mode) {
+        if (!this.modes.includes(mode)) {
+            this.modes.push(mode);
+            mode._context = this;
+            this.controller.addModeToContext(mode);
+        }
+    }
+    removeMode(mode) {
+        if (this.modes.includes(mode)) {
+            this.modes.splice(this.modes.indexOf(mode), 1);
+            mode._context = null;
+            this.controller.removeModeFromContext(mode);
+        }
+    }
+    removeAllModes() {
+        this.modes.forEach(mode => {
+            mode._context = null;
+        });
+        this.modes = [];
+        this.controller.removeAllModesFromContext();
+    }
+    dispose() {
+        var _a;
+        if (!this.controller) {
+            return;
+        }
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
+        this.removeAllModes();
+        this.controller.dispose();
+    }
+    applySettings(settings) {
+        this.settings = settings;
+        return this.update();
+    }
+    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
+    initialize() {
+        if (this.controller) {
+            return;
+        }
+        this.controller = DataCaptureContextController.forDataCaptureContext(this);
+    }
+    update() {
+        if (!this.controller) {
+            return Promise.resolve();
+        }
+        return this.controller.updateContextFromJSON();
+    }
+}
+__decorate([
+    nameForSerialization('frameSource')
+], DataCaptureContext.prototype, "_frameSource", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "modes", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext, "coreDefaults", null);
+
+var VibrationType;
+(function (VibrationType) {
+    VibrationType["default"] = "default";
+    VibrationType["selectionHaptic"] = "selectionHaptic";
+    VibrationType["successHaptic"] = "successHaptic";
+    VibrationType["waveForm"] = "waveForm";
+    VibrationType["impactHaptic"] = "impactHaptic";
+})(VibrationType || (VibrationType = {}));
+
+class Vibration extends DefaultSerializeable {
+    static get defaultVibration() {
+        return new Vibration(VibrationType.default);
+    }
+    static get selectionHapticFeedback() {
+        return new Vibration(VibrationType.selectionHaptic);
+    }
+    static get successHapticFeedback() {
+        return new Vibration(VibrationType.successHaptic);
+    }
+    static get impactHapticFeedback() {
+        return new Vibration(VibrationType.impactHaptic);
+    }
+    static fromJSON(json) {
+        if (json.type === 'waveForm') {
+            return new WaveFormVibration(json.timings, json.amplitudes);
+        }
+        return new Vibration(json.type);
+    }
+    constructor(type) {
+        super();
+        this.type = type;
+    }
+}
+class WaveFormVibration extends Vibration {
+    get timings() {
+        return this._timings;
+    }
+    get amplitudes() {
+        return this._amplitudes;
+    }
+    constructor(timings, amplitudes = null) {
+        super(VibrationType.waveForm);
+        this._timings = timings;
+        this._amplitudes = amplitudes;
+    }
+}
+__decorate([
+    nameForSerialization('timings')
+], WaveFormVibration.prototype, "_timings", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('amplitudes')
+], WaveFormVibration.prototype, "_amplitudes", void 0);
+
+class Sound extends DefaultSerializeable {
+    static get defaultSound() {
+        return new Sound(null);
+    }
+    static fromJSON(json) {
+        return new Sound(json.resource);
+    }
+    constructor(resource) {
+        super();
+        this.resource = null;
+        this.resource = resource;
+    }
+}
+__decorate([
+    ignoreFromSerializationIfNull
+], Sound.prototype, "resource", void 0);
+
+class FeedbackController {
+    constructor(feedback) {
+        this.feedback = feedback;
+        this._proxy = FactoryMaker.getInstance('FeedbackProxy');
+    }
+    static forFeedback(feedback) {
+        const controller = new FeedbackController(feedback);
+        return controller;
+    }
+    emit() {
+        this._proxy.emitFeedback(this.feedback);
+    }
+}
+
+class Feedback extends DefaultSerializeable {
+    static get defaultFeedback() {
+        return new Feedback(Vibration.defaultVibration, Sound.defaultSound);
+    }
+    get vibration() {
+        return this._vibration;
+    }
+    get sound() {
+        return this._sound;
+    }
+    static fromJSON(json) {
+        return new Feedback((json === null || json === void 0 ? void 0 : json.vibration) ? Vibration.fromJSON(json.vibration) : null, (json === null || json === void 0 ? void 0 : json.sound) ? Sound.fromJSON(json.sound) : null);
+    }
+    constructor(vibration, sound) {
+        super();
+        this._vibration = null;
+        this._sound = null;
+        this._vibration = vibration;
+        this._sound = sound;
+        this.controller = FeedbackController.forFeedback(this);
+    }
+    emit() {
+        this.controller.emit();
+    }
+    toJSON() {
+        return super.toJSON();
+    }
+}
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('vibration')
+], Feedback.prototype, "_vibration", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('sound')
+], Feedback.prototype, "_sound", void 0);
+__decorate([
+    ignoreFromSerialization
+], Feedback.prototype, "controller", void 0);
+
+const NoneLocationSelection = { type: 'none' };
+
+class RadiusLocationSelection extends DefaultSerializeable {
+    get radius() {
+        return this._radius;
+    }
+    static fromJSON(JSON) {
+        const radius = NumberWithUnit.fromJSON(JSON.radius);
+        return new RadiusLocationSelection(radius);
+    }
+    constructor(radius) {
+        super();
+        this.type = 'radius';
+        this._radius = radius;
+    }
+}
+__decorate([
+    nameForSerialization('radius')
+], RadiusLocationSelection.prototype, "_radius", void 0);
+
+class RectangularLocationSelection extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.type = 'rectangular';
+    }
+    get sizeWithUnitAndAspect() {
+        return this._sizeWithUnitAndAspect;
+    }
+    static withSize(size) {
+        const locationSelection = new RectangularLocationSelection();
+        locationSelection._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
+        return locationSelection;
+    }
+    static withWidthAndAspectRatio(width, heightToWidthAspectRatio) {
+        const locationSelection = new RectangularLocationSelection();
+        locationSelection._sizeWithUnitAndAspect = SizeWithUnitAndAspect
+            .sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
+        return locationSelection;
+    }
+    static withHeightAndAspectRatio(height, widthToHeightAspectRatio) {
+        const locationSelection = new RectangularLocationSelection();
+        locationSelection._sizeWithUnitAndAspect = SizeWithUnitAndAspect
+            .sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
+        return locationSelection;
+    }
+    static fromJSON(rectangularLocationSelectionJSON) {
+        if (rectangularLocationSelectionJSON.aspect.width && rectangularLocationSelectionJSON.aspect.height) {
+            const width = NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.width);
+            const height = NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.height);
+            const size = new SizeWithUnit(width, height);
+            return this.withSize(size);
+        }
+        else if (rectangularLocationSelectionJSON.aspect.width && rectangularLocationSelectionJSON.aspect.aspect) {
+            const width = NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.width);
+            return this.withWidthAndAspectRatio(width, rectangularLocationSelectionJSON.aspect.aspect);
+        }
+        else if (rectangularLocationSelectionJSON.aspect.height && rectangularLocationSelectionJSON.aspect.aspect) {
+            const height = NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.height);
+            return this.withHeightAndAspectRatio(height, rectangularLocationSelectionJSON.aspect.aspect);
+        }
+        else if (rectangularLocationSelectionJSON.aspect.shorterDimension && rectangularLocationSelectionJSON.aspect.aspect) {
+            const shorterDimension = NumberWithUnit
+                .fromJSON(rectangularLocationSelectionJSON.aspect.shorterDimension);
+            const sizeWithUnitAndAspect = SizeWithUnitAndAspect
+                .sizeWithShorterDimensionAndAspectRatio(shorterDimension, rectangularLocationSelectionJSON.aspect.aspect);
+            const locationSelection = new RectangularLocationSelection();
+            locationSelection._sizeWithUnitAndAspect = sizeWithUnitAndAspect;
+            return locationSelection;
+        }
+        else {
+            throw new Error(`RectangularLocationSelectionJSON is malformed: ${JSON.stringify(rectangularLocationSelectionJSON)}`);
+        }
+    }
+}
+__decorate([
+    nameForSerialization('size')
+], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", void 0);
 
 var DataCaptureViewEvents;
 (function (DataCaptureViewEvents) {
-    DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
+    DataCaptureViewEvents["didChangeSize"] = "didChangeSize";
 })(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
 class DataCaptureViewController extends BaseController {
     static forDataCaptureView(view) {
@@ -1793,6 +2456,9 @@ class DataCaptureViewController extends BaseController {
     removeOverlay(overlay) {
         return this._proxy.removeOverlay(JSON.stringify(overlay.toJSON()));
     }
+    removeAllOverlays() {
+        return this._proxy.removeAllOverlays();
+    }
     subscribeListener() {
         var _a, _b;
         this._proxy.registerListenerForViewEvents();
@@ -1810,7 +2476,7 @@ class DataCaptureViewController extends BaseController {
     }
     unsubscribeListener() {
         this._proxy.unregisterListenerForViewEvents();
-        this.eventEmitter.removeAllListeners(DataCaptureViewEvents.didChangeSize);
+        this.eventEmitter.removeAllListeners();
     }
 }
 
@@ -1962,8 +2628,8 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controller.updateView();
     }
     dispose() {
-        this.overlays.forEach(overlay => this.removeOverlay(overlay));
         this.overlays = [];
+        this.controller.removeAllOverlays();
         this.listeners.forEach(listener => this.removeListener(listener));
         this.controller.dispose();
     }
@@ -1998,25 +2664,25 @@ __decorate([
     ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "coreDefaults", null);
 __decorate([
-    nameForSerialization('scanAreaMargins')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
 __decorate([
-    nameForSerialization('pointOfInterest')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
 __decorate([
-    nameForSerialization('logoAnchor')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
 __decorate([
-    nameForSerialization('logoOffset')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_logoOffset", void 0);
 __decorate([
-    nameForSerialization('focusGesture')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_focusGesture", void 0);
 __decorate([
-    nameForSerialization('zoomGesture')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_zoomGesture", void 0);
 __decorate([
-    nameForSerialization('logoStyle')
+    ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "_logoStyle", void 0);
 __decorate([
     ignoreFromSerialization
@@ -2027,819 +2693,6 @@ __decorate([
 __decorate([
     ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "listeners", void 0);
-
-class ZoomSwitchControl extends DefaultSerializeable {
-    constructor() {
-        super(...arguments);
-        this.type = 'zoom';
-        this.icon = {
-            zoomedOut: { default: null, pressed: null },
-            zoomedIn: { default: null, pressed: null },
-        };
-        this.view = null;
-        this.anchor = null;
-        this.offset = null;
-    }
-    get zoomedOutImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedOut.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedOut.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedOutImage(zoomedOutImage) {
-        var _a;
-        this.icon.zoomedOut.default = ControlImage.fromBase64EncodedImage(zoomedOutImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get zoomedInImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedIn.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedIn.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedInImage(zoomedInImage) {
-        var _a;
-        this.icon.zoomedIn.default = ControlImage.fromBase64EncodedImage(zoomedInImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get zoomedInPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedIn.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedIn.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedInPressedImage(zoomedInPressedImage) {
-        var _a;
-        this.icon.zoomedIn.pressed = ControlImage.fromBase64EncodedImage(zoomedInPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get zoomedOutPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.zoomedOut.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedOut.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set zoomedOutPressedImage(zoomedOutPressedImage) {
-        var _a;
-        this.icon.zoomedOut.pressed = ControlImage.fromBase64EncodedImage(zoomedOutPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedInImage(resource) {
-        var _a;
-        this.icon.zoomedIn.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedInPressedImage(resource) {
-        var _a;
-        this.icon.zoomedIn.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedOutImage(resource) {
-        var _a;
-        this.icon.zoomedOut.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setZoomedOutPressedImage(resource) {
-        var _a;
-        this.icon.zoomedOut.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], ZoomSwitchControl.prototype, "view", void 0);
-
-class TorchSwitchControl extends DefaultSerializeable {
-    constructor() {
-        super(...arguments);
-        this.type = 'torch';
-        this.icon = {
-            on: { default: null, pressed: null },
-            off: { default: null, pressed: null },
-        };
-        this.view = null;
-        this.anchor = null;
-        this.offset = null;
-    }
-    get torchOffImage() {
-        var _a, _b;
-        if (((_a = this.icon.off.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.off.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set torchOffImage(torchOffImage) {
-        var _a;
-        this.icon.off.default = ControlImage.fromBase64EncodedImage(torchOffImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get torchOffPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.off.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.off.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set torchOffPressedImage(torchOffPressedImage) {
-        var _a;
-        this.icon.off.pressed = ControlImage.fromBase64EncodedImage(torchOffPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get torchOnImage() {
-        var _a, _b;
-        if (((_a = this.icon.on.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.on.default) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    set torchOnImage(torchOnImage) {
-        var _a;
-        this.icon.on.default = ControlImage.fromBase64EncodedImage(torchOnImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    get torchOnPressedImage() {
-        var _a, _b;
-        if (((_a = this.icon.on.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.on.pressed) === null || _b === void 0 ? void 0 : _b.data;
-        }
-        return null;
-    }
-    setTorchOffImage(resource) {
-        var _a;
-        this.icon.off.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setTorchOffPressedImage(resource) {
-        var _a;
-        this.icon.off.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setTorchOnImage(resource) {
-        var _a;
-        this.icon.on.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setTorchOnPressedImage(resource) {
-        var _a;
-        this.icon.on.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    setImageResource(resource) {
-        var _a;
-        this.icon.off.default = ControlImage.fromResourceName(resource);
-        this.icon.off.pressed = ControlImage.fromResourceName(resource);
-        this.icon.on.default = ControlImage.fromResourceName(resource);
-        this.icon.on.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-    set torchOnPressedImage(torchOnPressedImage) {
-        var _a;
-        this.icon.on.pressed = ControlImage.fromBase64EncodedImage(torchOnPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], TorchSwitchControl.prototype, "view", void 0);
-
-var VideoResolution;
-(function (VideoResolution) {
-    VideoResolution["Auto"] = "auto";
-    VideoResolution["HD"] = "hd";
-    VideoResolution["FullHD"] = "fullHd";
-    VideoResolution["UHD4K"] = "uhd4k";
-})(VideoResolution || (VideoResolution = {}));
-
-var FocusRange;
-(function (FocusRange) {
-    FocusRange["Full"] = "full";
-    FocusRange["Near"] = "near";
-    FocusRange["Far"] = "far";
-})(FocusRange || (FocusRange = {}));
-
-var FocusGestureStrategy;
-(function (FocusGestureStrategy) {
-    FocusGestureStrategy["None"] = "none";
-    FocusGestureStrategy["Manual"] = "manual";
-    FocusGestureStrategy["ManualUntilCapture"] = "manualUntilCapture";
-    FocusGestureStrategy["AutoOnLocation"] = "autoOnLocation";
-})(FocusGestureStrategy || (FocusGestureStrategy = {}));
-
-var LogoStyle;
-(function (LogoStyle) {
-    LogoStyle["Minimal"] = "minimal";
-    LogoStyle["Extended"] = "extended";
-})(LogoStyle || (LogoStyle = {}));
-
-class CameraSettings extends DefaultSerializeable {
-    static get coreDefaults() {
-        return getCoreDefaults();
-    }
-    get focusRange() {
-        return this.focus.range;
-    }
-    set focusRange(newRange) {
-        this.focus.range = newRange;
-    }
-    get focusGestureStrategy() {
-        return this.focus.focusGestureStrategy;
-    }
-    set focusGestureStrategy(newStrategy) {
-        this.focus.focusGestureStrategy = newStrategy;
-    }
-    get shouldPreferSmoothAutoFocus() {
-        return this.focus.shouldPreferSmoothAutoFocus;
-    }
-    set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
-        this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
-    }
-    get maxFrameRate() {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-        return 0;
-    }
-    set maxFrameRate(newValue) {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-    }
-    static fromJSON(json) {
-        const settings = new CameraSettings();
-        settings.preferredResolution = json.preferredResolution;
-        settings.zoomFactor = json.zoomFactor;
-        settings.focusRange = json.focusRange;
-        settings.zoomGestureZoomFactor = json.zoomGestureZoomFactor;
-        settings.focusGestureStrategy = json.focusGestureStrategy;
-        settings.shouldPreferSmoothAutoFocus = json.shouldPreferSmoothAutoFocus;
-        if (json.properties !== undefined) {
-            for (const key of Object.keys(json.properties)) {
-                settings.setProperty(key, json.properties[key]);
-            }
-        }
-        return settings;
-    }
-    constructor(settings) {
-        super();
-        this.focusHiddenProperties = [
-            'range',
-            'manualLensPosition',
-            'shouldPreferSmoothAutoFocus',
-            'focusStrategy',
-            'focusGestureStrategy'
-        ];
-        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
-        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
-        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
-        this.focus = {
-            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
-            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
-            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus
-        };
-        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
-        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
-        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
-        this.focus = {
-            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
-            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
-            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
-        };
-        if (settings !== undefined && settings !== null) {
-            Object.getOwnPropertyNames(settings).forEach(propertyName => {
-                this[propertyName] = settings[propertyName];
-            });
-        }
-    }
-    setProperty(name, value) {
-        if (this.focusHiddenProperties.includes(name)) {
-            this.focus[name] = value;
-            return;
-        }
-        this[name] = value;
-    }
-    getProperty(name) {
-        if (this.focusHiddenProperties.includes(name)) {
-            return this.focus[name];
-        }
-        return this[name];
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], CameraSettings.prototype, "focusHiddenProperties", void 0);
-
-const NoViewfinder = { type: 'none' };
-
-class RectangularViewfinderAnimation extends DefaultSerializeable {
-    static fromJSON(json) {
-        if (json === null) {
-            return null;
-        }
-        return new RectangularViewfinderAnimation(json.looping);
-    }
-    get isLooping() {
-        return this._isLooping;
-    }
-    constructor(isLooping) {
-        super();
-        this._isLooping = false;
-        this._isLooping = isLooping;
-    }
-}
-__decorate([
-    nameForSerialization('isLooping')
-], RectangularViewfinderAnimation.prototype, "_isLooping", void 0);
-
-class SpotlightViewfinder extends DefaultSerializeable {
-    get sizeWithUnitAndAspect() {
-        return this._sizeWithUnitAndAspect;
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor() {
-        super();
-        this.type = 'spotlight';
-        console.warn('SpotlightViewfinder is deprecated and will be removed in a future release. Use RectangularViewfinder instead.');
-        this._sizeWithUnitAndAspect = this.coreDefaults.SpotlightViewfinder.size;
-        this.enabledBorderColor = this.coreDefaults.SpotlightViewfinder.enabledBorderColor;
-        this.disabledBorderColor = this.coreDefaults.SpotlightViewfinder.disabledBorderColor;
-        this.backgroundColor = this.coreDefaults.SpotlightViewfinder.backgroundColor;
-    }
-    setSize(size) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
-    }
-    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
-    }
-    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
-    }
-}
-__decorate([
-    nameForSerialization('size')
-], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
-
-class LaserlineViewfinder extends DefaultSerializeable {
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor(style) {
-        super();
-        this.type = 'laserline';
-        const viewfinderStyle = style || this.coreDefaults.LaserlineViewfinder.defaultStyle;
-        this._style = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].style;
-        this.width = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].width;
-        this.enabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].enabledColor;
-        this.disabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].disabledColor;
-    }
-    get style() {
-        return this._style;
-    }
-}
-__decorate([
-    nameForSerialization('style')
-], LaserlineViewfinder.prototype, "_style", void 0);
-
-var LaserlineViewfinderStyle;
-(function (LaserlineViewfinderStyle) {
-    LaserlineViewfinderStyle["Legacy"] = "legacy";
-    LaserlineViewfinderStyle["Animated"] = "animated";
-})(LaserlineViewfinderStyle || (LaserlineViewfinderStyle = {}));
-
-class RectangularViewfinder extends DefaultSerializeable {
-    get sizeWithUnitAndAspect() {
-        return this._sizeWithUnitAndAspect;
-    }
-    set sizeWithUnitAndAspect(value) {
-        this._sizeWithUnitAndAspect = value;
-        this.update();
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor(style, lineStyle) {
-        super();
-        this.type = 'rectangular';
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-        const viewfinderStyle = style || this.coreDefaults.RectangularViewfinder.defaultStyle;
-        this._style = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].style;
-        this._lineStyle = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].lineStyle;
-        this._dimming = parseFloat(this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].dimming);
-        this._disabledDimming =
-            parseFloat(this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].disabledDimming);
-        this._animation = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].animation;
-        this.color = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].color;
-        this._sizeWithUnitAndAspect = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].size;
-        this._disabledColor = this.coreDefaults.RectangularViewfinder.styles[viewfinderStyle].disabledColor;
-        if (lineStyle !== undefined) {
-            this._lineStyle = lineStyle;
-        }
-    }
-    get style() {
-        return this._style;
-    }
-    get lineStyle() {
-        return this._lineStyle;
-    }
-    get dimming() {
-        return this._dimming;
-    }
-    set dimming(value) {
-        this._dimming = value;
-        this.update();
-    }
-    get disabledDimming() {
-        return this._disabledDimming;
-    }
-    set disabledDimming(value) {
-        this._disabledDimming = value;
-        this.update();
-    }
-    get animation() {
-        return this._animation;
-    }
-    set animation(animation) {
-        this._animation = animation;
-        this.update();
-    }
-    setSize(size) {
-        this.sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
-    }
-    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
-        this.sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
-    }
-    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
-        this.sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
-    }
-    setShorterDimensionAndAspectRatio(fraction, aspectRatio) {
-        this.sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithShorterDimensionAndAspectRatio(new NumberWithUnit(fraction, MeasureUnit.Fraction), aspectRatio);
-    }
-    get disabledColor() {
-        return this._disabledColor;
-    }
-    set disabledColor(value) {
-        this._disabledColor = value;
-        this.update();
-    }
-    update() {
-        this.eventEmitter.emit('viewfinder.update');
-    }
-}
-__decorate([
-    nameForSerialization('style')
-], RectangularViewfinder.prototype, "_style", void 0);
-__decorate([
-    nameForSerialization('lineStyle')
-], RectangularViewfinder.prototype, "_lineStyle", void 0);
-__decorate([
-    nameForSerialization('dimming')
-], RectangularViewfinder.prototype, "_dimming", void 0);
-__decorate([
-    nameForSerialization('disabledDimming')
-], RectangularViewfinder.prototype, "_disabledDimming", void 0);
-__decorate([
-    nameForSerialization('animation'),
-    ignoreFromSerialization
-], RectangularViewfinder.prototype, "_animation", void 0);
-__decorate([
-    nameForSerialization('size')
-], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
-__decorate([
-    nameForSerialization('disabledColor')
-], RectangularViewfinder.prototype, "_disabledColor", void 0);
-__decorate([
-    ignoreFromSerialization
-], RectangularViewfinder.prototype, "eventEmitter", void 0);
-
-var RectangularViewfinderStyle;
-(function (RectangularViewfinderStyle) {
-    RectangularViewfinderStyle["Legacy"] = "legacy";
-    RectangularViewfinderStyle["Rounded"] = "rounded";
-    RectangularViewfinderStyle["Square"] = "square";
-})(RectangularViewfinderStyle || (RectangularViewfinderStyle = {}));
-
-var RectangularViewfinderLineStyle;
-(function (RectangularViewfinderLineStyle) {
-    RectangularViewfinderLineStyle["Light"] = "light";
-    RectangularViewfinderLineStyle["Bold"] = "bold";
-})(RectangularViewfinderLineStyle || (RectangularViewfinderLineStyle = {}));
-
-class AimerViewfinder extends DefaultSerializeable {
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor() {
-        super();
-        this.type = 'aimer';
-        this.frameColor = this.coreDefaults.AimerViewfinder.frameColor;
-        this.dotColor = this.coreDefaults.AimerViewfinder.dotColor;
-    }
-}
-
-function parseDefaults(jsonDefaults) {
-    const coreDefaults = {
-        Camera: {
-            Settings: {
-                preferredResolution: jsonDefaults.Camera.Settings.preferredResolution,
-                zoomFactor: jsonDefaults.Camera.Settings.zoomFactor,
-                focusRange: jsonDefaults.Camera.Settings.focusRange,
-                zoomGestureZoomFactor: jsonDefaults.Camera.Settings.zoomGestureZoomFactor,
-                focusGestureStrategy: jsonDefaults.Camera.Settings.focusGestureStrategy,
-                shouldPreferSmoothAutoFocus: jsonDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
-                properties: jsonDefaults.Camera.Settings.properties,
-            },
-            defaultPosition: (jsonDefaults.Camera.defaultPosition || null),
-            availablePositions: jsonDefaults.Camera.availablePositions,
-        },
-        DataCaptureView: {
-            scanAreaMargins: MarginsWithUnit
-                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.scanAreaMargins)),
-            pointOfInterest: PointWithUnit
-                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.pointOfInterest)),
-            logoAnchor: jsonDefaults.DataCaptureView.logoAnchor,
-            logoOffset: PointWithUnit
-                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.logoOffset)),
-            focusGesture: PrivateFocusGestureDeserializer
-                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.focusGesture)),
-            zoomGesture: PrivateZoomGestureDeserializer
-                .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.zoomGesture)),
-            logoStyle: jsonDefaults.DataCaptureView.logoStyle,
-        },
-        LaserlineViewfinder: Object
-            .keys(jsonDefaults.LaserlineViewfinder.styles)
-            .reduce((acc, key) => {
-            const viewfinder = jsonDefaults.LaserlineViewfinder.styles[key];
-            acc.styles[key] = {
-                width: NumberWithUnit
-                    .fromJSON(JSON.parse(viewfinder.width)),
-                enabledColor: Color
-                    .fromJSON(viewfinder.enabledColor),
-                disabledColor: Color
-                    .fromJSON(viewfinder.disabledColor),
-                style: viewfinder.style,
-            };
-            return acc;
-        }, { defaultStyle: jsonDefaults.LaserlineViewfinder.defaultStyle, styles: {} }),
-        RectangularViewfinder: Object
-            .keys(jsonDefaults.RectangularViewfinder.styles)
-            .reduce((acc, key) => {
-            const viewfinder = jsonDefaults.RectangularViewfinder.styles[key];
-            acc.styles[key] = {
-                size: SizeWithUnitAndAspect
-                    .fromJSON(JSON.parse(viewfinder.size)),
-                color: Color.fromJSON(viewfinder.color),
-                disabledColor: Color.fromJSON(viewfinder.disabledColor),
-                style: viewfinder.style,
-                lineStyle: viewfinder.lineStyle,
-                dimming: viewfinder.dimming,
-                disabledDimming: viewfinder.disabledDimming,
-                animation: RectangularViewfinderAnimation
-                    .fromJSON(JSON.parse(viewfinder.animation)),
-            };
-            return acc;
-        }, { defaultStyle: jsonDefaults.RectangularViewfinder.defaultStyle, styles: {} }),
-        SpotlightViewfinder: {
-            size: SizeWithUnitAndAspect
-                .fromJSON(JSON.parse(jsonDefaults.SpotlightViewfinder.size)),
-            enabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.enabledBorderColor),
-            disabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.disabledBorderColor),
-            backgroundColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.backgroundColor),
-        },
-        AimerViewfinder: {
-            frameColor: Color.fromJSON(jsonDefaults.AimerViewfinder.frameColor),
-            dotColor: Color.fromJSON(jsonDefaults.AimerViewfinder.dotColor),
-        },
-        Brush: {
-            fillColor: Color
-                .fromJSON(jsonDefaults.Brush.fillColor),
-            strokeColor: Color
-                .fromJSON(jsonDefaults.Brush.strokeColor),
-            strokeWidth: jsonDefaults.Brush.strokeWidth,
-        },
-        deviceID: jsonDefaults.deviceID,
-    };
-    // Inject defaults to avoid a circular dependency between these classes and the defaults
-    Brush.defaults = coreDefaults.Brush;
-    return coreDefaults;
-}
-
-function loadCoreDefaults(jsonDefaults) {
-    const coreDefaults = parseDefaults(jsonDefaults);
-    FactoryMaker.bindInstanceIfNotExists('CoreDefaults', coreDefaults);
-}
-
-var VibrationType;
-(function (VibrationType) {
-    VibrationType["default"] = "default";
-    VibrationType["selectionHaptic"] = "selectionHaptic";
-    VibrationType["successHaptic"] = "successHaptic";
-    VibrationType["waveForm"] = "waveForm";
-    VibrationType["impactHaptic"] = "impactHaptic";
-})(VibrationType || (VibrationType = {}));
-
-class Vibration extends DefaultSerializeable {
-    static get defaultVibration() {
-        return new Vibration(VibrationType.default);
-    }
-    static get selectionHapticFeedback() {
-        return new Vibration(VibrationType.selectionHaptic);
-    }
-    static get successHapticFeedback() {
-        return new Vibration(VibrationType.successHaptic);
-    }
-    static get impactHapticFeedback() {
-        return new Vibration(VibrationType.impactHaptic);
-    }
-    static fromJSON(json) {
-        if (json.type === 'waveForm') {
-            return new WaveFormVibration(json.timings, json.amplitudes);
-        }
-        return new Vibration(json.type);
-    }
-    constructor(type) {
-        super();
-        this.type = type;
-    }
-}
-class WaveFormVibration extends Vibration {
-    get timings() {
-        return this._timings;
-    }
-    get amplitudes() {
-        return this._amplitudes;
-    }
-    constructor(timings, amplitudes = null) {
-        super(VibrationType.waveForm);
-        this._timings = timings;
-        this._amplitudes = amplitudes;
-    }
-}
-__decorate([
-    nameForSerialization('timings')
-], WaveFormVibration.prototype, "_timings", void 0);
-__decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('amplitudes')
-], WaveFormVibration.prototype, "_amplitudes", void 0);
-
-class Sound extends DefaultSerializeable {
-    static get defaultSound() {
-        return new Sound(null);
-    }
-    static fromJSON(json) {
-        return new Sound(json.resource);
-    }
-    constructor(resource) {
-        super();
-        this.resource = null;
-        this.resource = resource;
-    }
-}
-__decorate([
-    ignoreFromSerializationIfNull
-], Sound.prototype, "resource", void 0);
-
-class FeedbackController {
-    constructor(feedback) {
-        this.feedback = feedback;
-        this._proxy = FactoryMaker.getInstance('FeedbackProxy');
-    }
-    static forFeedback(feedback) {
-        const controller = new FeedbackController(feedback);
-        return controller;
-    }
-    emit() {
-        this._proxy.emitFeedback(this.feedback);
-    }
-}
-
-class Feedback extends DefaultSerializeable {
-    static get defaultFeedback() {
-        return new Feedback(Vibration.defaultVibration, Sound.defaultSound);
-    }
-    get vibration() {
-        return this._vibration;
-    }
-    get sound() {
-        return this._sound;
-    }
-    static fromJSON(json) {
-        return new Feedback((json === null || json === void 0 ? void 0 : json.vibration) ? Vibration.fromJSON(json.vibration) : null, (json === null || json === void 0 ? void 0 : json.sound) ? Sound.fromJSON(json.sound) : null);
-    }
-    constructor(vibration, sound) {
-        super();
-        this._vibration = null;
-        this._sound = null;
-        this._vibration = vibration;
-        this._sound = sound;
-        this.controller = FeedbackController.forFeedback(this);
-    }
-    emit() {
-        this.controller.emit();
-    }
-    toJSON() {
-        return super.toJSON();
-    }
-}
-__decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('vibration')
-], Feedback.prototype, "_vibration", void 0);
-__decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('sound')
-], Feedback.prototype, "_sound", void 0);
-__decorate([
-    ignoreFromSerialization
-], Feedback.prototype, "controller", void 0);
-
-const NoneLocationSelection = { type: 'none' };
-
-class RadiusLocationSelection extends DefaultSerializeable {
-    get radius() {
-        return this._radius;
-    }
-    static fromJSON(locationSelectionJson) {
-        const radius = NumberWithUnit.fromJSON(locationSelectionJson.radius);
-        return new RadiusLocationSelection(radius);
-    }
-    constructor(radius) {
-        super();
-        this.type = 'radius';
-        this._radius = radius;
-    }
-}
-__decorate([
-    nameForSerialization('radius')
-], RadiusLocationSelection.prototype, "_radius", void 0);
-
-class RectangularLocationSelection extends DefaultSerializeable {
-    constructor() {
-        super(...arguments);
-        this.type = 'rectangular';
-    }
-    get sizeWithUnitAndAspect() {
-        return this._sizeWithUnitAndAspect;
-    }
-    static withSize(size) {
-        const locationSelection = new RectangularLocationSelection();
-        locationSelection._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
-        return locationSelection;
-    }
-    static withWidthAndAspectRatio(width, heightToWidthAspectRatio) {
-        const locationSelection = new RectangularLocationSelection();
-        locationSelection._sizeWithUnitAndAspect = SizeWithUnitAndAspect
-            .sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
-        return locationSelection;
-    }
-    static withHeightAndAspectRatio(height, widthToHeightAspectRatio) {
-        const locationSelection = new RectangularLocationSelection();
-        locationSelection._sizeWithUnitAndAspect = SizeWithUnitAndAspect
-            .sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
-        return locationSelection;
-    }
-    static fromJSON(rectangularLocationSelectionJSON) {
-        if (rectangularLocationSelectionJSON.aspect.width && rectangularLocationSelectionJSON.aspect.height) {
-            const width = NumberWithUnit
-                .fromJSON(rectangularLocationSelectionJSON.aspect.width);
-            const height = NumberWithUnit
-                .fromJSON(rectangularLocationSelectionJSON.aspect.height);
-            const size = new SizeWithUnit(width, height);
-            return this.withSize(size);
-        }
-        else if (rectangularLocationSelectionJSON.aspect.width && rectangularLocationSelectionJSON.aspect.aspect) {
-            const width = NumberWithUnit
-                .fromJSON(rectangularLocationSelectionJSON.aspect.width);
-            return this.withWidthAndAspectRatio(width, rectangularLocationSelectionJSON.aspect.aspect);
-        }
-        else if (rectangularLocationSelectionJSON.aspect.height && rectangularLocationSelectionJSON.aspect.aspect) {
-            const height = NumberWithUnit
-                .fromJSON(rectangularLocationSelectionJSON.aspect.height);
-            return this.withHeightAndAspectRatio(height, rectangularLocationSelectionJSON.aspect.aspect);
-        }
-        else if (rectangularLocationSelectionJSON.aspect.shorterDimension && rectangularLocationSelectionJSON.aspect.aspect) {
-            const shorterDimension = NumberWithUnit
-                .fromJSON(rectangularLocationSelectionJSON.aspect.shorterDimension);
-            const sizeWithUnitAndAspect = SizeWithUnitAndAspect
-                .sizeWithShorterDimensionAndAspectRatio(shorterDimension, rectangularLocationSelectionJSON.aspect.aspect);
-            const locationSelection = new RectangularLocationSelection();
-            locationSelection._sizeWithUnitAndAspect = sizeWithUnitAndAspect;
-            return locationSelection;
-        }
-        else {
-            throw new Error(`RectangularLocationSelectionJSON is malformed: ${JSON.stringify(rectangularLocationSelectionJSON)}`);
-        }
-    }
-}
-__decorate([
-    nameForSerialization('size')
-], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", void 0);
 
 class LicenseInfo extends DefaultSerializeable {
     get expiration() {
@@ -2860,5 +2713,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

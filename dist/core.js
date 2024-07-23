@@ -979,8 +979,8 @@ class DataCaptureContextSettings extends DefaultSerializeable {
 
 var DataCaptureContextEvents;
 (function (DataCaptureContextEvents) {
-    DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
-    DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
+    DataCaptureContextEvents["didChangeStatus"] = "didChangeStatus";
+    DataCaptureContextEvents["didStartObservingContext"] = "didStartObservingContext";
 })(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
 class DataCaptureContextController {
     get framework() {
@@ -1027,7 +1027,7 @@ class DataCaptureContextController {
         this._proxy.dispose();
     }
     unsubscribeListener() {
-        this._proxy.unregisterListenerForDataCaptureContext();
+        this._proxy.unsubscribeListener();
         this.eventEmitter.removeListener(DataCaptureContextEvents.didChangeStatus);
         this.eventEmitter.removeListener(DataCaptureContextEvents.didStartObservingContext);
     }
@@ -1038,7 +1038,7 @@ class DataCaptureContextController {
     initializeContextFromJSON() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield this._proxy.contextFromJSON(this.context);
+                this._proxy.contextFromJSON(this.context);
             }
             catch (error) {
                 this.notifyListenersOfDeserializationError(error);
@@ -1048,7 +1048,7 @@ class DataCaptureContextController {
     }
     subscribeListener() {
         var _a, _b, _c, _d;
-        this._proxy.registerListenerForDataCaptureContext();
+        this._proxy.registerListenerForEvents();
         (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
         (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
         this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
@@ -1725,15 +1725,9 @@ var Direction;
     Direction["BottomToTop"] = "bottomToTop";
 })(Direction || (Direction = {}));
 
-var ScanIntention;
-(function (ScanIntention) {
-    ScanIntention["Manual"] = "manual";
-    ScanIntention["Smart"] = "smart";
-})(ScanIntention || (ScanIntention = {}));
-
 var DataCaptureViewEvents;
 (function (DataCaptureViewEvents) {
-    DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
+    DataCaptureViewEvents["didChangeSize"] = "didChangeSize";
 })(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
 class DataCaptureViewController extends BaseController {
     static forDataCaptureView(view) {
@@ -1781,6 +1775,9 @@ class DataCaptureViewController extends BaseController {
     }
     removeOverlay(overlay) {
         return this._proxy.removeOverlay(JSON.stringify(overlay.toJSON()));
+    }
+    removeAllOverlays() {
+        return this._proxy.removeAllOverlays();
     }
     subscribeListener() {
         var _a, _b;
@@ -1951,8 +1948,8 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controller.updateView();
     }
     dispose() {
-        this.overlays.forEach(overlay => this.removeOverlay(overlay));
         this.overlays = [];
+        this.controller.removeAllOverlays();
         this.listeners.forEach(listener => this.removeListener(listener));
         this.controller.dispose();
     }
@@ -2739,8 +2736,8 @@ class RadiusLocationSelection extends DefaultSerializeable {
     get radius() {
         return this._radius;
     }
-    static fromJSON(locationSelectionJson) {
-        const radius = NumberWithUnit.fromJSON(locationSelectionJson.radius);
+    static fromJSON(JSON) {
+        const radius = NumberWithUnit.fromJSON(JSON.radius);
         return new RadiusLocationSelection(radius);
     }
     constructor(radius) {
@@ -2834,5 +2831,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

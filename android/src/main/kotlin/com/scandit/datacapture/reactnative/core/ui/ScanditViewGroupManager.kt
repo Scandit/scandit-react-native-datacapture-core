@@ -15,6 +15,8 @@ import com.facebook.react.uimanager.ViewGroupManager
 abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : ViewGroup {
     private val containers = mutableListOf<T>()
 
+    protected val fragmentsCache: MutableMap<T, FragmentBase> = mutableMapOf()
+
     val currentContainer: T?
         get() = if (containers.size > 0) containers[containers.size - 1] else null
 
@@ -22,6 +24,11 @@ abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : View
     var postContainerCreationAction: (() -> Unit)? = null
 
     abstract fun createNewInstance(reactContext: ThemedReactContext): T
+
+    override fun invalidate() {
+        super.invalidate()
+        containers.clear()
+    }
 
     override fun createViewInstance(reactContext: ThemedReactContext): T {
         val container = createNewInstance(reactContext).also {
@@ -41,6 +48,10 @@ abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : View
         containers.remove(view)
         if (containers.size == 0) {
             cancelMeasureAndLayout()
+        }
+        fragmentsCache.remove(view)?.let {
+            it.onDestroyView()
+            it.onDestroy()
         }
     }
 

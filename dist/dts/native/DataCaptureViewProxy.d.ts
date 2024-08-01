@@ -4,7 +4,6 @@ export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implemen
     constructor();
     addOverlay(overlayJson: string): Promise<void>;
     removeOverlay(overlayJson: string): Promise<void>;
-    removeAllOverlays(): Promise<void>;
     createView(viewJson: string): Promise<void>;
     updateView(viewJson: string): Promise<void>;
     addOverlayToDCView(overlayJson: string): Promise<void>;

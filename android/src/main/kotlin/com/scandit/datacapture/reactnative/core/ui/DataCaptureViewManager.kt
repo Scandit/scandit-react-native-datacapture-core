@@ -11,20 +11,13 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import com.facebook.react.uimanager.ThemedReactContext
 import com.scandit.datacapture.core.ui.DataCaptureView
-import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.MainThread
 import java.lang.ref.WeakReference
 
 class DataCaptureViewManager(
     private val mainThread: MainThread = DefaultMainThread.getInstance()
-) :
-    ScanditViewGroupManager<FrameLayout>(),
-    DeserializationLifecycleObserver.Observer {
-
-    init {
-        DeserializationLifecycleObserver.attach(this)
-    }
+) : ScanditViewGroupManager<FrameLayout>() {
 
     override fun getName(): String = "RNTDataCaptureView"
 
@@ -51,7 +44,7 @@ class DataCaptureViewManager(
         }
     }
 
-    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView?) {
+    fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView?) {
         if (dataCaptureView == null) return
 
         currentContainer?.let {

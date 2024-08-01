@@ -11,11 +11,15 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.scandit.datacapture.core.capture.DataCaptureVersion
+import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.frameworks.core.CoreModule
+import com.scandit.datacapture.frameworks.core.deserialization.DefaultDeserializationLifecycleObserver
+import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
 import com.scandit.datacapture.frameworks.core.utils.DefaultLastFrameData
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.LastFrameData
 import com.scandit.datacapture.frameworks.core.utils.MainThread
+import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.Error
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 import com.scandit.datacapture.reactnative.core.utils.reject
@@ -23,9 +27,10 @@ import com.scandit.datacapture.reactnative.core.utils.reject
 class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
     private val coreModule: CoreModule,
+    private val dataCaptureViewManager: DataCaptureViewManager,
     private val mainThread: MainThread = DefaultMainThread.getInstance(),
     private val lastFrameData: LastFrameData = DefaultLastFrameData.getInstance()
-) : ReactContextBaseJavaModule(reactContext) {
+) : ReactContextBaseJavaModule(reactContext), DeserializationLifecycleObserver.Observer {
 
     companion object {
         private const val VERSION_KEY = "Version"
@@ -34,11 +39,17 @@ class ScanditDataCaptureCoreModule(
         private val ERROR_NULL_FRAME = Error(5, "Frame is null, it might've been reused already.")
     }
 
+    private val deserializationLifecycleObserver: DeserializationLifecycleObserver =
+        DefaultDeserializationLifecycleObserver.getInstance()
+
     init {
         coreModule.onCreate(reactContext)
+        deserializationLifecycleObserver.attach(this)
     }
+
     override fun invalidate() {
         coreModule.onDestroy()
+        deserializationLifecycleObserver.detach(this)
         super.invalidate()
     }
 
@@ -48,6 +59,10 @@ class ScanditDataCaptureCoreModule(
         VERSION_KEY to DataCaptureVersion.VERSION_STRING,
         DEFAULTS_KEY to coreModule.getDefaults()
     )
+
+    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView?) {
+        dataCaptureViewManager.onDataCaptureViewDeserialized(dataCaptureView)
+    }
 
     @ReactMethod
     fun registerListenerForEvents() {

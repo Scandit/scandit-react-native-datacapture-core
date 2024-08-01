@@ -5,6 +5,7 @@
 */
 
 import Foundation
+import React
 import ScanditFrameworksCore
 
 class RNTSDCDataCaptureViewWrapper: UIView {
@@ -21,7 +22,7 @@ class RNTSDCDataCaptureViewWrapper: UIView {
 }
 
 @objc(RNTSDCDataCaptureViewManager)
-class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObserver {
+class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObserver, RCTInvalidating {
 
     internal var containers: [RNTSDCDataCaptureViewWrapper] = []
 
@@ -65,6 +66,10 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
         DeserializationLifeCycleDispatcher.shared.attach(observer: self)
     }
 
+    func invalidate() {
+        DeserializationLifeCycleDispatcher.shared.detach(observer: self)
+    }
+
     func addCaptureViewToLastContainer() {
         guard let container = containers.last,
               let captureView = dataCaptureView else {
@@ -105,10 +110,6 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
         containers.append(container)
 
         return container
-    }
-
-    deinit {
-        DeserializationLifeCycleDispatcher.shared.detach(observer: self)
     }
 
     func dataCaptureView(deserialized view: DataCaptureView?) {

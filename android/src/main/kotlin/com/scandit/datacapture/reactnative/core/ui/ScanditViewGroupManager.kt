@@ -49,10 +49,6 @@ abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : View
         if (containers.size == 0) {
             cancelMeasureAndLayout()
         }
-        fragmentsCache.remove(view)?.let {
-            it.onDestroyView()
-            it.onDestroy()
-        }
     }
 
     protected fun disposeInternal() {

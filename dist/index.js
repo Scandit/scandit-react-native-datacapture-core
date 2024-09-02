@@ -225,7 +225,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '6.26.0';
+        return '6.25.3';
     }
     static get sdkVersion() {
         return NativeModule.Version;

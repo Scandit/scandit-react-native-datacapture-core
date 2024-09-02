@@ -596,9 +596,8 @@ class ImageFrameSourceController {
         return this._proxy.switchCameraToDesiredState(desiredStateJson);
     }
     subscribeListener() {
-        var _a, _b;
         this._proxy.registerListenerForEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this._proxy.subscribeDidChangeState();
         this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (payload) => {
             const newState = payload.state;
             this.imageFrameSource.listeners.forEach(listener => {
@@ -1128,10 +1127,7 @@ class DataCaptureContext extends DefaultSerializeable {
         if (options == null) {
             options = { deviceName: null };
         }
-        if (!DataCaptureContext.instance) {
-            DataCaptureContext.instance = new DataCaptureContext(licenseKey, options.deviceName || '');
-        }
-        return DataCaptureContext.instance;
+        return new DataCaptureContext(licenseKey, options.deviceName || '');
     }
     constructor(licenseKey, deviceName) {
         super();
@@ -1192,7 +1188,6 @@ class DataCaptureContext extends DefaultSerializeable {
         if (!this.controller) {
             return;
         }
-        DataCaptureContext.instance = null;
         (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
         this.removeAllModes();
         this.controller.dispose();
@@ -1215,7 +1210,6 @@ class DataCaptureContext extends DefaultSerializeable {
         return this.controller.updateContextFromJSON();
     }
 }
-DataCaptureContext.instance = null;
 __decorate([
     nameForSerialization('frameSource')
 ], DataCaptureContext.prototype, "_frameSource", void 0);
@@ -2388,9 +2382,6 @@ __decorate([
     nameForSerialization('size')
 ], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
 
-/**
- * @deprecated LaserlineViewfinder is deprecated.
- */
 class LaserlineViewfinder extends DefaultSerializeable {
     get coreDefaults() {
         return getCoreDefaults();
@@ -2412,9 +2403,6 @@ __decorate([
     nameForSerialization('style')
 ], LaserlineViewfinder.prototype, "_style", void 0);
 
-/**
- * @deprecated LaserlineViewfinderStyle is deprecated.
- */
 var LaserlineViewfinderStyle;
 (function (LaserlineViewfinderStyle) {
     LaserlineViewfinderStyle["Legacy"] = "legacy";
@@ -2528,9 +2516,6 @@ __decorate([
 
 var RectangularViewfinderStyle;
 (function (RectangularViewfinderStyle) {
-    /**
-     * @deprecated The legacy style of the RectangularViewfinder is deprecated.
-     */
     RectangularViewfinderStyle["Legacy"] = "legacy";
     RectangularViewfinderStyle["Rounded"] = "rounded";
     RectangularViewfinderStyle["Square"] = "square";

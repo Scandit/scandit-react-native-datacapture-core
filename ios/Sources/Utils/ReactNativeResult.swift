@@ -18,6 +18,17 @@ public struct ReactNativeResult: FrameworksResult {
     }
 
     public func success(result object: Any?) {
+        if let resultDict = object as? [String: Any] {
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: resultDict, options: [])
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    resolve(jsonString)
+                }
+            } catch let error {
+                reject(code: "JSON_ERROR", message: "Failed to convert to JSON", details: error)
+            }
+            return
+        }
         resolve(object)
     }
 

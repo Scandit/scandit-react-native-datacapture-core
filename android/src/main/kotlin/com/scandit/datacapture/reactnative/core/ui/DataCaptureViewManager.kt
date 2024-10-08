@@ -11,47 +11,48 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import com.facebook.react.uimanager.ThemedReactContext
 import com.scandit.datacapture.core.ui.DataCaptureView
+import com.scandit.datacapture.frameworks.core.CoreModule
+import com.scandit.datacapture.frameworks.core.handlers.DataCaptureViewHandler
+import com.scandit.datacapture.frameworks.core.handlers.DefaultDataCaptureViewHandler
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.MainThread
-import java.lang.ref.WeakReference
 
 class DataCaptureViewManager(
-    private val mainThread: MainThread = DefaultMainThread.getInstance()
+    private val codeModule: CoreModule,
+    private val mainThread: MainThread = DefaultMainThread.getInstance(),
+    private val dataCaptureViewHandler: DataCaptureViewHandler =
+        DefaultDataCaptureViewHandler.getInstance()
 ) : ScanditViewGroupManager<FrameLayout>() {
 
     override fun getName(): String = "RNTDataCaptureView"
-
-    private var dataCaptureViewRef: WeakReference<DataCaptureView?> = WeakReference(null)
 
     override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
         FrameLayout(reactContext)
 
     override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
         val container = super.createViewInstance(reactContext)
-        dataCaptureViewRef.get()?.let { view ->
+        dataCaptureViewHandler.topmostDataCaptureView?.let { view ->
             addDataCaptureViewToContainer(view, container)
         }
         return container
     }
 
     override fun onDropViewInstance(view: FrameLayout) {
+        // remove current DCView from core cache
+        for (i in 0 until view.childCount) {
+            val child = view.getChildAt(i)
+            if (child is DataCaptureView) { // it should always be a DCView but you never know
+                codeModule.dataCaptureViewDisposed(child)
+            }
+        }
+
         super.onDropViewInstance(view)
 
         currentContainer?.let { container ->
-            dataCaptureViewRef.get()?.let { view ->
+            dataCaptureViewHandler.topmostDataCaptureView?.let { view ->
                 addDataCaptureViewToContainer(view, container)
             }
         }
-    }
-
-    fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView?) {
-        if (dataCaptureView == null) return
-
-        currentContainer?.let {
-            addDataCaptureViewToContainer(dataCaptureView, it)
-        }
-
-        dataCaptureViewRef = WeakReference(dataCaptureView)
     }
 
     private fun addDataCaptureViewToContainer(

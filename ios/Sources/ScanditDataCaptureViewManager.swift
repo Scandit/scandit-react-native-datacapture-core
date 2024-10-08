@@ -15,6 +15,14 @@ class RNTSDCDataCaptureViewWrapper: UIView {
         if let viewManager = viewManager,
            let index = viewManager.containers.firstIndex(of: self) {
             viewManager.containers.remove(at: index)
+            
+            if let droppedView = viewManager.dataCaptureView {
+                viewManager.dataCaptureView = nil
+                // on iOS we don't have a callback like the android onDropViewInstance where we can remove the dropped instance.
+                // here we just override the willRemoveSubview of the wrapper and notify the core module that the dcview has been removed.
+                DeserializationLifeCycleDispatcher.shared.dispatchDataCaptureViewRemoved(view: droppedView)
+            }
+            
             viewManager.addCaptureViewToLastContainer()
         }
         super.removeFromSuperview()
@@ -22,7 +30,7 @@ class RNTSDCDataCaptureViewWrapper: UIView {
 }
 
 @objc(RNTSDCDataCaptureViewManager)
-class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObserver, RCTInvalidating {
+class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObserver {
 
     internal var containers: [RNTSDCDataCaptureViewWrapper] = []
 
@@ -33,9 +41,6 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
             }
 
             guard let dcView = dataCaptureView else {
-                container.subviews.forEach {
-                    $0.removeFromSuperview()
-                }
                 return
             }
 
@@ -61,33 +66,13 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
 
     var isObserving = false
 
-    override init() {
-        super.init()
-        DeserializationLifeCycleDispatcher.shared.attach(observer: self)
-    }
-
-    func invalidate() {
-        DeserializationLifeCycleDispatcher.shared.detach(observer: self)
-    }
-
     func addCaptureViewToLastContainer() {
         guard let container = containers.last,
-              let captureView = dataCaptureView else {
+              let captureView = DataCaptureViewHandler.shared.topmostDataCaptureView else {
             return
         }
-        if captureView.superview != nil && captureView.superview == container {
-            // if attached to the same container do nothing. Removing and adding
-            // it again might trigger something in the DataCaptureView that we don't
-            // want. (overlay re-drawn, black screen, etc.)
-            return
-        }
-
-        if captureView.superview != nil {
-            captureView.removeFromSuperview()
-        }
-        captureView.frame = container.bounds
-        captureView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        container.addSubview(captureView)
+        
+        dataCaptureView = captureView
     }
 
     override func view() -> UIView! {
@@ -110,9 +95,5 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
         containers.append(container)
 
         return container
-    }
-
-    func dataCaptureView(deserialized view: DataCaptureView?) {
-        dataCaptureView = view
     }
 }

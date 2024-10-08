@@ -9,13 +9,6 @@ import React
 import ScanditCaptureCore
 import ScanditFrameworksCore
 
-public protocol RNTDataCaptureViewListener: class {
-    func didUpdate(dataCaptureView: DataCaptureView?)
-}
-
-public protocol RNTDataCaptureContextListener: class {
-    func didUpdate(dataCaptureContext: DataCaptureContext?)
-}
 
 public let sdcSharedMethodQueue = DispatchQueue(label: "com.scandit.reactnative.methodQueue",
                                                 qos: .userInteractive)
@@ -53,10 +46,13 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
 public class ScanditDataCaptureCore: RCTEventEmitter {
 
     var coreModule: CoreModule!
+    
+    lazy var dataCaptureViewManager: RNTSDCDataCaptureViewManager = {
+        bridge.module(for: RNTSDCDataCaptureViewManager.self) as! RNTSDCDataCaptureViewManager
+    }()
 
     public override init() {
         super.init()
-        DeserializationLifeCycleDispatcher.shared.attach(observer: self)
         let emitter = ReactNativeEmitter(emitter: self)
         let frameworksFrameSourceListener = FrameworksFrameSourceListener(eventEmitter: emitter)
         let frameSourceDeserializer = FrameworksFrameSourceDeserializer(frameSourceListener: frameworksFrameSourceListener,
@@ -68,16 +64,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                                 dataCaptureContextListener: contextListener,
                                 dataCaptureViewListener: viewListener)
         coreModule.didStart()
-    }
-
-    var context: DataCaptureContext? {
-        didSet {
-            pthread_mutex_lock(&dataCaptureContextListenersLock)
-            defer { pthread_mutex_unlock(&dataCaptureContextListenersLock) }
-            dataCaptureContextListeners
-                .compactMap { $0 as? RNTDataCaptureContextListener }
-                .forEach { $0.didUpdate(dataCaptureContext: context) }
-        }
     }
 
     public static var lastFrame: FrameData?
@@ -130,17 +116,9 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         ScanditFrameworksCoreEvent.allCases.map { $0.rawValue }
     }
 
-    public override func startObserving() {
-        coreModule.didStart()
-    }
-
-    public override func stopObserving() {
-        coreModule.didStop()
-    }
-
     public override func invalidate() {
         super.invalidate()
-        dispose()
+        coreModule.didStop()
     }
 
     deinit {
@@ -163,8 +141,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
 
     @objc
     func dispose() {
-        coreModule.didStop()
-        DeserializationLifeCycleDispatcher.shared.detach(observer: self)
+        coreModule.disposeContext()
     }
 
     @objc(emitFeedback:resolve:reject:)
@@ -231,20 +208,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         resolve(LastFrameData.shared.frameData?.jsonString)
     }
 
-    public func addRNTDataCaptureContextListener(_ listener: RNTDataCaptureContextListener) {
-        pthread_mutex_lock(&dataCaptureContextListenersLock)
-        defer { pthread_mutex_unlock(&dataCaptureContextListenersLock) }
-        guard !dataCaptureContextListeners.contains(listener) else { return }
-        dataCaptureContextListeners.add(listener)
-        listener.didUpdate(dataCaptureContext: context)
-    }
-
-    public func removeRNTDataCaptureContextListener(_ listener: RNTDataCaptureContextListener) {
-        pthread_mutex_lock(&dataCaptureContextListenersLock)
-        defer {pthread_mutex_unlock(&dataCaptureContextListenersLock)}
-        dataCaptureContextListeners.remove(listener)
-    }
-
     @objc func registerListenerForCameraEvents() {
         coreModule.registerFrameSourceListener()
     }
@@ -293,7 +256,13 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     func createDataCaptureView(viewJson: String,
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
-        _ = coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
+        
+        let view = coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
+        if view != nil {
+            dispatchMainSync {
+                dataCaptureViewManager.dataCaptureView = view
+            }
+        }
     }
 
     @objc(updateDataCaptureView:resolve:reject:)
@@ -301,31 +270,5 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
         coreModule.updateDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(addOverlay:resolve:reject:)
-    func addOverlay(overlayJson: String,
-                    resolve: @escaping RCTPromiseResolveBlock,
-                    reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.addOverlayToView(overlayJson: overlayJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(removeOverlay:resolve:reject:)
-    func removeOverlay(overlayJson: String,
-                    resolve: @escaping RCTPromiseResolveBlock,
-                    reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.removeOverlayFromView(overlayJson: overlayJson, result: ReactNativeResult(resolve, reject))
-    }
-
-    @objc(removeAllOverlays:reject:)
-    func removeAllOverlays(resolve: @escaping RCTPromiseResolveBlock,
-                          reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.removeAllOverlays(result: ReactNativeResult(resolve, reject))
-    }
-}
-
-extension ScanditDataCaptureCore: DeserializationLifeCycleObserver {
-    public func dataCaptureContext(deserialized context: DataCaptureContext?) {
-        self.context = context
     }
 }

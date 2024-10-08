@@ -121,14 +121,8 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
     updateView(viewJson) {
         return NativeModule$3.updateDataCaptureView(viewJson);
     }
-    addOverlayToDCView(overlayJson) {
-        return NativeModule$3.addOverlayToView(overlayJson);
-    }
-    removeOverlayFromDCView(overlayJson) {
-        return NativeModule$3.removeOverlayFromView(overlayJson);
-    }
-    removeAllOverlaysFromDCView() {
-        return NativeModule$3.removeAllOverlays();
+    removeView() {
+        return Promise.resolve();
     }
     viewPointForFramePoint(pointJson) {
         return NativeModule$3.viewPointForFramePoint(pointJson);
@@ -225,7 +219,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '6.27.2';
+        return '6.28.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;

@@ -11,7 +11,6 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.scandit.datacapture.core.capture.DataCaptureVersion
-import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.deserialization.DefaultDeserializationLifecycleObserver
 import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
@@ -19,7 +18,6 @@ import com.scandit.datacapture.frameworks.core.utils.DefaultLastFrameData
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.LastFrameData
 import com.scandit.datacapture.frameworks.core.utils.MainThread
-import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.Error
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 import com.scandit.datacapture.reactnative.core.utils.reject
@@ -27,7 +25,6 @@ import com.scandit.datacapture.reactnative.core.utils.reject
 class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
     private val coreModule: CoreModule,
-    private val dataCaptureViewManager: DataCaptureViewManager,
     private val mainThread: MainThread = DefaultMainThread.getInstance(),
     private val lastFrameData: LastFrameData = DefaultLastFrameData.getInstance()
 ) : ReactContextBaseJavaModule(reactContext), DeserializationLifecycleObserver.Observer {
@@ -59,10 +56,6 @@ class ScanditDataCaptureCoreModule(
         VERSION_KEY to DataCaptureVersion.VERSION_STRING,
         DEFAULTS_KEY to coreModule.getDefaults()
     )
-
-    override fun onDataCaptureViewDeserialized(dataCaptureView: DataCaptureView?) {
-        dataCaptureViewManager.onDataCaptureViewDeserialized(dataCaptureView)
-    }
 
     @ReactMethod
     fun registerListenerForEvents() {
@@ -183,20 +176,5 @@ class ScanditDataCaptureCoreModule(
     @ReactMethod
     fun updateDataCaptureView(viewJson: String, promise: Promise) {
         coreModule.updateDataCaptureView(viewJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun addOverlay(overlayJson: String, promise: Promise) {
-        coreModule.addOverlayToView(overlayJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeOverlay(overlayJson: String, promise: Promise) {
-        coreModule.removeOverlayFromView(overlayJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeAllOverlays(promise: Promise) {
-        coreModule.removeAllOverlays(ReactNativeResult(promise))
     }
 }

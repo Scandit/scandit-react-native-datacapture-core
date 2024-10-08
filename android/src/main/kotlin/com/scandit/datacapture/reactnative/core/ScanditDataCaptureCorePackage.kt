@@ -27,26 +27,33 @@ class ScanditDataCaptureCorePackage : ReactPackage {
                 getCoreModule(
                     reactContext
                 ),
-                dataCaptureViewManager
             )
         )
 
-    private val dataCaptureViewManager: DataCaptureViewManager by lazy {
-        DataCaptureViewManager()
-    }
-
     override fun createViewManagers(
         reactContext: ReactApplicationContext
-    ): MutableList<ViewManager<*, *>> = mutableListOf(dataCaptureViewManager)
+    ): MutableList<ViewManager<*, *>> =
+        mutableListOf(DataCaptureViewManager(getCoreModule(reactContext)))
+
+    private var coreModule: CoreModule? = null
 
     private fun getCoreModule(reactContext: ReactApplicationContext): CoreModule {
+        val existingInstance = this.coreModule
+        if (existingInstance != null) {
+            return existingInstance.also {
+                it.onCreate(reactContext)
+            }
+        }
+
         val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
-        return CoreModule(
+        val instance = CoreModule(
             FrameworksFrameSourceListener(
                 eventEmitter
             ),
             FrameworksDataCaptureContextListener(eventEmitter),
             FrameworksDataCaptureViewListener(eventEmitter)
         )
+        this.coreModule = instance
+        return instance
     }
 }

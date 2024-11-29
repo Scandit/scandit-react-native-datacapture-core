@@ -188,24 +188,12 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
             result: ReactNativeResult(resolve, reject)
         )
     }
-
-    @objc(getLastFrame:reject:)
-    func getLastFrame(resolve: @escaping RCTPromiseResolveBlock,
+    
+    @objc(getFrame:resolve:reject:)
+    func getFrame(frameId: String,
+                      resolve: @escaping RCTPromiseResolveBlock,
                       reject: @escaping RCTPromiseRejectBlock) {
-        LastFrameData.shared.getLastFrameDataJSON { lastFrame in
-            guard let lastFrame = lastFrame else {
-                let error = ScanditDataCaptureCoreError.nilFrame
-                reject(String(error.code), error.message, error)
-                return
-            }
-            resolve(lastFrame)
-        }
-    }
-
-    @objc(getLastFrameOrNull:reject:)
-    func getLastFrameOrNull(resolve: @escaping RCTPromiseResolveBlock,
-                            reject: @escaping RCTPromiseRejectBlock) {
-        resolve(LastFrameData.shared.frameData?.jsonString)
+        coreModule.getLastFrameAsJson(frameId: frameId, result: ReactNativeResult(resolve, reject))
     }
 
     @objc func registerListenerForCameraEvents() {
@@ -270,5 +258,12 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
         coreModule.updateDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
+    }
+
+
+    @objc(getOpenSourceSoftwareLicenseInfo:reject:)
+    func getOpenSourceSoftwareLicenseInfo(resolve: @escaping RCTPromiseResolveBlock,
+                                          reject: @escaping RCTPromiseRejectBlock) {
+        coreModule.getOpenSourceSoftwareLicenseInfo(result: ReactNativeResult(resolve, reject))
     }
 }

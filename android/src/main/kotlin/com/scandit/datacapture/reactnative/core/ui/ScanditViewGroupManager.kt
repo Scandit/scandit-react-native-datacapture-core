@@ -67,7 +67,7 @@ abstract class ScanditViewGroupManager<T> : ViewGroupManager<T>() where T : View
     /**
      * XXX RN is not calling measure() and layout() methods on dynamically added native Android
      * Views. That's why we need to call those methods on our container (and it's children)
-     * ourselves - otherwise the views added by the BarcodeTrackingAdvancedOverlay won't be visible.
+     * ourselves - otherwise the views added by the BarcodeBatchAdvancedOverlay won't be visible.
      * The hack has been taken from: https://github.com/facebook/react-native/issues/17968
      */
     private fun scheduleMeasureAndLayout() {

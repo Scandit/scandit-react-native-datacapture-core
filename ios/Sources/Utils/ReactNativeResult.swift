@@ -7,9 +7,10 @@
 import React
 import ScanditFrameworksCore
 
-public struct ReactNativeResult: FrameworksResult {
+public class ReactNativeResult: FrameworksResult {
     private let resolve: RCTPromiseResolveBlock
     private let rejecter: RCTPromiseRejectBlock
+    private var resolved: Bool = false
 
     public init(_ resolve: @escaping RCTPromiseResolveBlock,
                 _ reject: @escaping RCTPromiseRejectBlock) {
@@ -29,6 +30,7 @@ public struct ReactNativeResult: FrameworksResult {
             }
             return
         }
+        resolved = true
         resolve(object)
     }
 
@@ -38,6 +40,10 @@ public struct ReactNativeResult: FrameworksResult {
 
     public func reject(error: Error) {
         self.rejecter(String(error._code), error.localizedDescription, error as NSError)
+    }
+
+    public func isResolved() -> Bool {
+        resolved
     }
 }
 

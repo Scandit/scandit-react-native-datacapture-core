@@ -1,6 +1,6 @@
 import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, ContextStatus, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FrameSourceState, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, Platform, requireNativeComponent } from 'react-native';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
+import { NativeModules, NativeEventEmitter, Platform, findNodeHandle, UIManager, requireNativeComponent } from 'react-native';
 import React from 'react';
 
 // tslint:disable-next-line:variable-name
@@ -57,11 +57,11 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
     get frameworkVersion() {
         return `${major}.${minor}.${patch}`;
     }
-    contextFromJSON(contextJson) {
-        return NativeModule$4.contextFromJSON(contextJson);
+    contextFromJSON(context) {
+        return NativeModule$4.contextFromJSON(JSON.stringify(context.toJSON()));
     }
-    updateContextFromJSON(contextJson) {
-        return NativeModule$4.updateContextFromJSON(contextJson);
+    updateContextFromJSON(context) {
+        return NativeModule$4.updateContextFromJSON(JSON.stringify(context.toJSON()));
     }
     addModeToContext(modeJson) {
         return NativeModule$4.addModeToContext(modeJson);
@@ -97,9 +97,6 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
             this.eventEmitter.emit(DataCaptureContextEvents.didStartObservingContext);
         });
         this.nativeListeners.push(didStartObservingContext);
-    }
-    getOpenSourceSoftwareLicenseInfo() {
-        return NativeModule$4.getOpenSourceSoftwareLicenseInfo();
     }
 }
 
@@ -170,8 +167,11 @@ class NativeCameraProxy {
     constructor() {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
-    getFrame(frameId) {
-        return NativeModule$2.getFrame(frameId);
+    getLastFrame() {
+        return NativeModule$2.getLastFrame();
+    }
+    getLastFrameOrNull() {
+        return NativeModule$2.getLastFrameOrNull();
     }
     getCurrentCameraState(position) {
         return NativeModule$2.getCurrentCameraState(position);
@@ -219,7 +219,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.0.0';
+        return '6.28.2';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -230,25 +230,22 @@ class DataCaptureView extends React.Component {
     view;
     constructor(props) {
         super(props);
-        this.view = BaseDataCaptureView.forContext(props.context);
+        // Do not create the view automatically on android but do so on iOS
+        this.view = BaseDataCaptureView.forContext(props.context, Platform.OS === 'ios');
         this.view.viewComponent = this;
     }
     get scanAreaMargins() {
         return this.view.scanAreaMargins;
     }
-    ;
     set scanAreaMargins(newValue) {
         this.view.scanAreaMargins = newValue;
     }
-    ;
     get pointOfInterest() {
         return this.view.pointOfInterest;
     }
-    ;
     set pointOfInterest(newValue) {
         this.view.pointOfInterest = newValue;
     }
-    ;
     get logoStyle() {
         return this.view.logoStyle;
     }
@@ -258,59 +255,45 @@ class DataCaptureView extends React.Component {
     get logoAnchor() {
         return this.view.logoAnchor;
     }
-    ;
     set logoAnchor(newValue) {
         this.view.logoAnchor = newValue;
     }
-    ;
     get logoOffset() {
         return this.view.logoOffset;
     }
-    ;
     set logoOffset(newValue) {
         this.view.logoOffset = newValue;
     }
-    ;
     get focusGesture() {
         return this.view.focusGesture;
     }
-    ;
     set focusGesture(newValue) {
         this.view.focusGesture = newValue;
     }
-    ;
     get zoomGesture() {
         return this.view.zoomGesture;
     }
-    ;
     set zoomGesture(newValue) {
         this.view.zoomGesture = newValue;
     }
-    ;
     addOverlay(overlay) {
         this.view.addOverlay(overlay);
     }
-    ;
     removeOverlay(overlay) {
         this.view.removeOverlay(overlay);
     }
-    ;
     addListener(listener) {
         this.view.addListener(listener);
     }
-    ;
     removeListener(listener) {
         this.view.removeListener(listener);
     }
-    ;
     viewPointForFramePoint(point) {
         return this.view.viewPointForFramePoint(point);
     }
-    ;
     viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
         return this.view.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
     }
-    ;
     addControl(control) {
         return this.view.addControl(control);
     }
@@ -323,8 +306,19 @@ class DataCaptureView extends React.Component {
     componentWillUnmount() {
         this.view.dispose();
     }
+    componentDidMount() {
+        this.createDataCaptureView();
+    }
     render() {
         return React.createElement(RNTDataCaptureView, { ...this.props });
+    }
+    createDataCaptureView() {
+        if (Platform.OS === 'android') {
+            const viewId = findNodeHandle(this);
+            UIManager.dispatchViewManagerCommand(viewId, 'createDataCaptureView', [
+                JSON.stringify(this.view.toJSON()),
+            ]);
+        }
     }
 }
 // tslint:disable-next-line:variable-name

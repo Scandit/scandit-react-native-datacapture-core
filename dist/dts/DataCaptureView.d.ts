@@ -38,6 +38,8 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     addControlWithAnchorAndOffset(control: Control, anchor: Anchor, offset: PointWithUnit): void;
     removeControl(control: Control): void;
     componentWillUnmount(): void;
+    componentDidMount(): void;
     render(): React.JSX.Element;
+    private createDataCaptureView;
 }
 export {};

@@ -9,17 +9,19 @@ package com.scandit.datacapture.reactnative.core.ui
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
+import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.uimanager.ThemedReactContext
 import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.frameworks.core.CoreModule
+import com.scandit.datacapture.frameworks.core.FrameworkModule
+import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
 import com.scandit.datacapture.frameworks.core.handlers.DataCaptureViewHandler
 import com.scandit.datacapture.frameworks.core.handlers.DefaultDataCaptureViewHandler
-import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
-import com.scandit.datacapture.frameworks.core.utils.MainThread
+import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
+import com.scandit.datacapture.frameworks.core.result.NoopFrameworksResult
 
 class DataCaptureViewManager(
-    private val codeModule: CoreModule,
-    private val mainThread: MainThread = DefaultMainThread.getInstance(),
+    private val serviceLocator: ServiceLocator<FrameworkModule>,
     private val dataCaptureViewHandler: DataCaptureViewHandler =
         DefaultDataCaptureViewHandler.getInstance()
 ) : ScanditViewGroupManager<FrameLayout>() {
@@ -29,20 +31,12 @@ class DataCaptureViewManager(
     override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
         FrameLayout(reactContext)
 
-    override fun createViewInstance(reactContext: ThemedReactContext): FrameLayout {
-        val container = super.createViewInstance(reactContext)
-        dataCaptureViewHandler.topmostDataCaptureView?.let { view ->
-            addDataCaptureViewToContainer(view, container)
-        }
-        return container
-    }
-
     override fun onDropViewInstance(view: FrameLayout) {
         // remove current DCView from core cache
         for (i in 0 until view.childCount) {
             val child = view.getChildAt(i)
             if (child is DataCaptureView) { // it should always be a DCView but you never know
-                codeModule.dataCaptureViewDisposed(child)
+                coreModule.dataCaptureViewDisposed(child)
             }
         }
 
@@ -55,15 +49,31 @@ class DataCaptureViewManager(
         }
     }
 
+    override fun getCommandsMap(): MutableMap<String, Int> = mutableMapOf(
+        CREATE_FRAGMENT_COMMAND to CREATE_FRAGMENT_COMMAND_INDEX
+    )
+
+    override fun receiveCommand(root: FrameLayout, commandId: String?, args: ReadableArray?) {
+        if (commandId == CREATE_FRAGMENT_COMMAND) {
+            val viewJson = args?.getString(0) ?: return
+
+            coreModule.createDataCaptureView(viewJson, NoopFrameworksResult())?.let {
+                currentContainer?.let { container ->
+                    addDataCaptureViewToContainer(it, container)
+                }
+            }
+        }
+    }
+
     private fun addDataCaptureViewToContainer(
         dataCaptureView: DataCaptureView,
         container: FrameLayout
     ) {
-        mainThread.runOnMainThread {
+        container.post {
             if (container.childCount > 0 && container.getChildAt(0) === dataCaptureView) {
                 // Same instance already attached. No need to detach and attach it again because
                 // it will trigger some overlay cleanup that we don't want.
-                return@runOnMainThread
+                return@post
             }
 
             /*
@@ -79,5 +89,16 @@ class DataCaptureViewManager(
             }
             container.addView(dataCaptureView, MATCH_PARENT, MATCH_PARENT)
         }
+    }
+
+    private val coreModule: CoreModule
+        get() {
+            return serviceLocator.resolve(CoreModule::class.java.name) as? CoreModule?
+                ?: throw ModuleNotStartedError(DataCaptureViewManager::class.java.simpleName)
+        }
+
+    companion object {
+        private const val CREATE_FRAGMENT_COMMAND_INDEX = 1
+        private const val CREATE_FRAGMENT_COMMAND = "createDataCaptureView"
     }
 }

@@ -14,46 +14,51 @@ import com.scandit.datacapture.frameworks.core.events.Emitter
 import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureContextListener
 import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureViewListener
 import com.scandit.datacapture.frameworks.core.listeners.FrameworksFrameSourceListener
+import com.scandit.datacapture.frameworks.core.locator.DefaultServiceLocator
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeEventEmitter
+import java.util.concurrent.locks.ReentrantLock
 
 class ScanditDataCaptureCorePackage : ReactPackage {
+    private val serviceLocator = DefaultServiceLocator.getInstance()
+
     override fun createNativeModules(
         reactContext: ReactApplicationContext
-    ): MutableList<NativeModule> =
-        mutableListOf(
+    ): MutableList<NativeModule> {
+        setupSharedModule(reactContext)
+        return mutableListOf(
             ScanditDataCaptureCoreModule(
                 reactContext,
-                getCoreModule(
-                    reactContext
-                ),
+                serviceLocator,
             )
         )
+    }
 
     override fun createViewManagers(
         reactContext: ReactApplicationContext
-    ): MutableList<ViewManager<*, *>> =
-        mutableListOf(DataCaptureViewManager(getCoreModule(reactContext)))
+    ): MutableList<ViewManager<*, *>> = mutableListOf(DataCaptureViewManager(serviceLocator))
 
-    private var coreModule: CoreModule? = null
+    private fun setupSharedModule(reactContext: ReactApplicationContext) {
+        lock.lock()
+        try {
+            // In React-Native if this function is called again we have to cleanup the existing
+            // instances and re-create them again.
+            serviceLocator.remove(CoreModule::class.java.name)
 
-    private fun getCoreModule(reactContext: ReactApplicationContext): CoreModule {
-        val existingInstance = this.coreModule
-        if (existingInstance != null) {
-            return existingInstance.also {
-                it.onCreate(reactContext)
-            }
+            val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
+            val coreModule = CoreModule.create(
+                FrameworksFrameSourceListener(eventEmitter),
+                FrameworksDataCaptureContextListener(eventEmitter),
+                FrameworksDataCaptureViewListener(eventEmitter)
+            )
+            coreModule.onCreate(reactContext)
+            serviceLocator.register(coreModule)
+        } finally {
+            lock.unlock()
         }
+    }
 
-        val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
-        val instance = CoreModule(
-            FrameworksFrameSourceListener(
-                eventEmitter
-            ),
-            FrameworksDataCaptureContextListener(eventEmitter),
-            FrameworksDataCaptureViewListener(eventEmitter)
-        )
-        this.coreModule = instance
-        return instance
+    companion object {
+        private val lock: ReentrantLock = ReentrantLock()
     }
 }

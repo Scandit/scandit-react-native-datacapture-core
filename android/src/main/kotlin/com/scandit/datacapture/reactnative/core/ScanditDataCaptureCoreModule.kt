@@ -12,34 +12,32 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
-import com.scandit.datacapture.frameworks.core.deserialization.DefaultDeserializationLifecycleObserver
-import com.scandit.datacapture.frameworks.core.deserialization.DeserializationLifecycleObserver
+import com.scandit.datacapture.frameworks.core.FrameworkModule
+import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
+import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
+import com.scandit.datacapture.frameworks.core.utils.DefaultLastFrameData
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
+import com.scandit.datacapture.frameworks.core.utils.LastFrameData
 import com.scandit.datacapture.frameworks.core.utils.MainThread
+import com.scandit.datacapture.reactnative.core.utils.Error
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
+import com.scandit.datacapture.reactnative.core.utils.reject
 
 class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
-    private val coreModule: CoreModule,
+    private val serviceLocator: ServiceLocator<FrameworkModule>,
     private val mainThread: MainThread = DefaultMainThread.getInstance(),
-) : ReactContextBaseJavaModule(reactContext), DeserializationLifecycleObserver.Observer {
+    private val lastFrameData: LastFrameData = DefaultLastFrameData.getInstance()
+) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
         private const val VERSION_KEY = "Version"
         private const val DEFAULTS_KEY = "Defaults"
+
+        private val ERROR_NULL_FRAME = Error(5, "Frame is null, it might've been reused already.")
     }
-
-    private val deserializationLifecycleObserver: DeserializationLifecycleObserver =
-        DefaultDeserializationLifecycleObserver.getInstance()
-
-    init {
-        coreModule.onCreate(reactContext)
-        deserializationLifecycleObserver.attach(this)
-    }
-
     override fun invalidate() {
         coreModule.onDestroy()
-        deserializationLifecycleObserver.detach(this)
         super.invalidate()
     }
 
@@ -93,8 +91,22 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun getFrame(frameId: String, promise: Promise) {
-        coreModule.getLastFrameAsJson(frameId, ReactNativeResult(promise))
+    fun getLastFrame(promise: Promise) {
+        lastFrameData.getLastFrameDataJson {
+            if (it == null) {
+                promise.reject(ERROR_NULL_FRAME)
+                return@getLastFrameDataJson
+            }
+
+            promise.resolve(it)
+        }
+    }
+
+    @ReactMethod
+    fun getLastFrameOrNull(promise: Promise) {
+        lastFrameData.getLastFrameDataJson {
+            promise.resolve(it)
+        }
     }
 
     @ReactMethod
@@ -157,8 +169,9 @@ class ScanditDataCaptureCoreModule(
         coreModule.updateDataCaptureView(viewJson, ReactNativeResult(promise))
     }
 
-    @ReactMethod
-    fun getOpenSourceSoftwareLicenseInfo(promise: Promise) {
-        coreModule.getOpenSourceSoftwareLicenseInfo(ReactNativeResult(promise))
-    }
+    private val coreModule: CoreModule
+        get() {
+            return serviceLocator.resolve(CoreModule::class.java.name) as? CoreModule?
+                ?: throw ModuleNotStartedError(ScanditDataCaptureCoreModule::class.java.simpleName)
+        }
 }

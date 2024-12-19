@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.homepage                = package["homepage"]
   s.license                 = package["license"]
   s.authors                 = { package["author"]["name"] => package["author"]["email"] }
-  s.platforms               = { :ios => "13.0" }
+  s.platforms               = { :ios => "14.0" }
   s.source                  = { :git => package["homepage"] + ".git", :tag => "#{s.version}" }
   s.swift_version           = '5.0'
   s.source_files            = "ios/Sources/**/*.{h,m,swift}"
@@ -18,6 +18,6 @@ Pod::Spec.new do |s|
   s.module_name             = "ScanditDataCaptureCore"
   s.header_dir              = "ScanditDataCaptureCore"
 
-  s.dependency "scandit-datacapture-frameworks-core", '= 6.28.2'
+  s.dependency "scandit-datacapture-frameworks-core", '= 7.0.1'
   s.dependency "React"
 end

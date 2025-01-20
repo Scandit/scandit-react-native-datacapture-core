@@ -3,8 +3,7 @@ export declare class NativeCameraProxy implements CameraProxy {
     private nativeListeners;
     private eventEmitter;
     constructor();
-    getLastFrame(): Promise<string>;
-    getLastFrameOrNull(): Promise<string | null>;
+    getFrame(frameId: string): Promise<string | null>;
     getCurrentCameraState(position: CameraPosition): Promise<FrameSourceState>;
     isTorchAvailable(position: CameraPosition): Promise<boolean>;
     switchCameraToDesiredState(desiredStateJson: string): Promise<void>;

@@ -1,5 +1,5 @@
 import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, ContextStatus, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FrameSourceState, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
 import { NativeModules, NativeEventEmitter, Platform, findNodeHandle, UIManager, requireNativeComponent } from 'react-native';
 import React from 'react';
 
@@ -57,11 +57,11 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
     get frameworkVersion() {
         return `${major}.${minor}.${patch}`;
     }
-    contextFromJSON(context) {
-        return NativeModule$4.contextFromJSON(JSON.stringify(context.toJSON()));
+    contextFromJSON(contextJson) {
+        return NativeModule$4.contextFromJSON(contextJson);
     }
-    updateContextFromJSON(context) {
-        return NativeModule$4.updateContextFromJSON(JSON.stringify(context.toJSON()));
+    updateContextFromJSON(contextJson) {
+        return NativeModule$4.updateContextFromJSON(contextJson);
     }
     addModeToContext(modeJson) {
         return NativeModule$4.addModeToContext(modeJson);
@@ -97,6 +97,9 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
             this.eventEmitter.emit(DataCaptureContextEvents.didStartObservingContext);
         });
         this.nativeListeners.push(didStartObservingContext);
+    }
+    getOpenSourceSoftwareLicenseInfo() {
+        return NativeModule$4.getOpenSourceSoftwareLicenseInfo();
     }
 }
 
@@ -167,11 +170,8 @@ class NativeCameraProxy {
     constructor() {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
-    getLastFrame() {
-        return NativeModule$2.getLastFrame();
-    }
-    getLastFrameOrNull() {
-        return NativeModule$2.getLastFrameOrNull();
+    getFrame(frameId) {
+        return NativeModule$2.getFrame(frameId);
     }
     getCurrentCameraState(position) {
         return NativeModule$2.getCurrentCameraState(position);
@@ -219,7 +219,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '6.28.3';
+        return '7.0.2';
     }
     static get sdkVersion() {
         return NativeModule.Version;

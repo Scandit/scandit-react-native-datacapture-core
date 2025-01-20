@@ -4,345 +4,352 @@ function getDefaultExportFromCjs (x) {
 
 var eventemitter3 = {exports: {}};
 
-(function (module) {
+var hasRequiredEventemitter3;
 
-	var has = Object.prototype.hasOwnProperty
-	  , prefix = '~';
+function requireEventemitter3 () {
+	if (hasRequiredEventemitter3) return eventemitter3.exports;
+	hasRequiredEventemitter3 = 1;
+	(function (module) {
 
-	/**
-	 * Constructor to create a storage for our `EE` objects.
-	 * An `Events` instance is a plain object whose properties are event names.
-	 *
-	 * @constructor
-	 * @private
-	 */
-	function Events() {}
+		var has = Object.prototype.hasOwnProperty
+		  , prefix = '~';
 
-	//
-	// We try to not inherit from `Object.prototype`. In some engines creating an
-	// instance in this way is faster than calling `Object.create(null)` directly.
-	// If `Object.create(null)` is not supported we prefix the event names with a
-	// character to make sure that the built-in object properties are not
-	// overridden or used as an attack vector.
-	//
-	if (Object.create) {
-	  Events.prototype = Object.create(null);
+		/**
+		 * Constructor to create a storage for our `EE` objects.
+		 * An `Events` instance is a plain object whose properties are event names.
+		 *
+		 * @constructor
+		 * @private
+		 */
+		function Events() {}
 
-	  //
-	  // This hack is needed because the `__proto__` property is still inherited in
-	  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
-	  //
-	  if (!new Events().__proto__) prefix = false;
-	}
+		//
+		// We try to not inherit from `Object.prototype`. In some engines creating an
+		// instance in this way is faster than calling `Object.create(null)` directly.
+		// If `Object.create(null)` is not supported we prefix the event names with a
+		// character to make sure that the built-in object properties are not
+		// overridden or used as an attack vector.
+		//
+		if (Object.create) {
+		  Events.prototype = Object.create(null);
 
-	/**
-	 * Representation of a single event listener.
-	 *
-	 * @param {Function} fn The listener function.
-	 * @param {*} context The context to invoke the listener with.
-	 * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
-	 * @constructor
-	 * @private
-	 */
-	function EE(fn, context, once) {
-	  this.fn = fn;
-	  this.context = context;
-	  this.once = once || false;
-	}
+		  //
+		  // This hack is needed because the `__proto__` property is still inherited in
+		  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
+		  //
+		  if (!new Events().__proto__) prefix = false;
+		}
 
-	/**
-	 * Add a listener for a given event.
-	 *
-	 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} context The context to invoke the listener with.
-	 * @param {Boolean} once Specify if the listener is a one-time listener.
-	 * @returns {EventEmitter}
-	 * @private
-	 */
-	function addListener(emitter, event, fn, context, once) {
-	  if (typeof fn !== 'function') {
-	    throw new TypeError('The listener must be a function');
-	  }
+		/**
+		 * Representation of a single event listener.
+		 *
+		 * @param {Function} fn The listener function.
+		 * @param {*} context The context to invoke the listener with.
+		 * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+		 * @constructor
+		 * @private
+		 */
+		function EE(fn, context, once) {
+		  this.fn = fn;
+		  this.context = context;
+		  this.once = once || false;
+		}
 
-	  var listener = new EE(fn, context || emitter, once)
-	    , evt = prefix ? prefix + event : event;
+		/**
+		 * Add a listener for a given event.
+		 *
+		 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} context The context to invoke the listener with.
+		 * @param {Boolean} once Specify if the listener is a one-time listener.
+		 * @returns {EventEmitter}
+		 * @private
+		 */
+		function addListener(emitter, event, fn, context, once) {
+		  if (typeof fn !== 'function') {
+		    throw new TypeError('The listener must be a function');
+		  }
 
-	  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
-	  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
-	  else emitter._events[evt] = [emitter._events[evt], listener];
+		  var listener = new EE(fn, context || emitter, once)
+		    , evt = prefix ? prefix + event : event;
 
-	  return emitter;
-	}
+		  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
+		  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
+		  else emitter._events[evt] = [emitter._events[evt], listener];
 
-	/**
-	 * Clear event by name.
-	 *
-	 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
-	 * @param {(String|Symbol)} evt The Event name.
-	 * @private
-	 */
-	function clearEvent(emitter, evt) {
-	  if (--emitter._eventsCount === 0) emitter._events = new Events();
-	  else delete emitter._events[evt];
-	}
+		  return emitter;
+		}
 
-	/**
-	 * Minimal `EventEmitter` interface that is molded against the Node.js
-	 * `EventEmitter` interface.
-	 *
-	 * @constructor
-	 * @public
-	 */
-	function EventEmitter() {
-	  this._events = new Events();
-	  this._eventsCount = 0;
-	}
+		/**
+		 * Clear event by name.
+		 *
+		 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+		 * @param {(String|Symbol)} evt The Event name.
+		 * @private
+		 */
+		function clearEvent(emitter, evt) {
+		  if (--emitter._eventsCount === 0) emitter._events = new Events();
+		  else delete emitter._events[evt];
+		}
 
-	/**
-	 * Return an array listing the events for which the emitter has registered
-	 * listeners.
-	 *
-	 * @returns {Array}
-	 * @public
-	 */
-	EventEmitter.prototype.eventNames = function eventNames() {
-	  var names = []
-	    , events
-	    , name;
+		/**
+		 * Minimal `EventEmitter` interface that is molded against the Node.js
+		 * `EventEmitter` interface.
+		 *
+		 * @constructor
+		 * @public
+		 */
+		function EventEmitter() {
+		  this._events = new Events();
+		  this._eventsCount = 0;
+		}
 
-	  if (this._eventsCount === 0) return names;
+		/**
+		 * Return an array listing the events for which the emitter has registered
+		 * listeners.
+		 *
+		 * @returns {Array}
+		 * @public
+		 */
+		EventEmitter.prototype.eventNames = function eventNames() {
+		  var names = []
+		    , events
+		    , name;
 
-	  for (name in (events = this._events)) {
-	    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
-	  }
+		  if (this._eventsCount === 0) return names;
 
-	  if (Object.getOwnPropertySymbols) {
-	    return names.concat(Object.getOwnPropertySymbols(events));
-	  }
+		  for (name in (events = this._events)) {
+		    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
+		  }
 
-	  return names;
-	};
+		  if (Object.getOwnPropertySymbols) {
+		    return names.concat(Object.getOwnPropertySymbols(events));
+		  }
 
-	/**
-	 * Return the listeners registered for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Array} The registered listeners.
-	 * @public
-	 */
-	EventEmitter.prototype.listeners = function listeners(event) {
-	  var evt = prefix ? prefix + event : event
-	    , handlers = this._events[evt];
+		  return names;
+		};
 
-	  if (!handlers) return [];
-	  if (handlers.fn) return [handlers.fn];
+		/**
+		 * Return the listeners registered for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Array} The registered listeners.
+		 * @public
+		 */
+		EventEmitter.prototype.listeners = function listeners(event) {
+		  var evt = prefix ? prefix + event : event
+		    , handlers = this._events[evt];
 
-	  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
-	    ee[i] = handlers[i].fn;
-	  }
+		  if (!handlers) return [];
+		  if (handlers.fn) return [handlers.fn];
 
-	  return ee;
-	};
+		  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
+		    ee[i] = handlers[i].fn;
+		  }
 
-	/**
-	 * Return the number of listeners listening to a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Number} The number of listeners.
-	 * @public
-	 */
-	EventEmitter.prototype.listenerCount = function listenerCount(event) {
-	  var evt = prefix ? prefix + event : event
-	    , listeners = this._events[evt];
+		  return ee;
+		};
 
-	  if (!listeners) return 0;
-	  if (listeners.fn) return 1;
-	  return listeners.length;
-	};
+		/**
+		 * Return the number of listeners listening to a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Number} The number of listeners.
+		 * @public
+		 */
+		EventEmitter.prototype.listenerCount = function listenerCount(event) {
+		  var evt = prefix ? prefix + event : event
+		    , listeners = this._events[evt];
 
-	/**
-	 * Calls each of the listeners registered for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Boolean} `true` if the event had listeners, else `false`.
-	 * @public
-	 */
-	EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
-	  var evt = prefix ? prefix + event : event;
+		  if (!listeners) return 0;
+		  if (listeners.fn) return 1;
+		  return listeners.length;
+		};
 
-	  if (!this._events[evt]) return false;
+		/**
+		 * Calls each of the listeners registered for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Boolean} `true` if the event had listeners, else `false`.
+		 * @public
+		 */
+		EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+		  var evt = prefix ? prefix + event : event;
 
-	  var listeners = this._events[evt]
-	    , len = arguments.length
-	    , args
-	    , i;
+		  if (!this._events[evt]) return false;
 
-	  if (listeners.fn) {
-	    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+		  var listeners = this._events[evt]
+		    , len = arguments.length
+		    , args
+		    , i;
 
-	    switch (len) {
-	      case 1: return listeners.fn.call(listeners.context), true;
-	      case 2: return listeners.fn.call(listeners.context, a1), true;
-	      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
-	      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
-	      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
-	      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
-	    }
+		  if (listeners.fn) {
+		    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
 
-	    for (i = 1, args = new Array(len -1); i < len; i++) {
-	      args[i - 1] = arguments[i];
-	    }
+		    switch (len) {
+		      case 1: return listeners.fn.call(listeners.context), true;
+		      case 2: return listeners.fn.call(listeners.context, a1), true;
+		      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+		      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+		      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+		      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+		    }
 
-	    listeners.fn.apply(listeners.context, args);
-	  } else {
-	    var length = listeners.length
-	      , j;
+		    for (i = 1, args = new Array(len -1); i < len; i++) {
+		      args[i - 1] = arguments[i];
+		    }
 
-	    for (i = 0; i < length; i++) {
-	      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
+		    listeners.fn.apply(listeners.context, args);
+		  } else {
+		    var length = listeners.length
+		      , j;
 
-	      switch (len) {
-	        case 1: listeners[i].fn.call(listeners[i].context); break;
-	        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
-	        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
-	        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
-	        default:
-	          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
-	            args[j - 1] = arguments[j];
-	          }
+		    for (i = 0; i < length; i++) {
+		      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
 
-	          listeners[i].fn.apply(listeners[i].context, args);
-	      }
-	    }
-	  }
+		      switch (len) {
+		        case 1: listeners[i].fn.call(listeners[i].context); break;
+		        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
+		        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
+		        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
+		        default:
+		          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
+		            args[j - 1] = arguments[j];
+		          }
 
-	  return true;
-	};
+		          listeners[i].fn.apply(listeners[i].context, args);
+		      }
+		    }
+		  }
 
-	/**
-	 * Add a listener for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} [context=this] The context to invoke the listener with.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.on = function on(event, fn, context) {
-	  return addListener(this, event, fn, context, false);
-	};
+		  return true;
+		};
 
-	/**
-	 * Add a one-time listener for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} [context=this] The context to invoke the listener with.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.once = function once(event, fn, context) {
-	  return addListener(this, event, fn, context, true);
-	};
+		/**
+		 * Add a listener for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} [context=this] The context to invoke the listener with.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.on = function on(event, fn, context) {
+		  return addListener(this, event, fn, context, false);
+		};
 
-	/**
-	 * Remove the listeners of a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn Only remove the listeners that match this function.
-	 * @param {*} context Only remove the listeners that have this context.
-	 * @param {Boolean} once Only remove one-time listeners.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
-	  var evt = prefix ? prefix + event : event;
+		/**
+		 * Add a one-time listener for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} [context=this] The context to invoke the listener with.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.once = function once(event, fn, context) {
+		  return addListener(this, event, fn, context, true);
+		};
 
-	  if (!this._events[evt]) return this;
-	  if (!fn) {
-	    clearEvent(this, evt);
-	    return this;
-	  }
+		/**
+		 * Remove the listeners of a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn Only remove the listeners that match this function.
+		 * @param {*} context Only remove the listeners that have this context.
+		 * @param {Boolean} once Only remove one-time listeners.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+		  var evt = prefix ? prefix + event : event;
 
-	  var listeners = this._events[evt];
+		  if (!this._events[evt]) return this;
+		  if (!fn) {
+		    clearEvent(this, evt);
+		    return this;
+		  }
 
-	  if (listeners.fn) {
-	    if (
-	      listeners.fn === fn &&
-	      (!once || listeners.once) &&
-	      (!context || listeners.context === context)
-	    ) {
-	      clearEvent(this, evt);
-	    }
-	  } else {
-	    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
-	      if (
-	        listeners[i].fn !== fn ||
-	        (once && !listeners[i].once) ||
-	        (context && listeners[i].context !== context)
-	      ) {
-	        events.push(listeners[i]);
-	      }
-	    }
+		  var listeners = this._events[evt];
 
-	    //
-	    // Reset the array, or remove it completely if we have no more listeners.
-	    //
-	    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
-	    else clearEvent(this, evt);
-	  }
+		  if (listeners.fn) {
+		    if (
+		      listeners.fn === fn &&
+		      (!once || listeners.once) &&
+		      (!context || listeners.context === context)
+		    ) {
+		      clearEvent(this, evt);
+		    }
+		  } else {
+		    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+		      if (
+		        listeners[i].fn !== fn ||
+		        (once && !listeners[i].once) ||
+		        (context && listeners[i].context !== context)
+		      ) {
+		        events.push(listeners[i]);
+		      }
+		    }
 
-	  return this;
-	};
+		    //
+		    // Reset the array, or remove it completely if we have no more listeners.
+		    //
+		    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+		    else clearEvent(this, evt);
+		  }
 
-	/**
-	 * Remove all listeners, or those of the specified event.
-	 *
-	 * @param {(String|Symbol)} [event] The event name.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
-	  var evt;
+		  return this;
+		};
 
-	  if (event) {
-	    evt = prefix ? prefix + event : event;
-	    if (this._events[evt]) clearEvent(this, evt);
-	  } else {
-	    this._events = new Events();
-	    this._eventsCount = 0;
-	  }
+		/**
+		 * Remove all listeners, or those of the specified event.
+		 *
+		 * @param {(String|Symbol)} [event] The event name.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+		  var evt;
 
-	  return this;
-	};
+		  if (event) {
+		    evt = prefix ? prefix + event : event;
+		    if (this._events[evt]) clearEvent(this, evt);
+		  } else {
+		    this._events = new Events();
+		    this._eventsCount = 0;
+		  }
 
-	//
-	// Alias methods names because people roll like that.
-	//
-	EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+		  return this;
+		};
 
-	//
-	// Expose the prefix.
-	//
-	EventEmitter.prefixed = prefix;
+		//
+		// Alias methods names because people roll like that.
+		//
+		EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+		EventEmitter.prototype.addListener = EventEmitter.prototype.on;
 
-	//
-	// Allow `EventEmitter` to be imported as module namespace.
-	//
-	EventEmitter.EventEmitter = EventEmitter;
+		//
+		// Expose the prefix.
+		//
+		EventEmitter.prefixed = prefix;
 
-	//
-	// Expose the module.
-	//
-	{
-	  module.exports = EventEmitter;
-	} 
-} (eventemitter3));
+		//
+		// Allow `EventEmitter` to be imported as module namespace.
+		//
+		EventEmitter.EventEmitter = EventEmitter;
 
-var eventemitter3Exports = eventemitter3.exports;
+		//
+		// Expose the module.
+		//
+		{
+		  module.exports = EventEmitter;
+		} 
+	} (eventemitter3));
+	return eventemitter3.exports;
+}
+
+var eventemitter3Exports = requireEventemitter3();
 var EventEmitter = /*@__PURE__*/getDefaultExportFromCjs(eventemitter3Exports);
 
 class FactoryMaker {
@@ -517,7 +524,7 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
+/* global Reflect, Promise, SuppressedError, Symbol, Iterator */
 
 
 function __decorate(decorators, target, key, desc) {
@@ -717,6 +724,12 @@ class PrivateFrameData {
         frameData._orientation = json.orientation;
         return frameData;
     }
+    static empty() {
+        const frameData = new PrivateFrameData();
+        frameData._imageBuffers = [];
+        frameData._orientation = 90;
+        return frameData;
+    }
 }
 
 class CameraController {
@@ -734,17 +747,20 @@ class CameraController {
     get privateCamera() {
         return this.camera;
     }
-    static getLastFrame() {
+    static getFrame(frameId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const frameDataJSONString = yield CameraController._proxy.getLastFrame();
+            const frameDataJSONString = yield CameraController._proxy.getFrame(frameId);
+            if (frameDataJSONString == null) {
+                return PrivateFrameData.empty();
+            }
             const frameDataJSON = JSON.parse(frameDataJSONString);
             return PrivateFrameData.fromJSON(frameDataJSON);
         });
     }
-    static getLastFrameOrNull() {
+    static getFrameOrNull(frameId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const frameDataJSONString = yield CameraController._proxy.getLastFrameOrNull();
-            if (frameDataJSONString === null || frameDataJSONString === undefined) {
+            const frameDataJSONString = yield CameraController._proxy.getFrame(frameId);
+            if (frameDataJSONString == null) {
                 return null;
             }
             const frameDataJSON = JSON.parse(frameDataJSONString);
@@ -999,6 +1015,15 @@ class DataCaptureContextFeatures {
 }
 DataCaptureContextFeatures._featureFlags = {};
 
+class OpenSourceSoftwareLicenseInfo {
+    constructor(licenseText) {
+        this._licenseText = licenseText;
+    }
+    get licenseText() {
+        return this._licenseText;
+    }
+}
+
 var DataCaptureContextEvents;
 (function (DataCaptureContextEvents) {
     DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
@@ -1027,7 +1052,7 @@ class DataCaptureContextController {
     updateContextFromJSON() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield this._proxy.updateContextFromJSON(this.context);
+                yield this._proxy.updateContextFromJSON(JSON.stringify(this.context.toJSON()));
             }
             catch (error) {
                 this.notifyListenersOfDeserializationError(error);
@@ -1060,7 +1085,7 @@ class DataCaptureContextController {
     initializeContextFromJSON() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const featureFlagsString = yield this._proxy.contextFromJSON(this.context);
+                const featureFlagsString = yield this._proxy.contextFromJSON(JSON.stringify(this.context.toJSON()));
                 DataCaptureContextFeatures.featureFlags =
                     JSON.parse(featureFlagsString);
             }
@@ -1068,6 +1093,13 @@ class DataCaptureContextController {
                 this.notifyListenersOfDeserializationError(error);
                 throw error;
             }
+        });
+    }
+    static getOpenSourceSoftwareLicenseInfo() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+            const licenseText = yield proxy.getOpenSourceSoftwareLicenseInfo();
+            return new OpenSourceSoftwareLicenseInfo(licenseText);
         });
     }
     subscribeListener() {
@@ -1127,25 +1159,24 @@ class DataCaptureContext extends DefaultSerializeable {
         return DataCaptureContext.deviceID;
     }
     static forLicenseKey(licenseKey) {
-        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+        return DataCaptureContext.create(licenseKey, null, null);
     }
     static forLicenseKeyWithSettings(licenseKey, settings) {
-        const context = this.forLicenseKey(licenseKey);
-        if (settings !== null) {
-            context.applySettings(settings);
-        }
-        return context;
+        return DataCaptureContext.create(licenseKey, null, settings);
     }
     static forLicenseKeyWithOptions(licenseKey, options) {
+        return DataCaptureContext.create(licenseKey, options, null);
+    }
+    static create(licenseKey, options, settings) {
         if (options == null) {
             options = { deviceName: null };
         }
         if (!DataCaptureContext.instance) {
-            DataCaptureContext.instance = new DataCaptureContext(licenseKey, options.deviceName || '');
+            DataCaptureContext.instance = new DataCaptureContext(licenseKey, options.deviceName || '', settings);
         }
         return DataCaptureContext.instance;
     }
-    constructor(licenseKey, deviceName) {
+    constructor(licenseKey, deviceName, settings) {
         super();
         this.licenseKey = licenseKey;
         this.deviceName = deviceName;
@@ -1154,6 +1185,9 @@ class DataCaptureContext extends DefaultSerializeable {
         this.view = null;
         this.modes = [];
         this.listeners = [];
+        if (settings) {
+            this.settings = settings;
+        }
         this.initialize();
     }
     setFrameSource(frameSource) {
@@ -1212,6 +1246,11 @@ class DataCaptureContext extends DefaultSerializeable {
     applySettings(settings) {
         this.settings = settings;
         return this.update();
+    }
+    static getOpenSourceSoftwareLicenseInfo() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return DataCaptureContextController.getOpenSourceSoftwareLicenseInfo();
+        });
     }
     // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
     initialize() {
@@ -2350,15 +2389,6 @@ class CameraSettings extends DefaultSerializeable {
     set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
         this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
     }
-    get maxFrameRate() {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-        return 0;
-    }
-    set maxFrameRate(newValue) {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-    }
     static fromJSON(json) {
         const settings = new CameraSettings();
         settings.preferredResolution = json.preferredResolution;
@@ -2444,69 +2474,6 @@ class RectangularViewfinderAnimation extends DefaultSerializeable {
 __decorate([
     nameForSerialization('isLooping')
 ], RectangularViewfinderAnimation.prototype, "_isLooping", void 0);
-
-class SpotlightViewfinder extends DefaultSerializeable {
-    get sizeWithUnitAndAspect() {
-        return this._sizeWithUnitAndAspect;
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor() {
-        super();
-        this.type = 'spotlight';
-        console.warn('SpotlightViewfinder is deprecated and will be removed in a future release. Use RectangularViewfinder instead.');
-        this._sizeWithUnitAndAspect = this.coreDefaults.SpotlightViewfinder.size;
-        this.enabledBorderColor = this.coreDefaults.SpotlightViewfinder.enabledBorderColor;
-        this.disabledBorderColor = this.coreDefaults.SpotlightViewfinder.disabledBorderColor;
-        this.backgroundColor = this.coreDefaults.SpotlightViewfinder.backgroundColor;
-    }
-    setSize(size) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
-    }
-    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
-    }
-    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
-    }
-}
-__decorate([
-    nameForSerialization('size')
-], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
-
-/**
- * @deprecated LaserlineViewfinder is deprecated.
- */
-class LaserlineViewfinder extends DefaultSerializeable {
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor(style) {
-        super();
-        this.type = 'laserline';
-        const viewfinderStyle = style || this.coreDefaults.LaserlineViewfinder.defaultStyle;
-        this._style = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].style;
-        this.width = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].width;
-        this.enabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].enabledColor;
-        this.disabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].disabledColor;
-    }
-    get style() {
-        return this._style;
-    }
-}
-__decorate([
-    nameForSerialization('style')
-], LaserlineViewfinder.prototype, "_style", void 0);
-
-/**
- * @deprecated LaserlineViewfinderStyle is deprecated.
- */
-var LaserlineViewfinderStyle;
-(function (LaserlineViewfinderStyle) {
-    LaserlineViewfinderStyle["Legacy"] = "legacy";
-    LaserlineViewfinderStyle["Animated"] = "animated";
-})(LaserlineViewfinderStyle || (LaserlineViewfinderStyle = {}));
 
 class RectangularViewfinder extends DefaultSerializeable {
     get sizeWithUnitAndAspect() {
@@ -2615,10 +2582,6 @@ __decorate([
 
 var RectangularViewfinderStyle;
 (function (RectangularViewfinderStyle) {
-    /**
-     * @deprecated The legacy style of the RectangularViewfinder is deprecated.
-     */
-    RectangularViewfinderStyle["Legacy"] = "legacy";
     RectangularViewfinderStyle["Rounded"] = "rounded";
     RectangularViewfinderStyle["Square"] = "square";
 })(RectangularViewfinderStyle || (RectangularViewfinderStyle = {}));
@@ -2670,21 +2633,6 @@ function parseDefaults(jsonDefaults) {
                 .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.zoomGesture)),
             logoStyle: jsonDefaults.DataCaptureView.logoStyle,
         },
-        LaserlineViewfinder: Object
-            .keys(jsonDefaults.LaserlineViewfinder.styles)
-            .reduce((acc, key) => {
-            const viewfinder = jsonDefaults.LaserlineViewfinder.styles[key];
-            acc.styles[key] = {
-                width: NumberWithUnit
-                    .fromJSON(JSON.parse(viewfinder.width)),
-                enabledColor: Color
-                    .fromJSON(viewfinder.enabledColor),
-                disabledColor: Color
-                    .fromJSON(viewfinder.disabledColor),
-                style: viewfinder.style,
-            };
-            return acc;
-        }, { defaultStyle: jsonDefaults.LaserlineViewfinder.defaultStyle, styles: {} }),
         RectangularViewfinder: Object
             .keys(jsonDefaults.RectangularViewfinder.styles)
             .reduce((acc, key) => {
@@ -2703,27 +2651,13 @@ function parseDefaults(jsonDefaults) {
             };
             return acc;
         }, { defaultStyle: jsonDefaults.RectangularViewfinder.defaultStyle, styles: {} }),
-        SpotlightViewfinder: {
-            size: SizeWithUnitAndAspect
-                .fromJSON(JSON.parse(jsonDefaults.SpotlightViewfinder.size)),
-            enabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.enabledBorderColor),
-            disabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.disabledBorderColor),
-            backgroundColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.backgroundColor),
-        },
         AimerViewfinder: {
             frameColor: Color.fromJSON(jsonDefaults.AimerViewfinder.frameColor),
             dotColor: Color.fromJSON(jsonDefaults.AimerViewfinder.dotColor),
         },
-        Brush: {
-            fillColor: Color
-                .fromJSON(jsonDefaults.Brush.fillColor),
-            strokeColor: Color
-                .fromJSON(jsonDefaults.Brush.strokeColor),
-            strokeWidth: jsonDefaults.Brush.strokeWidth,
-        },
+        Brush: new Brush(Color
+            .fromJSON(jsonDefaults.Brush.fillColor), Color
+            .fromJSON(jsonDefaults.Brush.strokeColor), jsonDefaults.Brush.strokeWidth),
         deviceID: jsonDefaults.deviceID,
     };
     // Inject defaults to avoid a circular dependency between these classes and the defaults
@@ -2962,5 +2896,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextFeatures, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextFeatures, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

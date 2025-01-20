@@ -68,7 +68,7 @@ if (file( "${rootProject.projectDir}/build-test.gradle").exists()) {
 }
 
 dependencies {
-    def sdk_version = "6.28.3"
+    def sdk_version = "7.0.2"
 
     println("Version of the native sdk used in this build: ${safeExtGet('global_sdk_version', sdk_version)}")
     if (findProject(':scandit-datacapture-frameworks-core') != null) {

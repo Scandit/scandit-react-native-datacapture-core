@@ -4,345 +4,352 @@ function getDefaultExportFromCjs (x) {
 
 var eventemitter3 = {exports: {}};
 
-(function (module) {
+var hasRequiredEventemitter3;
 
-	var has = Object.prototype.hasOwnProperty
-	  , prefix = '~';
+function requireEventemitter3 () {
+	if (hasRequiredEventemitter3) return eventemitter3.exports;
+	hasRequiredEventemitter3 = 1;
+	(function (module) {
 
-	/**
-	 * Constructor to create a storage for our `EE` objects.
-	 * An `Events` instance is a plain object whose properties are event names.
-	 *
-	 * @constructor
-	 * @private
-	 */
-	function Events() {}
+		var has = Object.prototype.hasOwnProperty
+		  , prefix = '~';
 
-	//
-	// We try to not inherit from `Object.prototype`. In some engines creating an
-	// instance in this way is faster than calling `Object.create(null)` directly.
-	// If `Object.create(null)` is not supported we prefix the event names with a
-	// character to make sure that the built-in object properties are not
-	// overridden or used as an attack vector.
-	//
-	if (Object.create) {
-	  Events.prototype = Object.create(null);
+		/**
+		 * Constructor to create a storage for our `EE` objects.
+		 * An `Events` instance is a plain object whose properties are event names.
+		 *
+		 * @constructor
+		 * @private
+		 */
+		function Events() {}
 
-	  //
-	  // This hack is needed because the `__proto__` property is still inherited in
-	  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
-	  //
-	  if (!new Events().__proto__) prefix = false;
-	}
+		//
+		// We try to not inherit from `Object.prototype`. In some engines creating an
+		// instance in this way is faster than calling `Object.create(null)` directly.
+		// If `Object.create(null)` is not supported we prefix the event names with a
+		// character to make sure that the built-in object properties are not
+		// overridden or used as an attack vector.
+		//
+		if (Object.create) {
+		  Events.prototype = Object.create(null);
 
-	/**
-	 * Representation of a single event listener.
-	 *
-	 * @param {Function} fn The listener function.
-	 * @param {*} context The context to invoke the listener with.
-	 * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
-	 * @constructor
-	 * @private
-	 */
-	function EE(fn, context, once) {
-	  this.fn = fn;
-	  this.context = context;
-	  this.once = once || false;
-	}
+		  //
+		  // This hack is needed because the `__proto__` property is still inherited in
+		  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
+		  //
+		  if (!new Events().__proto__) prefix = false;
+		}
 
-	/**
-	 * Add a listener for a given event.
-	 *
-	 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} context The context to invoke the listener with.
-	 * @param {Boolean} once Specify if the listener is a one-time listener.
-	 * @returns {EventEmitter}
-	 * @private
-	 */
-	function addListener(emitter, event, fn, context, once) {
-	  if (typeof fn !== 'function') {
-	    throw new TypeError('The listener must be a function');
-	  }
+		/**
+		 * Representation of a single event listener.
+		 *
+		 * @param {Function} fn The listener function.
+		 * @param {*} context The context to invoke the listener with.
+		 * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+		 * @constructor
+		 * @private
+		 */
+		function EE(fn, context, once) {
+		  this.fn = fn;
+		  this.context = context;
+		  this.once = once || false;
+		}
 
-	  var listener = new EE(fn, context || emitter, once)
-	    , evt = prefix ? prefix + event : event;
+		/**
+		 * Add a listener for a given event.
+		 *
+		 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} context The context to invoke the listener with.
+		 * @param {Boolean} once Specify if the listener is a one-time listener.
+		 * @returns {EventEmitter}
+		 * @private
+		 */
+		function addListener(emitter, event, fn, context, once) {
+		  if (typeof fn !== 'function') {
+		    throw new TypeError('The listener must be a function');
+		  }
 
-	  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
-	  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
-	  else emitter._events[evt] = [emitter._events[evt], listener];
+		  var listener = new EE(fn, context || emitter, once)
+		    , evt = prefix ? prefix + event : event;
 
-	  return emitter;
-	}
+		  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
+		  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
+		  else emitter._events[evt] = [emitter._events[evt], listener];
 
-	/**
-	 * Clear event by name.
-	 *
-	 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
-	 * @param {(String|Symbol)} evt The Event name.
-	 * @private
-	 */
-	function clearEvent(emitter, evt) {
-	  if (--emitter._eventsCount === 0) emitter._events = new Events();
-	  else delete emitter._events[evt];
-	}
+		  return emitter;
+		}
 
-	/**
-	 * Minimal `EventEmitter` interface that is molded against the Node.js
-	 * `EventEmitter` interface.
-	 *
-	 * @constructor
-	 * @public
-	 */
-	function EventEmitter() {
-	  this._events = new Events();
-	  this._eventsCount = 0;
-	}
+		/**
+		 * Clear event by name.
+		 *
+		 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+		 * @param {(String|Symbol)} evt The Event name.
+		 * @private
+		 */
+		function clearEvent(emitter, evt) {
+		  if (--emitter._eventsCount === 0) emitter._events = new Events();
+		  else delete emitter._events[evt];
+		}
 
-	/**
-	 * Return an array listing the events for which the emitter has registered
-	 * listeners.
-	 *
-	 * @returns {Array}
-	 * @public
-	 */
-	EventEmitter.prototype.eventNames = function eventNames() {
-	  var names = []
-	    , events
-	    , name;
+		/**
+		 * Minimal `EventEmitter` interface that is molded against the Node.js
+		 * `EventEmitter` interface.
+		 *
+		 * @constructor
+		 * @public
+		 */
+		function EventEmitter() {
+		  this._events = new Events();
+		  this._eventsCount = 0;
+		}
 
-	  if (this._eventsCount === 0) return names;
+		/**
+		 * Return an array listing the events for which the emitter has registered
+		 * listeners.
+		 *
+		 * @returns {Array}
+		 * @public
+		 */
+		EventEmitter.prototype.eventNames = function eventNames() {
+		  var names = []
+		    , events
+		    , name;
 
-	  for (name in (events = this._events)) {
-	    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
-	  }
+		  if (this._eventsCount === 0) return names;
 
-	  if (Object.getOwnPropertySymbols) {
-	    return names.concat(Object.getOwnPropertySymbols(events));
-	  }
+		  for (name in (events = this._events)) {
+		    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
+		  }
 
-	  return names;
-	};
+		  if (Object.getOwnPropertySymbols) {
+		    return names.concat(Object.getOwnPropertySymbols(events));
+		  }
 
-	/**
-	 * Return the listeners registered for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Array} The registered listeners.
-	 * @public
-	 */
-	EventEmitter.prototype.listeners = function listeners(event) {
-	  var evt = prefix ? prefix + event : event
-	    , handlers = this._events[evt];
+		  return names;
+		};
 
-	  if (!handlers) return [];
-	  if (handlers.fn) return [handlers.fn];
+		/**
+		 * Return the listeners registered for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Array} The registered listeners.
+		 * @public
+		 */
+		EventEmitter.prototype.listeners = function listeners(event) {
+		  var evt = prefix ? prefix + event : event
+		    , handlers = this._events[evt];
 
-	  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
-	    ee[i] = handlers[i].fn;
-	  }
+		  if (!handlers) return [];
+		  if (handlers.fn) return [handlers.fn];
 
-	  return ee;
-	};
+		  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
+		    ee[i] = handlers[i].fn;
+		  }
 
-	/**
-	 * Return the number of listeners listening to a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Number} The number of listeners.
-	 * @public
-	 */
-	EventEmitter.prototype.listenerCount = function listenerCount(event) {
-	  var evt = prefix ? prefix + event : event
-	    , listeners = this._events[evt];
+		  return ee;
+		};
 
-	  if (!listeners) return 0;
-	  if (listeners.fn) return 1;
-	  return listeners.length;
-	};
+		/**
+		 * Return the number of listeners listening to a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Number} The number of listeners.
+		 * @public
+		 */
+		EventEmitter.prototype.listenerCount = function listenerCount(event) {
+		  var evt = prefix ? prefix + event : event
+		    , listeners = this._events[evt];
 
-	/**
-	 * Calls each of the listeners registered for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Boolean} `true` if the event had listeners, else `false`.
-	 * @public
-	 */
-	EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
-	  var evt = prefix ? prefix + event : event;
+		  if (!listeners) return 0;
+		  if (listeners.fn) return 1;
+		  return listeners.length;
+		};
 
-	  if (!this._events[evt]) return false;
+		/**
+		 * Calls each of the listeners registered for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Boolean} `true` if the event had listeners, else `false`.
+		 * @public
+		 */
+		EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+		  var evt = prefix ? prefix + event : event;
 
-	  var listeners = this._events[evt]
-	    , len = arguments.length
-	    , args
-	    , i;
+		  if (!this._events[evt]) return false;
 
-	  if (listeners.fn) {
-	    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+		  var listeners = this._events[evt]
+		    , len = arguments.length
+		    , args
+		    , i;
 
-	    switch (len) {
-	      case 1: return listeners.fn.call(listeners.context), true;
-	      case 2: return listeners.fn.call(listeners.context, a1), true;
-	      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
-	      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
-	      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
-	      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
-	    }
+		  if (listeners.fn) {
+		    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
 
-	    for (i = 1, args = new Array(len -1); i < len; i++) {
-	      args[i - 1] = arguments[i];
-	    }
+		    switch (len) {
+		      case 1: return listeners.fn.call(listeners.context), true;
+		      case 2: return listeners.fn.call(listeners.context, a1), true;
+		      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+		      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+		      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+		      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+		    }
 
-	    listeners.fn.apply(listeners.context, args);
-	  } else {
-	    var length = listeners.length
-	      , j;
+		    for (i = 1, args = new Array(len -1); i < len; i++) {
+		      args[i - 1] = arguments[i];
+		    }
 
-	    for (i = 0; i < length; i++) {
-	      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
+		    listeners.fn.apply(listeners.context, args);
+		  } else {
+		    var length = listeners.length
+		      , j;
 
-	      switch (len) {
-	        case 1: listeners[i].fn.call(listeners[i].context); break;
-	        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
-	        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
-	        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
-	        default:
-	          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
-	            args[j - 1] = arguments[j];
-	          }
+		    for (i = 0; i < length; i++) {
+		      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
 
-	          listeners[i].fn.apply(listeners[i].context, args);
-	      }
-	    }
-	  }
+		      switch (len) {
+		        case 1: listeners[i].fn.call(listeners[i].context); break;
+		        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
+		        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
+		        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
+		        default:
+		          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
+		            args[j - 1] = arguments[j];
+		          }
 
-	  return true;
-	};
+		          listeners[i].fn.apply(listeners[i].context, args);
+		      }
+		    }
+		  }
 
-	/**
-	 * Add a listener for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} [context=this] The context to invoke the listener with.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.on = function on(event, fn, context) {
-	  return addListener(this, event, fn, context, false);
-	};
+		  return true;
+		};
 
-	/**
-	 * Add a one-time listener for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} [context=this] The context to invoke the listener with.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.once = function once(event, fn, context) {
-	  return addListener(this, event, fn, context, true);
-	};
+		/**
+		 * Add a listener for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} [context=this] The context to invoke the listener with.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.on = function on(event, fn, context) {
+		  return addListener(this, event, fn, context, false);
+		};
 
-	/**
-	 * Remove the listeners of a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn Only remove the listeners that match this function.
-	 * @param {*} context Only remove the listeners that have this context.
-	 * @param {Boolean} once Only remove one-time listeners.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
-	  var evt = prefix ? prefix + event : event;
+		/**
+		 * Add a one-time listener for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} [context=this] The context to invoke the listener with.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.once = function once(event, fn, context) {
+		  return addListener(this, event, fn, context, true);
+		};
 
-	  if (!this._events[evt]) return this;
-	  if (!fn) {
-	    clearEvent(this, evt);
-	    return this;
-	  }
+		/**
+		 * Remove the listeners of a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn Only remove the listeners that match this function.
+		 * @param {*} context Only remove the listeners that have this context.
+		 * @param {Boolean} once Only remove one-time listeners.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+		  var evt = prefix ? prefix + event : event;
 
-	  var listeners = this._events[evt];
+		  if (!this._events[evt]) return this;
+		  if (!fn) {
+		    clearEvent(this, evt);
+		    return this;
+		  }
 
-	  if (listeners.fn) {
-	    if (
-	      listeners.fn === fn &&
-	      (!once || listeners.once) &&
-	      (!context || listeners.context === context)
-	    ) {
-	      clearEvent(this, evt);
-	    }
-	  } else {
-	    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
-	      if (
-	        listeners[i].fn !== fn ||
-	        (once && !listeners[i].once) ||
-	        (context && listeners[i].context !== context)
-	      ) {
-	        events.push(listeners[i]);
-	      }
-	    }
+		  var listeners = this._events[evt];
 
-	    //
-	    // Reset the array, or remove it completely if we have no more listeners.
-	    //
-	    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
-	    else clearEvent(this, evt);
-	  }
+		  if (listeners.fn) {
+		    if (
+		      listeners.fn === fn &&
+		      (!once || listeners.once) &&
+		      (!context || listeners.context === context)
+		    ) {
+		      clearEvent(this, evt);
+		    }
+		  } else {
+		    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+		      if (
+		        listeners[i].fn !== fn ||
+		        (once && !listeners[i].once) ||
+		        (context && listeners[i].context !== context)
+		      ) {
+		        events.push(listeners[i]);
+		      }
+		    }
 
-	  return this;
-	};
+		    //
+		    // Reset the array, or remove it completely if we have no more listeners.
+		    //
+		    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+		    else clearEvent(this, evt);
+		  }
 
-	/**
-	 * Remove all listeners, or those of the specified event.
-	 *
-	 * @param {(String|Symbol)} [event] The event name.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
-	  var evt;
+		  return this;
+		};
 
-	  if (event) {
-	    evt = prefix ? prefix + event : event;
-	    if (this._events[evt]) clearEvent(this, evt);
-	  } else {
-	    this._events = new Events();
-	    this._eventsCount = 0;
-	  }
+		/**
+		 * Remove all listeners, or those of the specified event.
+		 *
+		 * @param {(String|Symbol)} [event] The event name.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+		  var evt;
 
-	  return this;
-	};
+		  if (event) {
+		    evt = prefix ? prefix + event : event;
+		    if (this._events[evt]) clearEvent(this, evt);
+		  } else {
+		    this._events = new Events();
+		    this._eventsCount = 0;
+		  }
 
-	//
-	// Alias methods names because people roll like that.
-	//
-	EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+		  return this;
+		};
 
-	//
-	// Expose the prefix.
-	//
-	EventEmitter.prefixed = prefix;
+		//
+		// Alias methods names because people roll like that.
+		//
+		EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+		EventEmitter.prototype.addListener = EventEmitter.prototype.on;
 
-	//
-	// Allow `EventEmitter` to be imported as module namespace.
-	//
-	EventEmitter.EventEmitter = EventEmitter;
+		//
+		// Expose the prefix.
+		//
+		EventEmitter.prefixed = prefix;
 
-	//
-	// Expose the module.
-	//
-	{
-	  module.exports = EventEmitter;
-	} 
-} (eventemitter3));
+		//
+		// Allow `EventEmitter` to be imported as module namespace.
+		//
+		EventEmitter.EventEmitter = EventEmitter;
 
-var eventemitter3Exports = eventemitter3.exports;
+		//
+		// Expose the module.
+		//
+		{
+		  module.exports = EventEmitter;
+		} 
+	} (eventemitter3));
+	return eventemitter3.exports;
+}
+
+var eventemitter3Exports = requireEventemitter3();
 var EventEmitter = /*@__PURE__*/getDefaultExportFromCjs(eventemitter3Exports);
 
 class FactoryMaker {
@@ -378,6 +385,45 @@ function createEventEmitter() {
     FactoryMaker.bindInstanceIfNotExists('EventEmitter', ee);
 }
 
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global Reflect, Promise, SuppressedError, Symbol, Iterator */
+
+
+function __decorate(decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+
 class BaseController {
     get _proxy() {
         return FactoryMaker.getInstance(this.proxyName);
@@ -394,6 +440,108 @@ class BaseNativeProxy {
     constructor() {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
+}
+/**
+ * JS Proxy hook to act as middleware to all the calls performed by an AdvancedNativeProxy instance
+ * This will allow AdvancedNativeProxy to call dynamically the methods defined in the interface defined
+ * as parameter in createAdvancedNativeProxy function
+ */
+const advancedNativeProxyHook = {
+    /**
+     * Dynamic property getter for the AdvancedNativeProxy
+     * In order to call a native method this needs to be preceded by the `$` symbol on the name, ie `$methodName`
+     * In order to set a native event handler this needs to be preceded by `on$` prefix, ie `on$eventName`
+     * @param advancedNativeProxy
+     * @param prop
+     */
+    get(advancedNativeProxy, prop) {
+        // Important: $ and on$ are required since if they are not added all
+        // properties present on AdvancedNativeProxy will be redirected to the
+        // advancedNativeProxy._call, which will call native even for the own
+        // properties of the class
+        // All the methods with the following structure
+        // $methodName will be redirected to the special _call
+        // method on AdvancedNativeProxy
+        if (prop.startsWith("$")) {
+            return (args) => {
+                return advancedNativeProxy._call(prop.substring(1), args);
+            };
+            // All methods with the following structure
+            // on$methodName will trigger the event handler properties
+        }
+        else if (prop.startsWith("on$")) {
+            return advancedNativeProxy[prop.substring(3)];
+            // Everything else will be taken as a property
+        }
+        else {
+            return advancedNativeProxy[prop];
+        }
+    }
+};
+/**
+ * AdvancedNativeProxy will provide an easy way to communicate between native proxies
+ * and other parts of the architecture such as the controller layer
+ */
+class AdvancedNativeProxy extends BaseNativeProxy {
+    constructor(nativeCaller, events = []) {
+        super();
+        this.nativeCaller = nativeCaller;
+        this.events = events;
+        this.eventSubscriptions = new Map();
+        this.events.forEach((event) => __awaiter(this, void 0, void 0, function* () {
+            yield this._registerEvent(event);
+        }));
+        // Wrapping the AdvancedNativeProxy instance with the JS proxy hook
+        return new Proxy(this, advancedNativeProxyHook);
+    }
+    dispose() {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (const event of this.events) {
+                yield this._unregisterEvent(event);
+            }
+        });
+    }
+    _call(fnName, args) {
+        return this.nativeCaller.callFn(fnName, args);
+    }
+    _registerEvent(event) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const handler = (args) => __awaiter(this, void 0, void 0, function* () {
+                this.eventEmitter.emit(event.nativeEventName, args);
+            });
+            this.eventEmitter.on(event.nativeEventName, (args) => __awaiter(this, void 0, void 0, function* () {
+                // Call to the special method defined on the JS Proxy hook
+                yield this[`on$${event.name}`](args);
+            }));
+            const subscription = yield this.nativeCaller.registerEvent(event.nativeEventName, handler);
+            this.eventSubscriptions.set(event.name, subscription);
+        });
+    }
+    _unregisterEvent(event) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const subscription = this.eventSubscriptions.get(event.name);
+            yield this.nativeCaller.unregisterEvent(event.nativeEventName, subscription);
+            this.eventEmitter.off(event.nativeEventName);
+            this.eventSubscriptions.delete(event.name);
+        });
+    }
+}
+/**
+ * Function to create a custom AdvancedNativeProxy. This will return an object which will provide dynamically the
+ * methods specified in the PROXY interface.
+ *
+ * The Proxy interface implemented in order to call native methods will require a special mark
+ * `$methodName` for method calls
+ * `on$methodName` for the listeners added to the events defined in eventsEnum
+ * @param nativeCaller
+ * @param eventsEnum
+ */
+function createAdvancedNativeProxy(nativeCaller, eventsEnum = undefined) {
+    const eventsList = Object.entries(eventsEnum).map(([key, value]) => ({
+        name: key,
+        nativeEventName: value
+    }));
+    return new AdvancedNativeProxy(nativeCaller, eventsList);
 }
 
 function getCoreDefaults() {
@@ -503,45 +651,6 @@ class PrivateZoomGestureDeserializer {
     }
 }
 
-/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
-
-
-function __decorate(decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-}
-
-typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};
-
 var FrameSourceState;
 (function (FrameSourceState) {
     FrameSourceState["On"] = "on";
@@ -579,673 +688,21 @@ var FrameSourceListenerEvents;
     FrameSourceListenerEvents["didChangeState"] = "FrameSourceListener.onStateChanged";
 })(FrameSourceListenerEvents || (FrameSourceListenerEvents = {}));
 
-class ImageFrameSourceController {
-    static forImage(imageFrameSource) {
-        const controller = new ImageFrameSourceController();
-        controller.imageFrameSource = imageFrameSource;
-        return controller;
-    }
-    constructor() {
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-        this._proxy = FactoryMaker.getInstance('ImageFrameSourceProxy');
-    }
-    getCurrentState() {
-        return this._proxy.getCurrentCameraState(this.imageFrameSource.position);
-    }
-    switchCameraToDesiredState(desiredStateJson) {
-        return this._proxy.switchCameraToDesiredState(desiredStateJson);
-    }
-    subscribeListener() {
-        var _a, _b;
-        this._proxy.registerListenerForEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (payload) => {
-            const newState = payload.state;
-            this.imageFrameSource.listeners.forEach(listener => {
-                if (listener.didChangeState) {
-                    listener.didChangeState(this.imageFrameSource, newState);
-                }
-            });
-        });
-    }
-    unsubscribeListener() {
-        this._proxy.unregisterListenerForEvents();
-        this.eventEmitter.removeAllListeners(FrameSourceListenerEvents.didChangeState);
-    }
-}
+var FontFamily;
+(function (FontFamily) {
+    FontFamily["SystemDefault"] = "systemDefault";
+    FontFamily["ModernMono"] = "modernMono";
+    FontFamily["SystemSans"] = "systemSans";
+})(FontFamily || (FontFamily = {}));
 
-class ImageFrameSource extends DefaultSerializeable {
-    set context(newContext) {
-        if (newContext == null) {
-            this.controller.unsubscribeListener();
-        }
-        else if (this._context == null) {
-            this.controller.subscribeListener();
-        }
-        this._context = newContext;
-    }
-    get context() {
-        return this._context;
-    }
-    get desiredState() {
-        return this._desiredState;
-    }
-    static create(image) {
-        const imageFrameSource = new ImageFrameSource();
-        imageFrameSource.image = image;
-        return imageFrameSource;
-    }
-    static fromJSON(json) {
-        return ImageFrameSource.create(json.image);
-    }
-    constructor() {
-        super();
-        this.type = 'image';
-        this.image = '';
-        this._id = `${Date.now()}`;
-        this._desiredState = FrameSourceState.Off;
-        this.listeners = [];
-        this._context = null;
-        this.controller = ImageFrameSourceController.forImage(this);
-    }
-    didChange() {
-        if (this.context) {
-            return this.context.update();
-        }
-        else {
-            return Promise.resolve();
-        }
-    }
-    switchToDesiredState(state) {
-        this._desiredState = state;
-        return this.controller.switchCameraToDesiredState(state);
-    }
-    addListener(listener) {
-        if (listener == null) {
-            return;
-        }
-        if (this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.push(listener);
-    }
-    removeListener(listener) {
-        if (listener == null) {
-            return;
-        }
-        if (!this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.splice(this.listeners.indexOf(listener), 1);
-    }
-    getCurrentState() {
-        return this.controller.getCurrentState();
-    }
-}
-__decorate([
-    nameForSerialization('id')
-], ImageFrameSource.prototype, "_id", void 0);
-__decorate([
-    nameForSerialization('desiredState')
-], ImageFrameSource.prototype, "_desiredState", void 0);
-__decorate([
-    ignoreFromSerialization
-], ImageFrameSource.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], ImageFrameSource.prototype, "_context", void 0);
-__decorate([
-    ignoreFromSerialization
-], ImageFrameSource.prototype, "controller", void 0);
-
-class PrivateFrameData {
-    get imageBuffers() {
-        return this._imageBuffers;
-    }
-    get orientation() {
-        return this._orientation;
-    }
-    static fromJSON(json) {
-        const frameData = new PrivateFrameData();
-        frameData._imageBuffers = json.imageBuffers.map((imageBufferJSON) => {
-            const imageBuffer = new ImageBuffer();
-            imageBuffer._width = imageBufferJSON.width;
-            imageBuffer._height = imageBufferJSON.height;
-            imageBuffer._data = imageBufferJSON.data;
-            return imageBuffer;
-        });
-        frameData._orientation = json.orientation;
-        return frameData;
-    }
-}
-
-class CameraController {
-    static get _proxy() {
-        return FactoryMaker.getInstance('CameraProxy');
-    }
-    static forCamera(camera) {
-        const controller = new CameraController();
-        controller.camera = camera;
-        return controller;
-    }
-    constructor() {
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-    }
-    get privateCamera() {
-        return this.camera;
-    }
-    static getLastFrame() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const frameDataJSONString = yield CameraController._proxy.getLastFrame();
-            const frameDataJSON = JSON.parse(frameDataJSONString);
-            return PrivateFrameData.fromJSON(frameDataJSON);
-        });
-    }
-    static getLastFrameOrNull() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const frameDataJSONString = yield CameraController._proxy.getLastFrameOrNull();
-            if (frameDataJSONString === null || frameDataJSONString === undefined) {
-                return null;
-            }
-            const frameDataJSON = JSON.parse(frameDataJSONString);
-            return PrivateFrameData.fromJSON(frameDataJSON);
-        });
-    }
-    getCurrentState() {
-        return CameraController._proxy.getCurrentCameraState(this.privateCamera.position);
-    }
-    getIsTorchAvailable() {
-        return CameraController._proxy.isTorchAvailable(this.privateCamera.position);
-    }
-    switchCameraToDesiredState(desiredState) {
-        return CameraController._proxy.switchCameraToDesiredState(desiredState);
-    }
-    subscribeListener() {
-        var _a, _b;
-        CameraController._proxy.registerListenerForCameraEvents();
-        (_b = (_a = CameraController._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (state) => {
-            this.privateCamera.listeners.forEach(listener => {
-                var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, state);
-            });
-        });
-    }
-    unsubscribeListener() {
-        CameraController._proxy.unregisterListenerForCameraEvents();
-        this.eventEmitter.off(FrameSourceListenerEvents.didChangeState);
-    }
-}
-
-var TorchState;
-(function (TorchState) {
-    TorchState["On"] = "on";
-    TorchState["Off"] = "off";
-    TorchState["Auto"] = "auto";
-})(TorchState || (TorchState = {}));
-
-class Camera extends DefaultSerializeable {
-    static get coreDefaults() {
-        return getCoreDefaults();
-    }
-    set context(newContext) {
-        this._context = newContext;
-    }
-    get context() {
-        return this._context;
-    }
-    static get default() {
-        if (Camera.coreDefaults.Camera.defaultPosition) {
-            const camera = new Camera();
-            camera.position = Camera.coreDefaults.Camera.defaultPosition;
-            return camera;
-        }
-        else {
-            return null;
-        }
-    }
-    static withSettings(settings) {
-        const camera = Camera.default;
-        if (camera) {
-            camera.settings = settings;
-        }
-        return camera;
-    }
-    static asPositionWithSettings(cameraPosition, settings) {
-        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
-            const camera = new Camera();
-            camera.settings = settings;
-            camera.position = cameraPosition;
-            return camera;
-        }
-        else {
-            return null;
-        }
-    }
-    static atPosition(cameraPosition) {
-        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
-            const camera = new Camera();
-            camera.position = cameraPosition;
-            return camera;
-        }
-        else {
-            return null;
-        }
-    }
-    get desiredState() {
-        return this._desiredState;
-    }
-    set desiredTorchState(desiredTorchState) {
-        this._desiredTorchState = desiredTorchState;
-        this.didChange();
-    }
-    get desiredTorchState() {
-        return this._desiredTorchState;
-    }
-    constructor() {
-        super();
-        this.type = 'camera';
-        this.settings = null;
-        this._desiredTorchState = TorchState.Off;
-        this._desiredState = FrameSourceState.Off;
-        this.listeners = [];
-        this._context = null;
-        this.controller = CameraController.forCamera(this);
-    }
-    switchToDesiredState(state) {
-        this._desiredState = state;
-        return this.controller.switchCameraToDesiredState(state);
-    }
-    getCurrentState() {
-        return this.controller.getCurrentState();
-    }
-    getIsTorchAvailable() {
-        return this.controller.getIsTorchAvailable();
-    }
-    /**
-     * @deprecated
-     */
-    get isTorchAvailable() {
-        console.warn('isTorchAvailable is deprecated. Use getIsTorchAvailable instead.');
-        return false;
-    }
-    addListener(listener) {
-        if (listener == null) {
-            return;
-        }
-        if (this.listeners.length === 0) {
-            this.controller.subscribeListener();
-        }
-        if (this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.push(listener);
-    }
-    removeListener(listener) {
-        if (listener == null) {
-            return;
-        }
-        if (!this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.splice(this.listeners.indexOf(listener), 1);
-        if (this.listeners.length === 0) {
-            this.controller.unsubscribeListener();
-        }
-    }
-    applySettings(settings) {
-        this.settings = settings;
-        return this.didChange();
-    }
-    didChange() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.context) {
-                yield this.context.update();
-            }
-        });
-    }
-}
-__decorate([
-    serializationDefault({})
-], Camera.prototype, "settings", void 0);
-__decorate([
-    nameForSerialization('desiredTorchState')
-], Camera.prototype, "_desiredTorchState", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "_desiredState", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "_context", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera, "coreDefaults", null);
-
-class ControlImage extends DefaultSerializeable {
-    constructor(type, data, name) {
-        super();
-        this.type = type;
-        this._data = data;
-        this._name = name;
-    }
-    static fromBase64EncodedImage(data) {
-        if (data === null)
-            return null;
-        return new ControlImage("base64", data, null);
-    }
-    static fromResourceName(resource) {
-        return new ControlImage("resource", null, resource);
-    }
-    isBase64EncodedImage() {
-        return this.type === "base64";
-    }
-    get data() {
-        return this._data;
-    }
-}
-__decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('data')
-], ControlImage.prototype, "_data", void 0);
-__decorate([
-    ignoreFromSerializationIfNull,
-    nameForSerialization('name')
-], ControlImage.prototype, "_name", void 0);
-
-class ContextStatus {
-    static fromJSON(json) {
-        const status = new ContextStatus();
-        status._code = json.code;
-        status._message = json.message;
-        status._isValid = json.isValid;
-        return status;
-    }
-    get message() {
-        return this._message;
-    }
-    get code() {
-        return this._code;
-    }
-    get isValid() {
-        return this._isValid;
-    }
-}
-
-class DataCaptureContextSettings extends DefaultSerializeable {
-    constructor() {
-        super();
-    }
-    setProperty(name, value) {
-        this[name] = value;
-    }
-    getProperty(name) {
-        return this[name];
-    }
-}
-
-class DataCaptureContextFeatures {
-    static get featureFlags() {
-        return this._featureFlags;
-    }
-    static set featureFlags(value) {
-        this._featureFlags = value;
-    }
-}
-DataCaptureContextFeatures._featureFlags = {};
-
-var DataCaptureContextEvents;
-(function (DataCaptureContextEvents) {
-    DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
-    DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
-})(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
-class DataCaptureContextController {
-    get framework() {
-        return this._proxy.framework;
-    }
-    get frameworkVersion() {
-        return this._proxy.frameworkVersion;
-    }
-    get privateContext() {
-        return this.context;
-    }
-    static forDataCaptureContext(context) {
-        const controller = new DataCaptureContextController();
-        controller.context = context;
-        controller.initialize();
-        return controller;
-    }
-    constructor() {
-        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-    }
-    updateContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield this._proxy.updateContextFromJSON(this.context);
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
-        });
-    }
-    addModeToContext(mode) {
-        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
-    }
-    removeModeFromContext(mode) {
-        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
-    }
-    removeAllModesFromContext() {
-        return this._proxy.removeAllModesFromContext();
-    }
-    dispose() {
-        this.unsubscribeListener();
-        this._proxy.dispose();
-    }
-    unsubscribeListener() {
-        this._proxy.unregisterListenerForDataCaptureContext();
-        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didChangeStatus);
-        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didStartObservingContext);
-    }
-    initialize() {
-        this.subscribeListener();
-        return this.initializeContextFromJSON();
-    }
-    initializeContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const featureFlagsString = yield this._proxy.contextFromJSON(this.context);
-                DataCaptureContextFeatures.featureFlags =
-                    JSON.parse(featureFlagsString);
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
-        });
-    }
-    subscribeListener() {
-        var _a, _b, _c, _d;
-        this._proxy.registerListenerForDataCaptureContext();
-        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
-        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
-        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
-            this.notifyListenersOfDidChangeStatus(contextStatus);
-        });
-        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
-            this.privateContext.listeners.forEach(listener => {
-                var _a;
-                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
-            });
-        });
-    }
-    notifyListenersOfDeserializationError(error) {
-        const contextStatus = ContextStatus
-            .fromJSON({
-            message: error,
-            code: -1,
-            isValid: true,
-        });
-        this.notifyListenersOfDidChangeStatus(contextStatus);
-    }
-    notifyListenersOfDidChangeStatus(contextStatus) {
-        this.privateContext.listeners.forEach(listener => {
-            if (listener.didChangeStatus) {
-                listener.didChangeStatus(this.context, contextStatus);
-            }
-        });
-    }
-}
-
-class DataCaptureContext extends DefaultSerializeable {
-    get framework() {
-        return this.controller.framework;
-    }
-    get frameworkVersion() {
-        return this.controller.frameworkVersion;
-    }
-    static get coreDefaults() {
-        return getCoreDefaults();
-    }
-    get frameSource() {
-        return this._frameSource;
-    }
-    static get deviceID() {
-        return DataCaptureContext.coreDefaults.deviceID;
-    }
-    /**
-     * @deprecated
-     */
-    get deviceID() {
-        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
-        return DataCaptureContext.deviceID;
-    }
-    static forLicenseKey(licenseKey) {
-        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
-    }
-    static forLicenseKeyWithSettings(licenseKey, settings) {
-        const context = this.forLicenseKey(licenseKey);
-        if (settings !== null) {
-            context.applySettings(settings);
-        }
-        return context;
-    }
-    static forLicenseKeyWithOptions(licenseKey, options) {
-        if (options == null) {
-            options = { deviceName: null };
-        }
-        if (!DataCaptureContext.instance) {
-            DataCaptureContext.instance = new DataCaptureContext(licenseKey, options.deviceName || '');
-        }
-        return DataCaptureContext.instance;
-    }
-    constructor(licenseKey, deviceName) {
-        super();
-        this.licenseKey = licenseKey;
-        this.deviceName = deviceName;
-        this.settings = new DataCaptureContextSettings();
-        this._frameSource = null;
-        this.view = null;
-        this.modes = [];
-        this.listeners = [];
-        this.initialize();
-    }
-    setFrameSource(frameSource) {
-        if (this._frameSource) {
-            this._frameSource.context = null;
-        }
-        this._frameSource = frameSource;
-        if (frameSource) {
-            frameSource.context = this;
-        }
-        return this.update();
-    }
-    addListener(listener) {
-        if (this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.push(listener);
-    }
-    removeListener(listener) {
-        if (!this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.splice(this.listeners.indexOf(listener), 1);
-    }
-    addMode(mode) {
-        if (!this.modes.includes(mode)) {
-            this.modes.push(mode);
-            mode._context = this;
-            this.controller.addModeToContext(mode);
-        }
-    }
-    removeMode(mode) {
-        if (this.modes.includes(mode)) {
-            this.modes.splice(this.modes.indexOf(mode), 1);
-            mode._context = null;
-            this.controller.removeModeFromContext(mode);
-        }
-    }
-    removeAllModes() {
-        this.modes.forEach(mode => {
-            mode._context = null;
-        });
-        this.modes = [];
-        this.controller.removeAllModesFromContext();
-    }
-    dispose() {
-        var _a;
-        if (!this.controller) {
-            return;
-        }
-        DataCaptureContext.instance = null;
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
-        this.removeAllModes();
-        this.controller.dispose();
-    }
-    applySettings(settings) {
-        this.settings = settings;
-        return this.update();
-    }
-    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
-    initialize() {
-        if (this.controller) {
-            return;
-        }
-        this.controller = DataCaptureContextController.forDataCaptureContext(this);
-    }
-    update() {
-        if (!this.controller) {
-            return Promise.resolve();
-        }
-        return this.controller.updateContextFromJSON();
-    }
-}
-DataCaptureContext.instance = null;
-__decorate([
-    nameForSerialization('frameSource')
-], DataCaptureContext.prototype, "_frameSource", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "view", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "modes", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], DataCaptureContext, "coreDefaults", null);
+var TextAlignment;
+(function (TextAlignment) {
+    TextAlignment["Left"] = "left";
+    TextAlignment["Right"] = "right";
+    TextAlignment["Center"] = "center";
+    TextAlignment["Start"] = "start";
+    TextAlignment["End"] = "end";
+})(TextAlignment || (TextAlignment = {}));
 
 class Point extends DefaultSerializeable {
     get x() {
@@ -1402,6 +859,137 @@ __decorate([
 __decorate([
     nameForSerialization('size')
 ], RectWithUnit.prototype, "_size", void 0);
+
+class ScanditIcon extends DefaultSerializeable {
+    static fromJSON(json) {
+        if (!json) {
+            return null;
+        }
+        const scanditIcon = new ScanditIcon(json.iconColor || null, json.backgroundColor || null, json.backgroundShape || null, json.icon || null, json.backgroundStrokeColor || null, json.backgroundStrokeWidth);
+        return scanditIcon;
+    }
+    constructor(iconColor, backgroundColor, backgroundShape, icon, backgroundStrokeColor, backgroundStrokeWidth) {
+        super();
+        this._backgroundStrokeWidth = 3.0;
+        this._iconColor = iconColor;
+        this._backgroundColor = backgroundColor;
+        this._backgroundShape = backgroundShape;
+        this._icon = icon;
+        this._backgroundStrokeColor = backgroundStrokeColor;
+        this._backgroundStrokeWidth = backgroundStrokeWidth;
+    }
+    get backgroundColor() {
+        return this._backgroundColor;
+    }
+    get backgroundShape() {
+        return this._backgroundShape;
+    }
+    get icon() {
+        return this._icon;
+    }
+    get iconColor() {
+        return this._iconColor;
+    }
+    get backgroundStrokeColor() {
+        return this._backgroundStrokeColor;
+    }
+    get backgroundStrokeWidth() {
+        return this._backgroundStrokeWidth;
+    }
+}
+__decorate([
+    nameForSerialization('backgroundColor'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_backgroundColor", void 0);
+__decorate([
+    nameForSerialization('backgroundShape'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_backgroundShape", void 0);
+__decorate([
+    nameForSerialization('icon'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_icon", void 0);
+__decorate([
+    nameForSerialization('iconColor'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_iconColor", void 0);
+__decorate([
+    nameForSerialization('backgroundStrokeColor'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_backgroundStrokeColor", void 0);
+__decorate([
+    nameForSerialization('backgroundStrokeWidth')
+], ScanditIcon.prototype, "_backgroundStrokeWidth", void 0);
+
+class ScanditIconBuilder {
+    constructor() {
+        this._iconColor = null;
+        this._backgroundColor = null;
+        this._backgroundShape = null;
+        this._icon = null;
+        this._backgroundStrokeColor = null;
+        this._backgroundStrokeWidth = 3.0;
+    }
+    withIconColor(iconColor) {
+        this._iconColor = iconColor;
+        return this;
+    }
+    withBackgroundColor(backgroundColor) {
+        this._backgroundColor = backgroundColor;
+        return this;
+    }
+    withBackgroundShape(backgroundShape) {
+        this._backgroundShape = backgroundShape;
+        return this;
+    }
+    withIcon(iconType) {
+        this._icon = iconType;
+        return this;
+    }
+    withBackgroundStrokeColor(backgroundStrokeColor) {
+        this._backgroundStrokeColor = backgroundStrokeColor;
+        return this;
+    }
+    withBackgroundStrokeWidth(backgroundStrokeWidth) {
+        this._backgroundStrokeWidth = backgroundStrokeWidth;
+        return this;
+    }
+    build() {
+        return new ScanditIcon(this._iconColor, this._backgroundColor, this._backgroundShape, this._icon, this._backgroundStrokeColor, this._backgroundStrokeWidth);
+    }
+}
+
+var ScanditIconShape;
+(function (ScanditIconShape) {
+    ScanditIconShape["Circle"] = "circle";
+    ScanditIconShape["Square"] = "square";
+})(ScanditIconShape || (ScanditIconShape = {}));
+
+var ScanditIconType;
+(function (ScanditIconType) {
+    ScanditIconType["ArrowRight"] = "arrowRight";
+    ScanditIconType["ArrowLeft"] = "arrowLeft";
+    ScanditIconType["ArrowUp"] = "arrowUp";
+    ScanditIconType["ArrowDown"] = "arrowDown";
+    ScanditIconType["ToPick"] = "toPick";
+    ScanditIconType["Checkmark"] = "checkmark";
+    ScanditIconType["XMark"] = "xmark";
+    ScanditIconType["QuestionMark"] = "questionMark";
+    ScanditIconType["ExclamationMark"] = "exclamationMark";
+    ScanditIconType["LowStock"] = "lowStock";
+    ScanditIconType["ExpiredItem"] = "expiredItem";
+    ScanditIconType["WrongItem"] = "wrongItem";
+    ScanditIconType["FragileItem"] = "fragileItem";
+    ScanditIconType["StarFilled"] = "starFilled";
+    ScanditIconType["StarHalfFilled"] = "starHalfFilled";
+    ScanditIconType["ChevronUp"] = "chevronUp";
+    ScanditIconType["ChevronDown"] = "chevronDown";
+    ScanditIconType["ChevronLeft"] = "chevronLeft";
+    ScanditIconType["ChevronRight"] = "chevronRight";
+    ScanditIconType["InspectItem"] = "inspectItem";
+    ScanditIconType["StarOutlined"] = "starOutlined";
+    ScanditIconType["Print"] = "print";
+})(ScanditIconType || (ScanditIconType = {}));
 
 class Size extends DefaultSerializeable {
     get width() {
@@ -1680,7 +1268,7 @@ class Color {
         if (hex.length === 6) {
             hex = hex + 'FF';
         }
-        return hex.toUpperCase();
+        return '#' + hex.toUpperCase();
     }
     static normalizeAlpha(alpha) {
         if (alpha > 0 && alpha <= 1) {
@@ -1763,6 +1351,34 @@ var ScanIntention;
     ScanIntention["Smart"] = "smart";
 })(ScanIntention || (ScanIntention = {}));
 
+class EventDataParser {
+    static parse(data) {
+        if (data == null) {
+            return null;
+        }
+        return JSON.parse(data);
+    }
+}
+
+class Observable extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.listeners = [];
+    }
+    addListener(listener) {
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        this.listeners = this.listeners.filter(l => l !== listener);
+    }
+    notifyListeners(property, value) {
+        this.listeners.forEach(listener => listener(property, value));
+    }
+}
+__decorate([
+    ignoreFromSerialization
+], Observable.prototype, "listeners", void 0);
+
 class HtmlElementPosition {
     constructor(top, left) {
         this.top = 0;
@@ -1810,6 +1426,754 @@ class HTMLElementState {
     }
 }
 
+class ImageFrameSourceController {
+    static forImage(imageFrameSource) {
+        const controller = new ImageFrameSourceController();
+        controller.imageFrameSource = imageFrameSource;
+        return controller;
+    }
+    constructor() {
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
+        this._proxy = FactoryMaker.getInstance('ImageFrameSourceProxy');
+    }
+    getCurrentState() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield this._proxy.getCurrentCameraState(this.imageFrameSource.position);
+            if (result == null) {
+                return FrameSourceState.Off;
+            }
+            return result.data;
+        });
+    }
+    switchCameraToDesiredState(desiredStateJson) {
+        return this._proxy.switchCameraToDesiredState(desiredStateJson);
+    }
+    subscribeListener() {
+        var _a, _b;
+        this._proxy.registerListenerForEvents();
+        (_b = (_a = this._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('ImageFrameSourceController didChangeState payload is null');
+                return;
+            }
+            const newState = event.state;
+            this.imageFrameSource.listeners.forEach(listener => {
+                if (listener.didChangeState) {
+                    listener.didChangeState(this.imageFrameSource, newState);
+                }
+            });
+        });
+    }
+    unsubscribeListener() {
+        this._proxy.unregisterListenerForEvents();
+        this.eventEmitter.removeAllListeners(FrameSourceListenerEvents.didChangeState);
+    }
+}
+
+class ImageFrameSource extends DefaultSerializeable {
+    set context(newContext) {
+        if (newContext == null) {
+            this.controller.unsubscribeListener();
+        }
+        else if (this._context == null) {
+            this.controller.subscribeListener();
+        }
+        this._context = newContext;
+    }
+    get context() {
+        return this._context;
+    }
+    get desiredState() {
+        return this._desiredState;
+    }
+    static create(image) {
+        const imageFrameSource = new ImageFrameSource();
+        imageFrameSource.image = image;
+        return imageFrameSource;
+    }
+    static fromJSON(json) {
+        return ImageFrameSource.create(json.image);
+    }
+    constructor() {
+        super();
+        this.type = 'image';
+        this.image = '';
+        this._id = `${Date.now()}`;
+        this._desiredState = FrameSourceState.Off;
+        this.listeners = [];
+        this._context = null;
+        this.controller = ImageFrameSourceController.forImage(this);
+    }
+    didChange() {
+        if (this.context) {
+            return this.context.update();
+        }
+        else {
+            return Promise.resolve();
+        }
+    }
+    switchToDesiredState(state) {
+        this._desiredState = state;
+        return this.controller.switchCameraToDesiredState(state);
+    }
+    addListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+    }
+    getCurrentState() {
+        return this.controller.getCurrentState();
+    }
+}
+__decorate([
+    nameForSerialization('id')
+], ImageFrameSource.prototype, "_id", void 0);
+__decorate([
+    nameForSerialization('desiredState')
+], ImageFrameSource.prototype, "_desiredState", void 0);
+__decorate([
+    ignoreFromSerialization
+], ImageFrameSource.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], ImageFrameSource.prototype, "_context", void 0);
+__decorate([
+    ignoreFromSerialization
+], ImageFrameSource.prototype, "controller", void 0);
+
+class PrivateFrameData {
+    get imageBuffers() {
+        return this._imageBuffers;
+    }
+    get orientation() {
+        return this._orientation;
+    }
+    static fromJSON(json) {
+        const frameData = new PrivateFrameData();
+        frameData._imageBuffers = json.imageBuffers.map((imageBufferJSON) => {
+            const imageBuffer = new ImageBuffer();
+            imageBuffer._width = imageBufferJSON.width;
+            imageBuffer._height = imageBufferJSON.height;
+            imageBuffer._data = imageBufferJSON.data;
+            return imageBuffer;
+        });
+        frameData._orientation = json.orientation;
+        return frameData;
+    }
+    static empty() {
+        const frameData = new PrivateFrameData();
+        frameData._imageBuffers = [];
+        frameData._orientation = 90;
+        return frameData;
+    }
+}
+
+class CameraController {
+    static get _proxy() {
+        return FactoryMaker.getInstance('CameraProxy');
+    }
+    static forCamera(camera) {
+        const controller = new CameraController();
+        controller.camera = camera;
+        return controller;
+    }
+    constructor() {
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
+    }
+    get privateCamera() {
+        return this.camera;
+    }
+    static getFrame(frameId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield CameraController._proxy.getFrame(frameId);
+            if (result == null) {
+                return PrivateFrameData.empty();
+            }
+            const frameDataJSON = JSON.parse(result.data);
+            return PrivateFrameData.fromJSON(frameDataJSON);
+        });
+    }
+    static getFrameOrNull(frameId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield CameraController._proxy.getFrame(frameId);
+            if (result == null) {
+                return null;
+            }
+            const frameDataJSON = JSON.parse(result.data);
+            return PrivateFrameData.fromJSON(frameDataJSON);
+        });
+    }
+    getCurrentState() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield CameraController._proxy.getCurrentCameraState(this.privateCamera.position);
+            if (result == null) {
+                return FrameSourceState.Off;
+            }
+            return result.data;
+        });
+    }
+    getIsTorchAvailable() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield CameraController._proxy.isTorchAvailable(this.privateCamera.position);
+            if (result == null) {
+                return false;
+            }
+            return result.data === 'true';
+        });
+    }
+    switchCameraToDesiredState(desiredState) {
+        return CameraController._proxy.switchCameraToDesiredState(desiredState);
+    }
+    subscribeListener() {
+        var _a, _b;
+        CameraController._proxy.registerListenerForCameraEvents();
+        (_b = (_a = CameraController._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event) {
+                this.privateCamera.listeners.forEach(listener => {
+                    var _a;
+                    (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, event.state);
+                });
+            }
+        });
+    }
+    unsubscribeListener() {
+        CameraController._proxy.unregisterListenerForCameraEvents();
+        this.eventEmitter.off(FrameSourceListenerEvents.didChangeState);
+    }
+}
+
+var TorchState;
+(function (TorchState) {
+    TorchState["On"] = "on";
+    TorchState["Off"] = "off";
+    TorchState["Auto"] = "auto";
+})(TorchState || (TorchState = {}));
+
+class Camera extends DefaultSerializeable {
+    static get coreDefaults() {
+        return getCoreDefaults();
+    }
+    set context(newContext) {
+        this._context = newContext;
+    }
+    get context() {
+        return this._context;
+    }
+    static get default() {
+        if (Camera.coreDefaults.Camera.defaultPosition) {
+            const camera = new Camera();
+            camera.position = Camera.coreDefaults.Camera.defaultPosition;
+            return camera;
+        }
+        else {
+            return null;
+        }
+    }
+    static withSettings(settings) {
+        const camera = Camera.default;
+        if (camera) {
+            camera.settings = settings;
+        }
+        return camera;
+    }
+    static asPositionWithSettings(cameraPosition, settings) {
+        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
+            const camera = new Camera();
+            camera.settings = settings;
+            camera.position = cameraPosition;
+            return camera;
+        }
+        else {
+            return null;
+        }
+    }
+    static atPosition(cameraPosition) {
+        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
+            const camera = new Camera();
+            camera.position = cameraPosition;
+            return camera;
+        }
+        else {
+            return null;
+        }
+    }
+    get desiredState() {
+        return this._desiredState;
+    }
+    set desiredTorchState(desiredTorchState) {
+        this._desiredTorchState = desiredTorchState;
+        this.didChange();
+    }
+    get desiredTorchState() {
+        return this._desiredTorchState;
+    }
+    constructor() {
+        super();
+        this.type = 'camera';
+        this.settings = null;
+        this._desiredTorchState = TorchState.Off;
+        this._desiredState = FrameSourceState.Off;
+        this.listeners = [];
+        this._context = null;
+        this.controller = CameraController.forCamera(this);
+    }
+    switchToDesiredState(state) {
+        this._desiredState = state;
+        return this.controller.switchCameraToDesiredState(state);
+    }
+    getCurrentState() {
+        return this.controller.getCurrentState();
+    }
+    getIsTorchAvailable() {
+        return this.controller.getIsTorchAvailable();
+    }
+    /**
+     * @deprecated
+     */
+    get isTorchAvailable() {
+        console.warn('isTorchAvailable is deprecated. Use getIsTorchAvailable instead.');
+        return false;
+    }
+    addListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (this.listeners.length === 0) {
+            this.controller.subscribeListener();
+        }
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+        if (this.listeners.length === 0) {
+            this.controller.unsubscribeListener();
+        }
+    }
+    applySettings(settings) {
+        this.settings = settings;
+        return this.didChange();
+    }
+    didChange() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.context) {
+                yield this.context.update();
+            }
+        });
+    }
+}
+__decorate([
+    serializationDefault({})
+], Camera.prototype, "settings", void 0);
+__decorate([
+    nameForSerialization('desiredTorchState')
+], Camera.prototype, "_desiredTorchState", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "_desiredState", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "_context", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera, "coreDefaults", null);
+
+class ControlImage extends DefaultSerializeable {
+    constructor(type, data, name) {
+        super();
+        this.type = type;
+        this._data = data;
+        this._name = name;
+    }
+    static fromBase64EncodedImage(data) {
+        if (data === null)
+            return null;
+        return new ControlImage("base64", data, null);
+    }
+    static fromResourceName(resource) {
+        return new ControlImage("resource", null, resource);
+    }
+    isBase64EncodedImage() {
+        return this.type === "base64";
+    }
+    get data() {
+        return this._data;
+    }
+}
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('data')
+], ControlImage.prototype, "_data", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('name')
+], ControlImage.prototype, "_name", void 0);
+
+class ContextStatus {
+    static fromJSON(json) {
+        const status = new ContextStatus();
+        status._code = json.code;
+        status._message = json.message;
+        status._isValid = json.isValid;
+        return status;
+    }
+    get message() {
+        return this._message;
+    }
+    get code() {
+        return this._code;
+    }
+    get isValid() {
+        return this._isValid;
+    }
+}
+
+class DataCaptureContextSettings extends DefaultSerializeable {
+    constructor() {
+        super();
+    }
+    setProperty(name, value) {
+        this[name] = value;
+    }
+    getProperty(name) {
+        return this[name];
+    }
+}
+
+class OpenSourceSoftwareLicenseInfo {
+    constructor(licenseText) {
+        this._licenseText = licenseText;
+    }
+    get licenseText() {
+        return this._licenseText;
+    }
+}
+
+var DataCaptureContextEvents;
+(function (DataCaptureContextEvents) {
+    DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
+    DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
+})(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
+class DataCaptureContextController {
+    static get framework() {
+        return FactoryMaker.getInstance('DataCaptureContextProxy').framework;
+    }
+    static get frameworkVersion() {
+        return FactoryMaker.getInstance('DataCaptureContextProxy').frameworkVersion;
+    }
+    get privateContext() {
+        return this.context;
+    }
+    static forDataCaptureContext(context) {
+        const controller = new DataCaptureContextController();
+        controller.context = context;
+        controller.initialize();
+        return controller;
+    }
+    static forDataCaptureContextAsync(context) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const controller = new DataCaptureContextController();
+            controller.context = context;
+            yield controller.initialize();
+            return controller;
+        });
+    }
+    constructor() {
+        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
+    }
+    updateContextFromJSON() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this._proxy.updateContextFromJSON(JSON.stringify(this.context.toJSON()));
+            }
+            catch (error) {
+                this.notifyListenersOfDeserializationError(error);
+                throw error;
+            }
+        });
+    }
+    addModeToContext(mode) {
+        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
+    }
+    removeModeFromContext(mode) {
+        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
+    }
+    removeAllModesFromContext() {
+        return this._proxy.removeAllModesFromContext();
+    }
+    dispose() {
+        this.unsubscribeListener();
+        this._proxy.dispose();
+    }
+    unsubscribeListener() {
+        this._proxy.unregisterListenerForDataCaptureContext();
+        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didChangeStatus);
+        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didStartObservingContext);
+    }
+    initialize() {
+        this.subscribeListener();
+        return this.initializeContextFromJSON();
+    }
+    initializeContextFromJSON() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this._proxy.contextFromJSON(JSON.stringify(this.context.toJSON()));
+            }
+            catch (error) {
+                this.notifyListenersOfDeserializationError(error);
+                throw error;
+            }
+        });
+    }
+    static getOpenSourceSoftwareLicenseInfo() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+            const result = yield proxy.getOpenSourceSoftwareLicenseInfo();
+            return new OpenSourceSoftwareLicenseInfo(result.data);
+        });
+    }
+    subscribeListener() {
+        var _a, _b, _c, _d;
+        this._proxy.registerListenerForDataCaptureContext();
+        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
+        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('DataCaptureContextController didChangeStatus payload is null');
+                return;
+            }
+            const contextStatus = ContextStatus.fromJSON(JSON.parse(event.status));
+            this.notifyListenersOfDidChangeStatus(contextStatus);
+        });
+        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
+            this.privateContext.listeners.forEach(listener => {
+                var _a;
+                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
+            });
+        });
+    }
+    notifyListenersOfDeserializationError(error) {
+        const contextStatus = ContextStatus
+            .fromJSON({
+            message: error,
+            code: -1,
+            isValid: true,
+        });
+        this.notifyListenersOfDidChangeStatus(contextStatus);
+    }
+    notifyListenersOfDidChangeStatus(contextStatus) {
+        this.privateContext.listeners.forEach(listener => {
+            if (listener.didChangeStatus) {
+                listener.didChangeStatus(this.context, contextStatus);
+            }
+        });
+    }
+}
+
+class DataCaptureContext extends DefaultSerializeable {
+    static get coreDefaults() {
+        return getCoreDefaults();
+    }
+    get frameSource() {
+        return this._frameSource;
+    }
+    static get deviceID() {
+        return DataCaptureContext.coreDefaults.deviceID;
+    }
+    /**
+     * @deprecated
+     */
+    get deviceID() {
+        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
+        return DataCaptureContext.deviceID;
+    }
+    static forLicenseKey(licenseKey) {
+        return DataCaptureContext.create(licenseKey, null, null);
+    }
+    static forLicenseKeyWithSettings(licenseKey, settings) {
+        return DataCaptureContext.create(licenseKey, null, settings);
+    }
+    static forLicenseKeyWithOptions(licenseKey, options) {
+        return DataCaptureContext.create(licenseKey, options, null);
+    }
+    static create(licenseKey, options, settings) {
+        if (options == null) {
+            options = { deviceName: null };
+        }
+        if (!DataCaptureContext.instance) {
+            DataCaptureContext.instance = new DataCaptureContext(licenseKey, options.deviceName || '', settings);
+        }
+        return DataCaptureContext.instance;
+    }
+    constructor(licenseKey, deviceName, settings) {
+        super();
+        this.licenseKey = licenseKey;
+        this.deviceName = deviceName;
+        this._framework = DataCaptureContextController.framework;
+        this._frameworkVersion = DataCaptureContextController.frameworkVersion;
+        this.settings = new DataCaptureContextSettings();
+        this._frameSource = null;
+        this.view = null;
+        this.modes = [];
+        this.listeners = [];
+        if (settings) {
+            this.settings = settings;
+        }
+        this.initialize();
+    }
+    setFrameSource(frameSource) {
+        if (this._frameSource) {
+            this._frameSource.context = null;
+        }
+        this._frameSource = frameSource;
+        if (frameSource) {
+            frameSource.context = this;
+        }
+        return this.update();
+    }
+    addListener(listener) {
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+    }
+    addMode(mode) {
+        if (!this.modes.includes(mode)) {
+            this.modes.push(mode);
+            mode._context = this;
+            this.controller.addModeToContext(mode);
+        }
+    }
+    removeMode(mode) {
+        if (this.modes.includes(mode)) {
+            this.modes.splice(this.modes.indexOf(mode), 1);
+            mode._context = null;
+            this.controller.removeModeFromContext(mode);
+        }
+    }
+    removeAllModes() {
+        this.modes.forEach(mode => {
+            mode._context = null;
+        });
+        this.modes = [];
+        this.controller.removeAllModesFromContext();
+    }
+    dispose() {
+        var _a;
+        if (!this.controller) {
+            return;
+        }
+        DataCaptureContext.instance = null;
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
+        this.removeAllModes();
+        this.controller.dispose();
+    }
+    applySettings(settings) {
+        this.settings = settings;
+        return this.update();
+    }
+    static getOpenSourceSoftwareLicenseInfo() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return DataCaptureContextController.getOpenSourceSoftwareLicenseInfo();
+        });
+    }
+    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
+    initialize() {
+        if (this.controller) {
+            return;
+        }
+        this.controller = DataCaptureContextController.forDataCaptureContext(this);
+    }
+    initializeAsync() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.controller) {
+                return;
+            }
+            this.controller = yield DataCaptureContextController.forDataCaptureContextAsync(this);
+        });
+    }
+    update() {
+        if (!this.controller) {
+            return Promise.resolve();
+        }
+        return this.controller.updateContextFromJSON();
+    }
+}
+DataCaptureContext.instance = null;
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "controller", void 0);
+__decorate([
+    nameForSerialization('framework')
+], DataCaptureContext.prototype, "_framework", void 0);
+__decorate([
+    nameForSerialization('frameworkVersion')
+], DataCaptureContext.prototype, "_frameworkVersion", void 0);
+__decorate([
+    nameForSerialization('frameSource')
+], DataCaptureContext.prototype, "_frameSource", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "view", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "modes", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext, "coreDefaults", null);
+
+class DataCaptureContextFeatures {
+    static isFeatureSupported(feature) {
+        return this._featureFlags.get(feature);
+    }
+    static setIsFeatureSupported(feature, value) {
+        this._featureFlags.set(feature, value);
+    }
+}
+DataCaptureContextFeatures._featureFlags = new Map();
+
 var DataCaptureViewEvents;
 (function (DataCaptureViewEvents) {
     DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
@@ -1829,14 +2193,14 @@ class DataCaptureViewController extends BaseController {
     }
     viewPointForFramePoint(point) {
         return __awaiter(this, void 0, void 0, function* () {
-            const jsonString = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
-            return Point.fromJSON(JSON.parse(jsonString));
+            const result = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
+            return Point.fromJSON(JSON.parse(result.data));
         });
     }
     viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
         return __awaiter(this, void 0, void 0, function* () {
-            const jsonString = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
-            return Quadrilateral.fromJSON(JSON.parse(jsonString));
+            const result = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
+            return Quadrilateral.fromJSON(JSON.parse(result.data));
         });
     }
     setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
@@ -1870,10 +2234,14 @@ class DataCaptureViewController extends BaseController {
         var _a, _b;
         this._proxy.registerListenerForViewEvents();
         (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (payload) => {
-            const payloadJSON = JSON.parse(payload);
-            const size = Size.fromJSON(payloadJSON.size);
-            const orientation = payloadJSON.orientation;
+        this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('DataCaptureViewController didChangeSize payload is null');
+                return;
+            }
+            const size = Size.fromJSON(event.size);
+            const orientation = event.orientation;
             this.view.listeners.forEach(listener => {
                 if (listener.didChangeSize) {
                     listener.didChangeSize(this.view.viewComponent, size, orientation);
@@ -2350,15 +2718,6 @@ class CameraSettings extends DefaultSerializeable {
     set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
         this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
     }
-    get maxFrameRate() {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-        return 0;
-    }
-    set maxFrameRate(newValue) {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-    }
     static fromJSON(json) {
         const settings = new CameraSettings();
         settings.preferredResolution = json.preferredResolution;
@@ -2444,69 +2803,6 @@ class RectangularViewfinderAnimation extends DefaultSerializeable {
 __decorate([
     nameForSerialization('isLooping')
 ], RectangularViewfinderAnimation.prototype, "_isLooping", void 0);
-
-class SpotlightViewfinder extends DefaultSerializeable {
-    get sizeWithUnitAndAspect() {
-        return this._sizeWithUnitAndAspect;
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor() {
-        super();
-        this.type = 'spotlight';
-        console.warn('SpotlightViewfinder is deprecated and will be removed in a future release. Use RectangularViewfinder instead.');
-        this._sizeWithUnitAndAspect = this.coreDefaults.SpotlightViewfinder.size;
-        this.enabledBorderColor = this.coreDefaults.SpotlightViewfinder.enabledBorderColor;
-        this.disabledBorderColor = this.coreDefaults.SpotlightViewfinder.disabledBorderColor;
-        this.backgroundColor = this.coreDefaults.SpotlightViewfinder.backgroundColor;
-    }
-    setSize(size) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
-    }
-    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
-    }
-    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
-    }
-}
-__decorate([
-    nameForSerialization('size')
-], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
-
-/**
- * @deprecated LaserlineViewfinder is deprecated.
- */
-class LaserlineViewfinder extends DefaultSerializeable {
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor(style) {
-        super();
-        this.type = 'laserline';
-        const viewfinderStyle = style || this.coreDefaults.LaserlineViewfinder.defaultStyle;
-        this._style = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].style;
-        this.width = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].width;
-        this.enabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].enabledColor;
-        this.disabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].disabledColor;
-    }
-    get style() {
-        return this._style;
-    }
-}
-__decorate([
-    nameForSerialization('style')
-], LaserlineViewfinder.prototype, "_style", void 0);
-
-/**
- * @deprecated LaserlineViewfinderStyle is deprecated.
- */
-var LaserlineViewfinderStyle;
-(function (LaserlineViewfinderStyle) {
-    LaserlineViewfinderStyle["Legacy"] = "legacy";
-    LaserlineViewfinderStyle["Animated"] = "animated";
-})(LaserlineViewfinderStyle || (LaserlineViewfinderStyle = {}));
 
 class RectangularViewfinder extends DefaultSerializeable {
     get sizeWithUnitAndAspect() {
@@ -2615,10 +2911,6 @@ __decorate([
 
 var RectangularViewfinderStyle;
 (function (RectangularViewfinderStyle) {
-    /**
-     * @deprecated The legacy style of the RectangularViewfinder is deprecated.
-     */
-    RectangularViewfinderStyle["Legacy"] = "legacy";
     RectangularViewfinderStyle["Rounded"] = "rounded";
     RectangularViewfinderStyle["Square"] = "square";
 })(RectangularViewfinderStyle || (RectangularViewfinderStyle = {}));
@@ -2670,21 +2962,6 @@ function parseDefaults(jsonDefaults) {
                 .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.zoomGesture)),
             logoStyle: jsonDefaults.DataCaptureView.logoStyle,
         },
-        LaserlineViewfinder: Object
-            .keys(jsonDefaults.LaserlineViewfinder.styles)
-            .reduce((acc, key) => {
-            const viewfinder = jsonDefaults.LaserlineViewfinder.styles[key];
-            acc.styles[key] = {
-                width: NumberWithUnit
-                    .fromJSON(JSON.parse(viewfinder.width)),
-                enabledColor: Color
-                    .fromJSON(viewfinder.enabledColor),
-                disabledColor: Color
-                    .fromJSON(viewfinder.disabledColor),
-                style: viewfinder.style,
-            };
-            return acc;
-        }, { defaultStyle: jsonDefaults.LaserlineViewfinder.defaultStyle, styles: {} }),
         RectangularViewfinder: Object
             .keys(jsonDefaults.RectangularViewfinder.styles)
             .reduce((acc, key) => {
@@ -2703,27 +2980,13 @@ function parseDefaults(jsonDefaults) {
             };
             return acc;
         }, { defaultStyle: jsonDefaults.RectangularViewfinder.defaultStyle, styles: {} }),
-        SpotlightViewfinder: {
-            size: SizeWithUnitAndAspect
-                .fromJSON(JSON.parse(jsonDefaults.SpotlightViewfinder.size)),
-            enabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.enabledBorderColor),
-            disabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.disabledBorderColor),
-            backgroundColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.backgroundColor),
-        },
         AimerViewfinder: {
             frameColor: Color.fromJSON(jsonDefaults.AimerViewfinder.frameColor),
             dotColor: Color.fromJSON(jsonDefaults.AimerViewfinder.dotColor),
         },
-        Brush: {
-            fillColor: Color
-                .fromJSON(jsonDefaults.Brush.fillColor),
-            strokeColor: Color
-                .fromJSON(jsonDefaults.Brush.strokeColor),
-            strokeWidth: jsonDefaults.Brush.strokeWidth,
-        },
+        Brush: new Brush(Color
+            .fromJSON(jsonDefaults.Brush.fillColor), Color
+            .fromJSON(jsonDefaults.Brush.strokeColor), jsonDefaults.Brush.strokeWidth),
         deviceID: jsonDefaults.deviceID,
     };
     // Inject defaults to avoid a circular dependency between these classes and the defaults
@@ -2962,5 +3225,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextFeatures, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextFeatures, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

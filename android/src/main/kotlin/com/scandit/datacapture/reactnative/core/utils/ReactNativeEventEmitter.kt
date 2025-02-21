@@ -6,6 +6,7 @@
 
 package com.scandit.datacapture.reactnative.core.utils
 
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 import com.scandit.datacapture.frameworks.core.events.Emitter
@@ -16,6 +17,9 @@ class ReactNativeEventEmitter(private val reactContext: ReactApplicationContext)
     private val delegate by lazy { reactContext.getJSModule<RCTDeviceEventEmitter>() }
 
     override fun emit(eventName: String, payload: MutableMap<String, Any?>) {
-        delegate.emit(eventName, JSONObject(payload).toString())
+        val reactPayload = Arguments.createMap()
+        reactPayload.putString("name", eventName)
+        reactPayload.putString("data", JSONObject(payload).toString())
+        delegate.emit(eventName, reactPayload)
     }
 }

@@ -2188,16 +2188,6 @@ __decorate([
     ignoreFromSerialization
 ], DataCaptureContext, "coreDefaults", null);
 
-class DataCaptureContextFeatures {
-    static isFeatureSupported(feature) {
-        return this._featureFlags.get(feature);
-    }
-    static setIsFeatureSupported(feature, value) {
-        this._featureFlags.set(feature, value);
-    }
-}
-DataCaptureContextFeatures._featureFlags = new Map();
-
 var DataCaptureViewEvents;
 (function (DataCaptureViewEvents) {
     DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
@@ -3249,5 +3239,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextFeatures, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

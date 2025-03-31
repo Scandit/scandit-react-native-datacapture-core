@@ -17,6 +17,8 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
     case deserializationError = 1
     case nilDataCaptureView
     case nilFrame
+    case nilViewId
+    case nilContainerView
 
     var domain: String {
         "ScanditDataCaptureCoreErrorDomain"
@@ -34,6 +36,10 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
             return "DataCaptureView is null."
         case .nilFrame:
             return "Frame is null, it might've been reused already."
+        case .nilViewId:
+            return "Unable to add the DataCaptureView with the provided json. The json doesn't contain the viewId field."
+        case.nilContainerView:
+            return "Unable to add the DataCaptureView, the container with the provided tag was not found."
         }
     }
 
@@ -46,7 +52,7 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
 public class ScanditDataCaptureCore: RCTEventEmitter {
 
     var coreModule: CoreModule!
-    
+
     lazy var dataCaptureViewManager: RNTSDCDataCaptureViewManager = {
         bridge.module(for: RNTSDCDataCaptureViewManager.self) as! RNTSDCDataCaptureViewManager
     }()
@@ -119,7 +125,6 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     public override func invalidate() {
         super.invalidate()
         coreModule.didStop()
-        RNTSDCDataCaptureViewManager.dataCaptureView = nil
         RNTSDCDataCaptureViewManager.containers.removeAll()
     }
 
@@ -190,7 +195,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
             result: ReactNativeResult(resolve, reject)
         )
     }
-    
+
     @objc(getFrame:resolve:reject:)
     func getFrame(frameId: String,
                       resolve: @escaping RCTPromiseResolveBlock,
@@ -247,10 +252,31 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
         
-        let view = coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject))
-        if view != nil {
-            dispatchMainSync {
-                RNTSDCDataCaptureViewManager.dataCaptureView = view
+        // Id assigned to the RN Component that on iOS is set in the reactTag of the Native View
+        let viewId = JSONValue(string: viewJson).integer(forKey: "viewId", default: -1)
+        
+        if viewId == -1 {
+            reject(String(ScanditDataCaptureCoreError.nilViewId.code), ScanditDataCaptureCoreError.nilViewId.message, nil)
+            return
+        }
+        
+        // In case something wrong happens with the creation of the View, the JS part will be notified inside
+        // the shared code.
+        if let dcView = self.coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject), viewId: viewId) {
+            // If we already have a container created for this view, we just add the view to the container. If not the
+            // ScanditDataCaptureViewManager will take care of adding the created view.
+            if let container = RNTSDCDataCaptureViewManager.containers.first(where: { $0.reactTag == NSNumber(value: viewId) }) {
+                dispatchMain {
+                    if container.findFirstSubview(ofType: DataCaptureView.self) != nil {
+                        // In StrictMode the createDataCaptureView function is called twice. If the container has already
+                        // a DCView, there is no need to add another one.
+                        return
+                    }
+                    
+                    dcView.frame = container.bounds
+                    dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                    container.addSubview(dcView)
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
 export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceState, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, Platform, findNodeHandle, UIManager, requireNativeComponent } from 'react-native';
+import { NativeModules, NativeEventEmitter, Platform, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
 import React from 'react';
 
 // tslint:disable-next-line:variable-name
@@ -213,7 +213,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.1.3';
+        return '7.2.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -224,8 +224,8 @@ class DataCaptureView extends React.Component {
     view;
     constructor(props) {
         super(props);
-        // Do not create the view automatically on android but do so on iOS
-        this.view = BaseDataCaptureView.forContext(props.context, Platform.OS === 'ios');
+        // Do not create the view automatically. Do that only when componentDidMount is called.
+        this.view = BaseDataCaptureView.forContext(props.context, false);
         this.view.viewComponent = this;
     }
     get scanAreaMargins() {
@@ -301,18 +301,18 @@ class DataCaptureView extends React.Component {
         this.view.dispose();
     }
     componentDidMount() {
-        this.createDataCaptureView();
+        // This is required to ensure that findNodeHandle returns a valid handle
+        InteractionManager.runAfterInteractions(() => {
+            this.createDataCaptureView();
+        });
     }
     render() {
         return React.createElement(RNTDataCaptureView, { ...this.props });
     }
     createDataCaptureView() {
-        if (Platform.OS === 'android') {
-            const viewId = findNodeHandle(this);
-            UIManager.dispatchViewManagerCommand(viewId, 'createDataCaptureView', [
-                JSON.stringify(this.view.toJSON()),
-            ]);
-        }
+        const viewId = findNodeHandle(this);
+        this.view.viewId = viewId;
+        this.view.createNativeView();
     }
 }
 // tslint:disable-next-line:variable-name
@@ -334,11 +334,14 @@ class RNNativeCaller {
     }
     async registerEvent(evName, handler) {
         return this.nativeEventEmitter.addListener(evName, async (event) => {
-            await handler(event.data);
+            await handler(event);
         });
     }
     async unregisterEvent(_evName, subscription) {
         await subscription.remove();
+    }
+    eventHook(args) {
+        return args;
     }
 }
 function createRNNativeCaller(nativeModule) {

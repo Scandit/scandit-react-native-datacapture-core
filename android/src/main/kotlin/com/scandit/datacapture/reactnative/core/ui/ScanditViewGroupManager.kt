@@ -14,7 +14,7 @@ import com.facebook.react.uimanager.ViewGroupManager
 
 abstract class ScanditViewGroupManager<T> :
     ViewGroupManager<T>() where T : ViewGroup {
-    private val containers = mutableListOf<T>()
+    protected val containers = mutableListOf<T>()
 
     val currentContainer: T?
         get() = if (containers.size > 0) containers[containers.size - 1] else null

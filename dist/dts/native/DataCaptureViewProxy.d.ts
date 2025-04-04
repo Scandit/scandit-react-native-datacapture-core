@@ -1,4 +1,4 @@
-import { DataCaptureViewProxy, BaseNativeProxy, NativeCallResult } from 'scandit-datacapture-frameworks-core';
+import { DataCaptureViewProxy, BaseNativeProxy } from 'scandit-datacapture-frameworks-core';
 export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implements DataCaptureViewProxy {
     private nativeListeners;
     constructor();
@@ -7,8 +7,8 @@ export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implemen
     createView(viewJson: string): Promise<void>;
     updateView(viewJson: string): Promise<void>;
     removeView(): Promise<void>;
-    viewPointForFramePoint(pointJson: string): Promise<NativeCallResult>;
-    viewQuadrilateralForFrameQuadrilateral(quadrilateralJson: string): Promise<NativeCallResult>;
+    viewPointForFramePoint(pointJson: string): Promise<string>;
+    viewQuadrilateralForFrameQuadrilateral(quadrilateralJson: string): Promise<string>;
     registerListenerForViewEvents(): void;
     unregisterListenerForViewEvents(): void;
     subscribeDidChangeSize(): void;

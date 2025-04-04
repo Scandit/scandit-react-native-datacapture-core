@@ -9,35 +9,25 @@ import React
 import ScanditFrameworksCore
 
 class RNTSDCDataCaptureViewWrapper: UIView {
+    weak var viewManager: RNTSDCDataCaptureViewManager?
+
     override func removeFromSuperview() {
-        if let index = RNTSDCDataCaptureViewManager.containers.firstIndex(of: self) {
+        if let viewManager = viewManager,
+           let index = RNTSDCDataCaptureViewManager.containers.firstIndex(of: self) {
             dispatchMain {
                 RNTSDCDataCaptureViewManager.containers.remove(at: index)
             }
-        }
-        if let droppedView = self.findFirstSubview(ofType: DataCaptureView.self) {
-            // on iOS we don't have a callback like the android onDropViewInstance where we can remove the dropped instance.
-            // here we just override the willRemoveSubview of the wrapper and notify the core module that the dcview has been removed.
-            DeserializationLifeCycleDispatcher.shared.dispatchDataCaptureViewRemoved(view: droppedView)
+            
+            if let droppedView = RNTSDCDataCaptureViewManager.dataCaptureView {
+                RNTSDCDataCaptureViewManager.dataCaptureView = nil
+                // on iOS we don't have a callback like the android onDropViewInstance where we can remove the dropped instance.
+                // here we just override the willRemoveSubview of the wrapper and notify the core module that the dcview has been removed.
+                DeserializationLifeCycleDispatcher.shared.dispatchDataCaptureViewRemoved(view: droppedView)
+            }
+            
+            viewManager.addCaptureViewToLastContainer()
         }
         super.removeFromSuperview()
-    }
-    
-    public func findFirstSubview<T: UIView>(ofType type: T.Type) -> T? {
-        return self.subviews.first { $0 is T } as? T
-    }
-    
-    override func didMoveToSuperview() {
-        // When the container is added to the RN stack, we need to check if the container has a DCView or not
-        if self.findFirstSubview(ofType: DataCaptureView.self) == nil {
-            // In case no DCView was still added to the container, we need to check whether a DCView was already
-            // created for this container and in case add the view here.
-            if let dcView = DataCaptureViewHandler.shared.getViewById(self.reactTag.intValue) {
-                dcView.frame = dcView.bounds
-                dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                self.addSubview(dcView)
-            }
-        }
     }
 }
 
@@ -46,14 +36,68 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
 
     static var containers: [RNTSDCDataCaptureViewWrapper] = []
 
+    static var dataCaptureView: DataCaptureView? {
+        didSet {
+            guard let container = containers.last else {
+                return
+            }
+
+            guard let dcView = dataCaptureView else {
+                return
+            }
+
+            if dcView.superview != nil && dcView.superview == container {
+                // if attached to the same container do nothing. Removing and adding
+                // it again might trigger something in the DataCaptureView that we don't
+                // want. (overlay re-drawn, black screen, etc.)
+                return
+            }
+
+            if dcView.superview != nil {
+                dcView.removeFromSuperview()
+            }
+            dcView.frame = container.bounds
+            dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            container.addSubview(dcView)
+        }
+    }
+
     override class func requiresMainQueueSetup() -> Bool {
         true
     }
 
+    var isObserving = false
+
+    func addCaptureViewToLastContainer() {
+        guard let container = RNTSDCDataCaptureViewManager.containers.last,
+              let captureView = DataCaptureViewHandler.shared.topmostDataCaptureView else {
+            return
+        }
+
+        RNTSDCDataCaptureViewManager.dataCaptureView = captureView
+    }
+
     override func view() -> UIView! {
+
+        if !isObserving {
+            isObserving = true
+        }
+
         let container = RNTSDCDataCaptureViewWrapper()
 
-        RNTSDCDataCaptureViewManager.containers.append(container)
+        if let dataCaptureview = RNTSDCDataCaptureViewManager.dataCaptureView {
+            if dataCaptureview.superview != nil {
+                dataCaptureview.removeFromSuperview()
+            }
+            dataCaptureview.frame = container.bounds
+            dataCaptureview.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            container.addSubview(dataCaptureview)
+        }
+        container.viewManager = self
+
+        dispatchMain {
+            RNTSDCDataCaptureViewManager.containers.append(container)
+        }
 
         return container
     }

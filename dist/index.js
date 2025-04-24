@@ -1,6 +1,6 @@
-import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, ContextStatus, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, Platform, findNodeHandle, UIManager, requireNativeComponent } from 'react-native';
+import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceState, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
+import { NativeModules, NativeEventEmitter, Platform, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
 import React from 'react';
 
 // tslint:disable-next-line:variable-name
@@ -36,9 +36,8 @@ class NativeImageFrameSourceProxy {
         this.nativeListeners = [];
     }
     subscribeDidChangeState() {
-        const didChangeState = RNEventEmitter$3.addListener(FrameSourceListenerEvents.didChangeState, (body) => {
-            const payload = JSON.parse(body);
-            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, payload);
+        const didChangeState = RNEventEmitter$3.addListener(FrameSourceListenerEvents.didChangeState, (event) => {
+            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, event.data);
         });
         this.nativeListeners.push(didChangeState);
     }
@@ -57,11 +56,11 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
     get frameworkVersion() {
         return `${major}.${minor}.${patch}`;
     }
-    contextFromJSON(context) {
-        return NativeModule$4.contextFromJSON(JSON.stringify(context.toJSON()));
+    contextFromJSON(contextJson) {
+        return NativeModule$4.contextFromJSON(contextJson);
     }
-    updateContextFromJSON(context) {
-        return NativeModule$4.updateContextFromJSON(JSON.stringify(context.toJSON()));
+    updateContextFromJSON(contextJson) {
+        return NativeModule$4.updateContextFromJSON(contextJson);
     }
     addModeToContext(modeJson) {
         return NativeModule$4.addModeToContext(modeJson);
@@ -85,10 +84,8 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
         return p;
     }
     subscribeDidChangeStatus() {
-        const didChangeStatus = RNEventEmitter$2.addListener(DataCaptureContextEvents.didChangeStatus, (body) => {
-            const payload = JSON.parse(body);
-            const contextStatus = ContextStatus.fromJSON(JSON.parse(payload.status));
-            this.eventEmitter.emit(DataCaptureContextEvents.didChangeStatus, contextStatus);
+        const didChangeStatus = RNEventEmitter$2.addListener(DataCaptureContextEvents.didChangeStatus, (event) => {
+            this.eventEmitter.emit(DataCaptureContextEvents.didChangeStatus, event.data);
         });
         this.nativeListeners.push(didChangeStatus);
     }
@@ -97,6 +94,9 @@ class NativeDataCaptureContextProxy extends BaseNativeProxy {
             this.eventEmitter.emit(DataCaptureContextEvents.didStartObservingContext);
         });
         this.nativeListeners.push(didStartObservingContext);
+    }
+    getOpenSourceSoftwareLicenseInfo() {
+        return NativeModule$4.getOpenSourceSoftwareLicenseInfo();
     }
 }
 
@@ -139,9 +139,8 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
         this.nativeListeners = [];
     }
     subscribeDidChangeSize() {
-        const didChangeSize = RNEventEmitter$1.addListener(DataCaptureViewEvents.didChangeSize, (body) => {
-            const payload = JSON.parse(body);
-            this.eventEmitter.emit(DataCaptureViewEvents.didChangeSize, JSON.stringify(payload));
+        const didChangeSize = RNEventEmitter$1.addListener(DataCaptureViewEvents.didChangeSize, (event) => {
+            this.eventEmitter.emit(DataCaptureViewEvents.didChangeSize, event.data);
         });
         this.nativeListeners.push(didChangeSize);
     }
@@ -167,11 +166,8 @@ class NativeCameraProxy {
     constructor() {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
-    getLastFrame() {
-        return NativeModule$2.getLastFrame();
-    }
-    getLastFrameOrNull() {
-        return NativeModule$2.getLastFrameOrNull();
+    getFrame(frameId) {
+        return NativeModule$2.getFrame(frameId);
     }
     getCurrentCameraState(position) {
         return NativeModule$2.getCurrentCameraState(position);
@@ -192,10 +188,8 @@ class NativeCameraProxy {
         return p;
     }
     subscribeDidChangeState() {
-        const didChangeState = RNEventEmitter.addListener(FrameSourceListenerEvents.didChangeState, (body) => {
-            const payload = JSON.parse(body);
-            const newState = payload.state;
-            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, newState);
+        const didChangeState = RNEventEmitter.addListener(FrameSourceListenerEvents.didChangeState, (event) => {
+            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, event.data);
         });
         this.nativeListeners.push(didChangeState);
     }
@@ -219,7 +213,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '6.28.5';
+        return '7.2.1';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -230,8 +224,8 @@ class DataCaptureView extends React.Component {
     view;
     constructor(props) {
         super(props);
-        // Do not create the view automatically on android but do so on iOS
-        this.view = BaseDataCaptureView.forContext(props.context, Platform.OS === 'ios');
+        // Do not create the view automatically. Do that only when componentDidMount is called.
+        this.view = BaseDataCaptureView.forContext(props.context, false);
         this.view.viewComponent = this;
     }
     get scanAreaMargins() {
@@ -307,25 +301,55 @@ class DataCaptureView extends React.Component {
         this.view.dispose();
     }
     componentDidMount() {
-        this.createDataCaptureView();
+        // This is required to ensure that findNodeHandle returns a valid handle
+        InteractionManager.runAfterInteractions(() => {
+            this.createDataCaptureView();
+        });
     }
     render() {
         return React.createElement(RNTDataCaptureView, { ...this.props });
     }
     createDataCaptureView() {
-        if (Platform.OS === 'android') {
-            const viewId = findNodeHandle(this);
-            UIManager.dispatchViewManagerCommand(viewId, 'createDataCaptureView', [
-                JSON.stringify(this.view.toJSON()),
-            ]);
-        }
+        const viewId = findNodeHandle(this);
+        this.view.viewId = viewId;
+        this.view.createNativeView();
     }
 }
 // tslint:disable-next-line:variable-name
 const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView', DataCaptureView);
 
+class RNNativeCaller {
+    nativeModule;
+    nativeEventEmitter;
+    constructor(nativeModule) {
+        this.nativeModule = nativeModule;
+        this.nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
+    }
+    callFn(fnName, args) {
+        // @ts-ignore
+        if (args === null || args === undefined || (args?.length && args.length > 0)) {
+            return this.nativeModule[fnName]();
+        }
+        return this.nativeModule[fnName](args);
+    }
+    async registerEvent(evName, handler) {
+        return this.nativeEventEmitter.addListener(evName, async (event) => {
+            await handler(event);
+        });
+    }
+    async unregisterEvent(_evName, subscription) {
+        await subscription.remove();
+    }
+    eventHook(args) {
+        return args;
+    }
+}
+function createRNNativeCaller(nativeModule) {
+    return new RNNativeCaller(nativeModule);
+}
+
 initCoreDefaults();
 initCoreProxy();
 
-export { ContextStatus, DataCaptureVersion, DataCaptureView, initCoreDefaults, initCoreProxy };
+export { DataCaptureVersion, DataCaptureView, RNNativeCaller, createRNNativeCaller, initCoreDefaults, initCoreProxy };
 //# sourceMappingURL=index.js.map

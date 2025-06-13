@@ -18,6 +18,6 @@ Pod::Spec.new do |s|
   s.module_name             = "ScanditDataCaptureCore"
   s.header_dir              = "ScanditDataCaptureCore"
 
-  s.dependency "scandit-datacapture-frameworks-core", '= 7.3.0'
+  s.dependency "scandit-datacapture-frameworks-core", '= 7.3.1'
   s.dependency "React"
 end

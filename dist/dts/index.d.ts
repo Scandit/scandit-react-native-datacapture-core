@@ -13,7 +13,7 @@ export * from './DataCaptureVersion';
 export * from './DataCaptureView';
 export { Vibration, WaveFormVibration, Sound, Feedback } from 'scandit-datacapture-frameworks-core';
 export { LocationSelection, NoneLocationSelection, RadiusLocationSelection, RectangularLocationSelection } from 'scandit-datacapture-frameworks-core';
-export { Viewfinder, NoViewfinder, RectangularViewfinder, AimerViewfinder } from 'scandit-datacapture-frameworks-core';
+export { Viewfinder, NoViewfinder, RectangularViewfinder, AimerViewfinder, LaserlineViewfinder } from 'scandit-datacapture-frameworks-core';
 export { RectangularViewfinderStyle, RectangularViewfinderLineStyle, RectangularViewfinderAnimation } from 'scandit-datacapture-frameworks-core';
 export { LicenseInfo, Expiration, OpenSourceSoftwareLicenseInfo } from 'scandit-datacapture-frameworks-core';
 export { FontFamily } from 'scandit-datacapture-frameworks-core';

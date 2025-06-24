@@ -23,20 +23,16 @@ public class ReactNativeEmitter: ReactNativeEmitting {
     public func emit(name: String, payload: [String: Any?]) {
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let jsonString = String(data: data, encoding: .utf8) else { return }
-
+        
         let reactPayload: [String: Any] = [
             "name": name,
             "data": jsonString
         ]
-
+        
         emitter?.sendEvent(withName: name, body: reactPayload)
     }
 
     public func hasListener(for event: String) -> Bool {
-        true
-    }
-
-    public func hasViewSpecificListenersForEvent(_ viewId: Int, for event: String) -> Bool {
         true
     }
 }

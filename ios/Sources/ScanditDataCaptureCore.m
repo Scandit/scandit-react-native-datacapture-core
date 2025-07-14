@@ -31,12 +31,12 @@ RCT_EXTERN_METHOD(emitFeedback
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(viewQuadrilateralForFrameQuadrilateral
-                  : (NSString *)JSON resolve
+                  : (NSDictionary *)data resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(viewPointForFramePoint
-                  : (NSString *)JSON resolve
+                  : (NSDictionary *)data resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
@@ -68,9 +68,15 @@ RCT_EXTERN_METHOD(registerListenerForEvents)
 
 RCT_EXTERN_METHOD(unregisterListenerForEvents)
 
-RCT_EXTERN_METHOD(registerListenerForViewEvents)
+RCT_EXTERN_METHOD(registerListenerForViewEvents
+                  : (NSInteger)viewId resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(unregisterListenerForViewEvents)
+RCT_EXTERN_METHOD(unregisterListenerForViewEvents
+                  : (NSInteger)viewId resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(addModeToContext
                   : (NSString *)modeJson resolve
@@ -99,5 +105,4 @@ RCT_EXTERN_METHOD(updateDataCaptureView
 RCT_EXTERN_METHOD(getOpenSourceSoftwareLicenseInfo
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
-
 @end

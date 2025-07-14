@@ -1,5 +1,5 @@
 import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceState, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
 import { NativeModules, NativeEventEmitter, Platform, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
 import React from 'react';
 
@@ -121,20 +121,20 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
     updateView(viewJson) {
         return NativeModule$3.updateDataCaptureView(viewJson);
     }
-    removeView() {
+    removeView(viewId) {
         return Promise.resolve();
     }
-    viewPointForFramePoint(pointJson) {
-        return NativeModule$3.viewPointForFramePoint(pointJson);
+    viewPointForFramePoint({ viewId, pointJson }) {
+        return NativeModule$3.viewPointForFramePoint({ viewId, point: pointJson });
     }
-    viewQuadrilateralForFrameQuadrilateral(quadrilateralJson) {
-        return NativeModule$3.viewQuadrilateralForFrameQuadrilateral(quadrilateralJson);
+    viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateralJson }) {
+        return NativeModule$3.viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateral: quadrilateralJson });
     }
-    registerListenerForViewEvents() {
-        NativeModule$3.registerListenerForViewEvents();
+    registerListenerForViewEvents(viewId) {
+        NativeModule$3.registerListenerForViewEvents(viewId);
     }
-    unregisterListenerForViewEvents() {
-        NativeModule$3.unregisterListenerForViewEvents();
+    unregisterListenerForViewEvents(viewId) {
+        NativeModule$3.unregisterListenerForViewEvents(viewId);
         this.nativeListeners.forEach(listener => listener.remove());
         this.nativeListeners = [];
     }
@@ -213,7 +213,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.3.2';
+        return '7.4.1';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -311,8 +311,7 @@ class DataCaptureView extends React.Component {
     }
     createDataCaptureView() {
         const viewId = findNodeHandle(this);
-        this.view.viewId = viewId;
-        this.view.createNativeView();
+        this.view.createNativeView(viewId);
     }
 }
 // tslint:disable-next-line:variable-name

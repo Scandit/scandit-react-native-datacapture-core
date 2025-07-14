@@ -10,11 +10,13 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
+import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.MainThread
@@ -71,13 +73,13 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun registerListenerForViewEvents() {
-        coreModule.registerDataCaptureViewListener()
+    fun registerListenerForViewEvents(viewId: Int) {
+        coreModule.registerDataCaptureViewListener(viewId)
     }
 
     @ReactMethod
-    fun unregisterListenerForViewEvents() {
-        coreModule.unregisterDataCaptureViewListener()
+    fun unregisterListenerForViewEvents(viewId: Int) {
+        coreModule.unregisterDataCaptureViewListener(viewId)
     }
 
     @ReactMethod
@@ -108,13 +110,29 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun viewPointForFramePoint(json: String, promise: Promise) {
-        coreModule.viewPointForFramePoint(json, ReactNativeResult(promise))
+    fun viewPointForFramePoint(readableMap: ReadableMap, promise: Promise) {
+        val pointJson = readableMap.getString("point") ?: return promise.reject(
+            ParameterNullError("point")
+        )
+
+        coreModule.viewPointForFramePoint(
+            readableMap.getInt("viewId"),
+            pointJson,
+            ReactNativeResult(promise)
+        )
     }
 
     @ReactMethod
-    fun viewQuadrilateralForFrameQuadrilateral(json: String, promise: Promise) {
-        coreModule.viewQuadrilateralForFrameQuadrilateral(json, ReactNativeResult(promise))
+    fun viewQuadrilateralForFrameQuadrilateral(readableMap: ReadableMap, promise: Promise) {
+        val quadrilateralJson = readableMap.getString("quadrilateral") ?: return promise.reject(
+            ParameterNullError("quadrilateral")
+        )
+
+        coreModule.viewQuadrilateralForFrameQuadrilateral(
+            readableMap.getInt("viewId"),
+            quadrilateralJson,
+            ReactNativeResult(promise)
+        )
     }
 
     @ReactMethod
@@ -167,6 +185,16 @@ class ScanditDataCaptureCoreModule(
     @ReactMethod
     fun getOpenSourceSoftwareLicenseInfo(promise: Promise) {
         coreModule.getOpenSourceSoftwareLicenseInfo(ReactNativeResult(promise))
+    }
+
+    @ReactMethod
+    fun addListener(@Suppress("UNUSED_PARAMETER") eventName: String?) {
+        // Keep: Required for RN built in Event Emitter Calls.
+    }
+
+    @ReactMethod
+    fun removeListeners(@Suppress("UNUSED_PARAMETER") count: Int?) {
+        // Keep: Required for RN built in Event Emitter Calls.
     }
 
     private val coreModule: CoreModule

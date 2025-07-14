@@ -49,7 +49,7 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
 }
 
 @objc(ScanditDataCaptureCore)
-public class ScanditDataCaptureCore: RCTEventEmitter {
+class ScanditDataCaptureCore: RCTEventEmitter {
 
     var coreModule: CoreModule!
 
@@ -60,15 +60,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     public override init() {
         super.init()
         let emitter = ReactNativeEmitter(emitter: self)
-        let frameworksFrameSourceListener = FrameworksFrameSourceListener(eventEmitter: emitter)
-        let frameSourceDeserializer = FrameworksFrameSourceDeserializer(frameSourceListener: frameworksFrameSourceListener,
-                                                                        torchListener: frameworksFrameSourceListener)
-        let contextListener = FrameworksDataCaptureContextListener(eventEmitter: emitter)
-        let viewListener = FrameworksDataCaptureViewListener(eventEmitter: emitter)
-        coreModule = CoreModule(frameSourceDeserializer: frameSourceDeserializer,
-                                frameSourceListener: frameworksFrameSourceListener,
-                                dataCaptureContextListener: contextListener,
-                                dataCaptureViewListener: viewListener)
+        coreModule = CoreModule.create(emitter: emitter)
         coreModule.didStart()
     }
 
@@ -159,17 +151,27 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(viewQuadrilateralForFrameQuadrilateral:resolve:reject:)
-    func viewQuadrilateralForFrameQuadrilateral(json: String,
+    func viewQuadrilateralForFrameQuadrilateral(_ data: [String: Any],
                                                 resolve: @escaping RCTPromiseResolveBlock,
                                                 reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.viewQuadrilateralForFrameQuadrilateral(json: json, result: ReactNativeResult(resolve, reject))
+        guard let viewId = data["viewId"] as? Int,
+              let quadrilateralJson = data["quadrilateral"] as? String else {
+            reject(String(ScanditDataCaptureCoreError.nilViewId.code), ScanditDataCaptureCoreError.nilViewId.message, nil)
+            return
+        }
+        coreModule.viewQuadrilateralForFrameQuadrilateral(viewId: viewId, json: quadrilateralJson, result: ReactNativeResult(resolve, reject))
     }
 
     @objc(viewPointForFramePoint:resolve:reject:)
-    func viewPointForFramePoint(json: String,
+    func viewPointForFramePoint(_ data: [String: Any],
                                 resolve: @escaping RCTPromiseResolveBlock,
                                 reject: @escaping RCTPromiseRejectBlock) {
-        coreModule.viewPointForFramePoint(json: json, result: ReactNativeResult(resolve, reject))
+        guard let viewId = data["viewId"] as? Int,
+              let pointJson = data["point"] as? String else {
+            reject(String(ScanditDataCaptureCoreError.nilViewId.code), ScanditDataCaptureCoreError.nilViewId.message, nil)
+            return
+        }
+        coreModule.viewPointForFramePoint(viewId: viewId, json: pointJson, result: ReactNativeResult(resolve, reject))
     }
 
     @objc(getCurrentCameraState:resolve:reject:)
@@ -219,12 +221,20 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
         coreModule.unregisterDataCaptureContextListener()
     }
 
-    @objc func registerListenerForViewEvents() {
-        coreModule.registerDataCaptureViewListener()
+    @objc(registerListenerForViewEvents:resolve:reject:)
+    func registerListenerForViewEvents(viewId: Int,
+                                             resolve: RCTPromiseResolveBlock,
+                                             reject: RCTPromiseRejectBlock) {
+        coreModule.registerDataCaptureViewListener(viewId: viewId)
+        resolve(nil)
     }
 
-    @objc func unregisterListenerForViewEvents() {
-        coreModule.unregisterDataCaptureViewListener()
+    @objc(unregisterListenerForViewEvents:resolve:reject:)
+    func unregisterListenerForViewEvents(viewId: Int,
+                                               resolve: RCTPromiseResolveBlock,
+                                               reject: RCTPromiseRejectBlock) {
+        coreModule.unregisterDataCaptureViewListener(viewId: viewId)
+        resolve(nil)
     }
 
     @objc(addModeToContext:resolve:reject:)
@@ -251,15 +261,15 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
     func createDataCaptureView(viewJson: String,
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
-        
+
         // Id assigned to the RN Component that on iOS is set in the reactTag of the Native View
         let viewId = JSONValue(string: viewJson).integer(forKey: "viewId", default: -1)
-        
+
         if viewId == -1 {
             reject(String(ScanditDataCaptureCoreError.nilViewId.code), ScanditDataCaptureCoreError.nilViewId.message, nil)
             return
         }
-        
+
         // In case something wrong happens with the creation of the View, the JS part will be notified inside
         // the shared code.
         if let dcView = self.coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject), viewId: viewId) {
@@ -272,7 +282,7 @@ public class ScanditDataCaptureCore: RCTEventEmitter {
                         // a DCView, there is no need to add another one.
                         return
                     }
-                    
+
                     dcView.frame = container.bounds
                     dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
                     container.addSubview(dcView)

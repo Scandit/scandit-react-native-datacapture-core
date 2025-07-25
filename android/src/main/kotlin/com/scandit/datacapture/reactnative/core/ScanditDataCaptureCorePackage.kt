@@ -15,6 +15,9 @@ import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.events.Emitter
 import com.scandit.datacapture.frameworks.core.lifecycle.ActivityLifecycleDispatcher
 import com.scandit.datacapture.frameworks.core.lifecycle.DefaultActivityLifecycle
+import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureContextListener
+import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureViewListener
+import com.scandit.datacapture.frameworks.core.listeners.FrameworksFrameSourceListener
 import com.scandit.datacapture.frameworks.core.locator.DefaultServiceLocator
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeEventEmitter
@@ -81,7 +84,11 @@ class ScanditDataCaptureCorePackage : ReactPackage {
             serviceLocator.remove(CoreModule::class.java.name)
 
             val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
-            val coreModule = CoreModule.create(eventEmitter)
+            val coreModule = CoreModule.create(
+                FrameworksFrameSourceListener(eventEmitter),
+                FrameworksDataCaptureContextListener(eventEmitter),
+                FrameworksDataCaptureViewListener(eventEmitter)
+            )
             coreModule.onCreate(reactContext)
             serviceLocator.register(coreModule)
         } finally {

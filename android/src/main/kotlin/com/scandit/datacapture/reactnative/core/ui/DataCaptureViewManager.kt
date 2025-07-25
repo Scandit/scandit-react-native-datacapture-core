@@ -48,7 +48,12 @@ class DataCaptureViewManager(
 
     override fun onDropViewInstance(view: FrameLayout) {
         // remove current DCView from core cache
-        coreModule.dataCaptureViewDisposed(view.id)
+        for (i in 0 until view.childCount) {
+            val child = view.getChildAt(i)
+            if (child is DataCaptureView) { // it should always be a DCView but you never know
+                coreModule.dataCaptureViewDisposed(child)
+            }
+        }
 
         super.onDropViewInstance(view)
     }

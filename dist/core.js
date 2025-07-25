@@ -2238,13 +2238,13 @@ class DataCaptureViewController extends BaseController {
     }
     viewPointForFramePoint(point) {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this._proxy.viewPointForFramePoint({ viewId: this.view.viewId, pointJson: JSON.stringify(point.toJSON()) });
+            const result = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
             return Point.fromJSON(JSON.parse(result.data));
         });
     }
     viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this._proxy.viewQuadrilateralForFrameQuadrilateral({ viewId: this.view.viewId, quadrilateralJson: JSON.stringify(quadrilateral.toJSON()) });
+            const result = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
             return Quadrilateral.fromJSON(JSON.parse(result.data));
         });
     }
@@ -2264,7 +2264,7 @@ class DataCaptureViewController extends BaseController {
         });
     }
     removeNativeView() {
-        return this._proxy.removeView(this.view.viewId);
+        return this._proxy.removeView();
     }
     createView() {
         return this._proxy.createView(JSON.stringify(this.view.toJSON()));
@@ -2277,15 +2277,12 @@ class DataCaptureViewController extends BaseController {
     }
     subscribeListener() {
         var _a, _b;
-        this._proxy.registerListenerForViewEvents(this.view.viewId);
+        this._proxy.registerListenerForViewEvents();
         (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === void 0 ? void 0 : _b.call(_a);
         this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (data) => {
             const event = EventDataParser.parse(data);
             if (event === null) {
                 console.error('DataCaptureViewController didChangeSize payload is null');
-                return;
-            }
-            if (event.viewId !== this.view.viewId) {
                 return;
             }
             const size = Size.fromJSON(event.size);
@@ -2298,7 +2295,7 @@ class DataCaptureViewController extends BaseController {
         });
     }
     unsubscribeListener() {
-        this._proxy.unregisterListenerForViewEvents(this.view.viewId);
+        this._proxy.unregisterListenerForViewEvents();
         this.eventEmitter.removeAllListeners(DataCaptureViewEvents.didChangeSize);
     }
 }
@@ -2322,13 +2319,6 @@ class BaseDataCaptureView extends DefaultSerializeable {
     }
     get scanAreaMargins() {
         return this._scanAreaMargins;
-    }
-    get viewId() {
-        var _a;
-        return (_a = this._viewId) !== null && _a !== void 0 ? _a : -1;
-    }
-    set viewId(newValue) {
-        this._viewId = newValue;
     }
     set scanAreaMargins(newValue) {
         this._scanAreaMargins = newValue;
@@ -2388,6 +2378,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
     constructor(autoCreateNativeView) {
         super();
         this._context = null;
+        this.viewId = null;
         this.overlays = [];
         this.controls = [];
         this.listeners = [];
@@ -2459,12 +2450,11 @@ class BaseDataCaptureView extends DefaultSerializeable {
     controlUpdated() {
         this.controller.updateView();
     }
-    createNativeView(viewId) {
+    createNativeView() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.isViewCreated) {
                 return Promise.resolve();
             }
-            this.viewId = viewId;
             yield this.controller.createNativeView();
             this.isViewCreated = true;
         });
@@ -2517,8 +2507,8 @@ __decorate([
     nameForSerialization('scanAreaMargins')
 ], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
 __decorate([
-    nameForSerialization('viewId')
-], BaseDataCaptureView.prototype, "_viewId", void 0);
+    ignoreFromSerializationIfNull
+], BaseDataCaptureView.prototype, "viewId", void 0);
 __decorate([
     nameForSerialization('pointOfInterest')
 ], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
@@ -2991,19 +2981,6 @@ class AimerViewfinder extends DefaultSerializeable {
     }
 }
 
-class LaserlineViewfinder extends DefaultSerializeable {
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor() {
-        super();
-        this.type = 'laserline';
-        this.width = this.coreDefaults.LaserlineViewfinder.width;
-        this.enabledColor = this.coreDefaults.LaserlineViewfinder.enabledColor;
-        this.disabledColor = this.coreDefaults.LaserlineViewfinder.disabledColor;
-    }
-}
-
 function parseDefaults(jsonDefaults) {
     const coreDefaults = {
         Camera: {
@@ -3058,11 +3035,6 @@ function parseDefaults(jsonDefaults) {
         Brush: new Brush(Color
             .fromJSON(jsonDefaults.Brush.fillColor), Color
             .fromJSON(jsonDefaults.Brush.strokeColor), jsonDefaults.Brush.strokeWidth),
-        LaserlineViewfinder: {
-            width: NumberWithUnit.fromJSON(JSON.parse(jsonDefaults.LaserlineViewfinder.width)),
-            enabledColor: Color.fromJSON(jsonDefaults.LaserlineViewfinder.enabledColor),
-            disabledColor: Color.fromJSON(jsonDefaults.LaserlineViewfinder.disabledColor),
-        },
         deviceID: jsonDefaults.deviceID,
     };
     // Inject defaults to avoid a circular dependency between these classes and the defaults
@@ -3429,97 +3401,6 @@ function createAdvancedInstanceAwareNativeProxy(nativeCaller, eventsEnum = undef
     return new AdvancedInstanceAwareNativeProxy(nativeCaller, eventsList);
 }
 
-/**
- * JS Proxy hook to act as middleware to all the calls performed by an AdvancedNativeProxy instance
- * This will allow AdvancedNativeProxy to call dynamically the methods defined in the interface defined
- * as parameter in createAdvancedNativeProxy function
- */
-const nativeProxyHook = {
-    /**
-     * Dynamic property getter for the AdvancedNativeProxy
-     * In order to call a native method this needs to be preceded by the `$` symbol on the name, ie `$methodName`
-     * In order to set a native event handler this needs to be preceded by `on$` prefix, ie `on$eventName`
-     * @param advancedNativeProxy
-     * @param prop
-     */
-    get(nativeProxy, prop) {
-        // Important: $ and on$ are required since if they are not added all
-        // properties present on AdvancedNativeProxy will be redirected to the
-        // advancedNativeProxy._call, which will call native even for the own
-        // properties of the class
-        // All the methods with the following structure
-        // $methodName will be redirected to the special _call
-        // method on AdvancedNativeProxy
-        if (prop.startsWith("$")) {
-            if (prop in nativeProxy) {
-                return nativeProxy[prop];
-            }
-            return (args) => {
-                return nativeProxy._call(prop.substring(1), args);
-            };
-        }
-        else {
-            return nativeProxy[prop];
-        }
-    }
-};
-class NativeProxy extends BaseInstanceAwareNativeProxy {
-    constructor(nativeCaller) {
-        super();
-        this.nativeCaller = nativeCaller;
-        this.eventSubscriptions = new Map();
-        this.eventHandlers = new Map();
-        // Create the cached handler once
-        this.cachedEventHandler = (eventName) => (args) => __awaiter(this, void 0, void 0, function* () {
-            this.eventEmitter.emit(eventName, args);
-        });
-        // Wrapping the NativeProxy instance with the JS proxy hook
-        return new Proxy(this, nativeProxyHook);
-    }
-    subscribeForEvents(events) {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (const event of events) {
-                yield this._registerEvent(event);
-            }
-        });
-    }
-    unsubscribeFromEvents(events) {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (const event of events) {
-                yield this._unregisterEvent(event);
-            }
-        });
-    }
-    dispose() {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (const nativeEventName of this.eventSubscriptions.keys()) {
-                yield this._unregisterEvent(nativeEventName);
-            }
-            this.eventSubscriptions.clear();
-        });
-    }
-    _call(fnName, args) {
-        return this.nativeCaller.callFn(fnName, args);
-    }
-    _registerEvent(event) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const handler = this.cachedEventHandler(event);
-            const subscription = yield this.nativeCaller.registerEvent(event, handler);
-            this.eventSubscriptions.set(event, subscription);
-        });
-    }
-    _unregisterEvent(event) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const subscription = this.eventSubscriptions.get(event);
-            yield this.nativeCaller.unregisterEvent(event, subscription);
-            this.eventSubscriptions.delete(event);
-        });
-    }
-}
-function createNativeProxy(nativeCaller) {
-    return new NativeProxy(nativeCaller);
-}
-
 class BaseNewController {
     get _proxy() {
         return this._cachedProxy;
@@ -3531,5 +3412,5 @@ class BaseNewController {
 
 createEventEmitter();
 
-export { AdvancedInstanceAwareNativeProxy, AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseInstanceAwareNativeProxy, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedInstanceAwareNativeProxy, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, createNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AdvancedInstanceAwareNativeProxy, AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseInstanceAwareNativeProxy, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedInstanceAwareNativeProxy, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

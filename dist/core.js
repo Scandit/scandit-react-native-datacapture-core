@@ -4,345 +4,352 @@ function getDefaultExportFromCjs (x) {
 
 var eventemitter3 = {exports: {}};
 
-(function (module) {
+var hasRequiredEventemitter3;
 
-	var has = Object.prototype.hasOwnProperty
-	  , prefix = '~';
+function requireEventemitter3 () {
+	if (hasRequiredEventemitter3) return eventemitter3.exports;
+	hasRequiredEventemitter3 = 1;
+	(function (module) {
 
-	/**
-	 * Constructor to create a storage for our `EE` objects.
-	 * An `Events` instance is a plain object whose properties are event names.
-	 *
-	 * @constructor
-	 * @private
-	 */
-	function Events() {}
+		var has = Object.prototype.hasOwnProperty
+		  , prefix = '~';
 
-	//
-	// We try to not inherit from `Object.prototype`. In some engines creating an
-	// instance in this way is faster than calling `Object.create(null)` directly.
-	// If `Object.create(null)` is not supported we prefix the event names with a
-	// character to make sure that the built-in object properties are not
-	// overridden or used as an attack vector.
-	//
-	if (Object.create) {
-	  Events.prototype = Object.create(null);
+		/**
+		 * Constructor to create a storage for our `EE` objects.
+		 * An `Events` instance is a plain object whose properties are event names.
+		 *
+		 * @constructor
+		 * @private
+		 */
+		function Events() {}
 
-	  //
-	  // This hack is needed because the `__proto__` property is still inherited in
-	  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
-	  //
-	  if (!new Events().__proto__) prefix = false;
-	}
+		//
+		// We try to not inherit from `Object.prototype`. In some engines creating an
+		// instance in this way is faster than calling `Object.create(null)` directly.
+		// If `Object.create(null)` is not supported we prefix the event names with a
+		// character to make sure that the built-in object properties are not
+		// overridden or used as an attack vector.
+		//
+		if (Object.create) {
+		  Events.prototype = Object.create(null);
 
-	/**
-	 * Representation of a single event listener.
-	 *
-	 * @param {Function} fn The listener function.
-	 * @param {*} context The context to invoke the listener with.
-	 * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
-	 * @constructor
-	 * @private
-	 */
-	function EE(fn, context, once) {
-	  this.fn = fn;
-	  this.context = context;
-	  this.once = once || false;
-	}
+		  //
+		  // This hack is needed because the `__proto__` property is still inherited in
+		  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
+		  //
+		  if (!new Events().__proto__) prefix = false;
+		}
 
-	/**
-	 * Add a listener for a given event.
-	 *
-	 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} context The context to invoke the listener with.
-	 * @param {Boolean} once Specify if the listener is a one-time listener.
-	 * @returns {EventEmitter}
-	 * @private
-	 */
-	function addListener(emitter, event, fn, context, once) {
-	  if (typeof fn !== 'function') {
-	    throw new TypeError('The listener must be a function');
-	  }
+		/**
+		 * Representation of a single event listener.
+		 *
+		 * @param {Function} fn The listener function.
+		 * @param {*} context The context to invoke the listener with.
+		 * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+		 * @constructor
+		 * @private
+		 */
+		function EE(fn, context, once) {
+		  this.fn = fn;
+		  this.context = context;
+		  this.once = once || false;
+		}
 
-	  var listener = new EE(fn, context || emitter, once)
-	    , evt = prefix ? prefix + event : event;
+		/**
+		 * Add a listener for a given event.
+		 *
+		 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} context The context to invoke the listener with.
+		 * @param {Boolean} once Specify if the listener is a one-time listener.
+		 * @returns {EventEmitter}
+		 * @private
+		 */
+		function addListener(emitter, event, fn, context, once) {
+		  if (typeof fn !== 'function') {
+		    throw new TypeError('The listener must be a function');
+		  }
 
-	  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
-	  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
-	  else emitter._events[evt] = [emitter._events[evt], listener];
+		  var listener = new EE(fn, context || emitter, once)
+		    , evt = prefix ? prefix + event : event;
 
-	  return emitter;
-	}
+		  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
+		  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
+		  else emitter._events[evt] = [emitter._events[evt], listener];
 
-	/**
-	 * Clear event by name.
-	 *
-	 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
-	 * @param {(String|Symbol)} evt The Event name.
-	 * @private
-	 */
-	function clearEvent(emitter, evt) {
-	  if (--emitter._eventsCount === 0) emitter._events = new Events();
-	  else delete emitter._events[evt];
-	}
+		  return emitter;
+		}
 
-	/**
-	 * Minimal `EventEmitter` interface that is molded against the Node.js
-	 * `EventEmitter` interface.
-	 *
-	 * @constructor
-	 * @public
-	 */
-	function EventEmitter() {
-	  this._events = new Events();
-	  this._eventsCount = 0;
-	}
+		/**
+		 * Clear event by name.
+		 *
+		 * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+		 * @param {(String|Symbol)} evt The Event name.
+		 * @private
+		 */
+		function clearEvent(emitter, evt) {
+		  if (--emitter._eventsCount === 0) emitter._events = new Events();
+		  else delete emitter._events[evt];
+		}
 
-	/**
-	 * Return an array listing the events for which the emitter has registered
-	 * listeners.
-	 *
-	 * @returns {Array}
-	 * @public
-	 */
-	EventEmitter.prototype.eventNames = function eventNames() {
-	  var names = []
-	    , events
-	    , name;
+		/**
+		 * Minimal `EventEmitter` interface that is molded against the Node.js
+		 * `EventEmitter` interface.
+		 *
+		 * @constructor
+		 * @public
+		 */
+		function EventEmitter() {
+		  this._events = new Events();
+		  this._eventsCount = 0;
+		}
 
-	  if (this._eventsCount === 0) return names;
+		/**
+		 * Return an array listing the events for which the emitter has registered
+		 * listeners.
+		 *
+		 * @returns {Array}
+		 * @public
+		 */
+		EventEmitter.prototype.eventNames = function eventNames() {
+		  var names = []
+		    , events
+		    , name;
 
-	  for (name in (events = this._events)) {
-	    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
-	  }
+		  if (this._eventsCount === 0) return names;
 
-	  if (Object.getOwnPropertySymbols) {
-	    return names.concat(Object.getOwnPropertySymbols(events));
-	  }
+		  for (name in (events = this._events)) {
+		    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
+		  }
 
-	  return names;
-	};
+		  if (Object.getOwnPropertySymbols) {
+		    return names.concat(Object.getOwnPropertySymbols(events));
+		  }
 
-	/**
-	 * Return the listeners registered for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Array} The registered listeners.
-	 * @public
-	 */
-	EventEmitter.prototype.listeners = function listeners(event) {
-	  var evt = prefix ? prefix + event : event
-	    , handlers = this._events[evt];
+		  return names;
+		};
 
-	  if (!handlers) return [];
-	  if (handlers.fn) return [handlers.fn];
+		/**
+		 * Return the listeners registered for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Array} The registered listeners.
+		 * @public
+		 */
+		EventEmitter.prototype.listeners = function listeners(event) {
+		  var evt = prefix ? prefix + event : event
+		    , handlers = this._events[evt];
 
-	  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
-	    ee[i] = handlers[i].fn;
-	  }
+		  if (!handlers) return [];
+		  if (handlers.fn) return [handlers.fn];
 
-	  return ee;
-	};
+		  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
+		    ee[i] = handlers[i].fn;
+		  }
 
-	/**
-	 * Return the number of listeners listening to a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Number} The number of listeners.
-	 * @public
-	 */
-	EventEmitter.prototype.listenerCount = function listenerCount(event) {
-	  var evt = prefix ? prefix + event : event
-	    , listeners = this._events[evt];
+		  return ee;
+		};
 
-	  if (!listeners) return 0;
-	  if (listeners.fn) return 1;
-	  return listeners.length;
-	};
+		/**
+		 * Return the number of listeners listening to a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Number} The number of listeners.
+		 * @public
+		 */
+		EventEmitter.prototype.listenerCount = function listenerCount(event) {
+		  var evt = prefix ? prefix + event : event
+		    , listeners = this._events[evt];
 
-	/**
-	 * Calls each of the listeners registered for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @returns {Boolean} `true` if the event had listeners, else `false`.
-	 * @public
-	 */
-	EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
-	  var evt = prefix ? prefix + event : event;
+		  if (!listeners) return 0;
+		  if (listeners.fn) return 1;
+		  return listeners.length;
+		};
 
-	  if (!this._events[evt]) return false;
+		/**
+		 * Calls each of the listeners registered for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @returns {Boolean} `true` if the event had listeners, else `false`.
+		 * @public
+		 */
+		EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+		  var evt = prefix ? prefix + event : event;
 
-	  var listeners = this._events[evt]
-	    , len = arguments.length
-	    , args
-	    , i;
+		  if (!this._events[evt]) return false;
 
-	  if (listeners.fn) {
-	    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+		  var listeners = this._events[evt]
+		    , len = arguments.length
+		    , args
+		    , i;
 
-	    switch (len) {
-	      case 1: return listeners.fn.call(listeners.context), true;
-	      case 2: return listeners.fn.call(listeners.context, a1), true;
-	      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
-	      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
-	      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
-	      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
-	    }
+		  if (listeners.fn) {
+		    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
 
-	    for (i = 1, args = new Array(len -1); i < len; i++) {
-	      args[i - 1] = arguments[i];
-	    }
+		    switch (len) {
+		      case 1: return listeners.fn.call(listeners.context), true;
+		      case 2: return listeners.fn.call(listeners.context, a1), true;
+		      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+		      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+		      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+		      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+		    }
 
-	    listeners.fn.apply(listeners.context, args);
-	  } else {
-	    var length = listeners.length
-	      , j;
+		    for (i = 1, args = new Array(len -1); i < len; i++) {
+		      args[i - 1] = arguments[i];
+		    }
 
-	    for (i = 0; i < length; i++) {
-	      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
+		    listeners.fn.apply(listeners.context, args);
+		  } else {
+		    var length = listeners.length
+		      , j;
 
-	      switch (len) {
-	        case 1: listeners[i].fn.call(listeners[i].context); break;
-	        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
-	        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
-	        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
-	        default:
-	          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
-	            args[j - 1] = arguments[j];
-	          }
+		    for (i = 0; i < length; i++) {
+		      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
 
-	          listeners[i].fn.apply(listeners[i].context, args);
-	      }
-	    }
-	  }
+		      switch (len) {
+		        case 1: listeners[i].fn.call(listeners[i].context); break;
+		        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
+		        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
+		        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
+		        default:
+		          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
+		            args[j - 1] = arguments[j];
+		          }
 
-	  return true;
-	};
+		          listeners[i].fn.apply(listeners[i].context, args);
+		      }
+		    }
+		  }
 
-	/**
-	 * Add a listener for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} [context=this] The context to invoke the listener with.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.on = function on(event, fn, context) {
-	  return addListener(this, event, fn, context, false);
-	};
+		  return true;
+		};
 
-	/**
-	 * Add a one-time listener for a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn The listener function.
-	 * @param {*} [context=this] The context to invoke the listener with.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.once = function once(event, fn, context) {
-	  return addListener(this, event, fn, context, true);
-	};
+		/**
+		 * Add a listener for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} [context=this] The context to invoke the listener with.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.on = function on(event, fn, context) {
+		  return addListener(this, event, fn, context, false);
+		};
 
-	/**
-	 * Remove the listeners of a given event.
-	 *
-	 * @param {(String|Symbol)} event The event name.
-	 * @param {Function} fn Only remove the listeners that match this function.
-	 * @param {*} context Only remove the listeners that have this context.
-	 * @param {Boolean} once Only remove one-time listeners.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
-	  var evt = prefix ? prefix + event : event;
+		/**
+		 * Add a one-time listener for a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn The listener function.
+		 * @param {*} [context=this] The context to invoke the listener with.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.once = function once(event, fn, context) {
+		  return addListener(this, event, fn, context, true);
+		};
 
-	  if (!this._events[evt]) return this;
-	  if (!fn) {
-	    clearEvent(this, evt);
-	    return this;
-	  }
+		/**
+		 * Remove the listeners of a given event.
+		 *
+		 * @param {(String|Symbol)} event The event name.
+		 * @param {Function} fn Only remove the listeners that match this function.
+		 * @param {*} context Only remove the listeners that have this context.
+		 * @param {Boolean} once Only remove one-time listeners.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+		  var evt = prefix ? prefix + event : event;
 
-	  var listeners = this._events[evt];
+		  if (!this._events[evt]) return this;
+		  if (!fn) {
+		    clearEvent(this, evt);
+		    return this;
+		  }
 
-	  if (listeners.fn) {
-	    if (
-	      listeners.fn === fn &&
-	      (!once || listeners.once) &&
-	      (!context || listeners.context === context)
-	    ) {
-	      clearEvent(this, evt);
-	    }
-	  } else {
-	    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
-	      if (
-	        listeners[i].fn !== fn ||
-	        (once && !listeners[i].once) ||
-	        (context && listeners[i].context !== context)
-	      ) {
-	        events.push(listeners[i]);
-	      }
-	    }
+		  var listeners = this._events[evt];
 
-	    //
-	    // Reset the array, or remove it completely if we have no more listeners.
-	    //
-	    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
-	    else clearEvent(this, evt);
-	  }
+		  if (listeners.fn) {
+		    if (
+		      listeners.fn === fn &&
+		      (!once || listeners.once) &&
+		      (!context || listeners.context === context)
+		    ) {
+		      clearEvent(this, evt);
+		    }
+		  } else {
+		    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+		      if (
+		        listeners[i].fn !== fn ||
+		        (once && !listeners[i].once) ||
+		        (context && listeners[i].context !== context)
+		      ) {
+		        events.push(listeners[i]);
+		      }
+		    }
 
-	  return this;
-	};
+		    //
+		    // Reset the array, or remove it completely if we have no more listeners.
+		    //
+		    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+		    else clearEvent(this, evt);
+		  }
 
-	/**
-	 * Remove all listeners, or those of the specified event.
-	 *
-	 * @param {(String|Symbol)} [event] The event name.
-	 * @returns {EventEmitter} `this`.
-	 * @public
-	 */
-	EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
-	  var evt;
+		  return this;
+		};
 
-	  if (event) {
-	    evt = prefix ? prefix + event : event;
-	    if (this._events[evt]) clearEvent(this, evt);
-	  } else {
-	    this._events = new Events();
-	    this._eventsCount = 0;
-	  }
+		/**
+		 * Remove all listeners, or those of the specified event.
+		 *
+		 * @param {(String|Symbol)} [event] The event name.
+		 * @returns {EventEmitter} `this`.
+		 * @public
+		 */
+		EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+		  var evt;
 
-	  return this;
-	};
+		  if (event) {
+		    evt = prefix ? prefix + event : event;
+		    if (this._events[evt]) clearEvent(this, evt);
+		  } else {
+		    this._events = new Events();
+		    this._eventsCount = 0;
+		  }
 
-	//
-	// Alias methods names because people roll like that.
-	//
-	EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+		  return this;
+		};
 
-	//
-	// Expose the prefix.
-	//
-	EventEmitter.prefixed = prefix;
+		//
+		// Alias methods names because people roll like that.
+		//
+		EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+		EventEmitter.prototype.addListener = EventEmitter.prototype.on;
 
-	//
-	// Allow `EventEmitter` to be imported as module namespace.
-	//
-	EventEmitter.EventEmitter = EventEmitter;
+		//
+		// Expose the prefix.
+		//
+		EventEmitter.prefixed = prefix;
 
-	//
-	// Expose the module.
-	//
-	{
-	  module.exports = EventEmitter;
-	} 
-} (eventemitter3));
+		//
+		// Allow `EventEmitter` to be imported as module namespace.
+		//
+		EventEmitter.EventEmitter = EventEmitter;
 
-var eventemitter3Exports = eventemitter3.exports;
+		//
+		// Expose the module.
+		//
+		{
+		  module.exports = EventEmitter;
+		} 
+	} (eventemitter3));
+	return eventemitter3.exports;
+}
+
+var eventemitter3Exports = requireEventemitter3();
 var EventEmitter = /*@__PURE__*/getDefaultExportFromCjs(eventemitter3Exports);
 
 class FactoryMaker {
@@ -362,13 +369,24 @@ class FactoryMaker {
         var _a;
         const item = FactoryMaker.instances.get(clsName);
         if (item === null || item === undefined) {
-            console.warn(`Trying to get a non existing instance for ${clsName}`);
-            return;
+            throw new Error(`Trying to get a non existing instance for ${clsName}`);
         }
         if (!item.instance && item.builder) {
-            item.instance = (_a = item.builder) === null || _a === void 0 ? void 0 : _a.call(item);
+            item.instance = (_a = item.builder) === null || _a === undefined ? undefined : _a.call(item);
         }
         return item.instance;
+    }
+    static createInstance(clsName) {
+        var _a;
+        const item = FactoryMaker.instances.get(clsName);
+        if (item === null || item === undefined) {
+            throw new Error(`Trying to get a non existing instance for ${clsName}`);
+        }
+        const proxyInstance = (_a = item.builder) === null || _a === undefined ? undefined : _a.call(item);
+        if (proxyInstance === undefined) {
+            throw new Error(`item.builder?.() returned undefined for ${clsName}`);
+        }
+        return proxyInstance;
     }
 }
 FactoryMaker.instances = new Map();
@@ -378,6 +396,45 @@ function createEventEmitter() {
     FactoryMaker.bindInstanceIfNotExists('EventEmitter', ee);
 }
 
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global Reflect, Promise, SuppressedError, Symbol, Iterator */
+
+
+function __decorate(decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+
 class BaseController {
     get _proxy() {
         return FactoryMaker.getInstance(this.proxyName);
@@ -385,6 +442,15 @@ class BaseController {
     constructor(proxyName) {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
         this.proxyName = proxyName;
+    }
+}
+class BaseNewController {
+    get _proxy() {
+        return this._cachedProxy;
+    }
+    constructor(proxyName) {
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
+        this._cachedProxy = FactoryMaker.createInstance(proxyName);
     }
     emit(event, payload) {
         this.eventEmitter.emit(event, payload);
@@ -394,6 +460,138 @@ class BaseNativeProxy {
     constructor() {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
+}
+/**
+ * JS Proxy hook to act as middleware to all the calls performed by an AdvancedNativeProxy instance
+ * This will allow AdvancedNativeProxy to call dynamically the methods defined in the interface defined
+ * as parameter in createAdvancedNativeProxy function
+ */
+const advancedNativeProxyHook = {
+    /**
+     * Dynamic property getter for the AdvancedNativeProxy
+     * In order to call a native method this needs to be preceded by the `$` symbol on the name, ie `$methodName`
+     * In order to set a native event handler this needs to be preceded by `on$` prefix, ie `on$eventName`
+     * @param advancedNativeProxy
+     * @param prop
+     */
+    get(advancedNativeProxy, prop) {
+        // Important: $ and on$ are required since if they are not added all
+        // properties present on AdvancedNativeProxy will be redirected to the
+        // advancedNativeProxy._call, which will call native even for the own
+        // properties of the class
+        // All the methods with the following structure
+        // $methodName will be redirected to the special _call
+        // method on AdvancedNativeProxy
+        if (prop.startsWith("$")) {
+            if (prop in advancedNativeProxy) {
+                return advancedNativeProxy[prop];
+            }
+            return (args) => {
+                return advancedNativeProxy._call(prop.substring(1), args);
+            };
+            // All methods with the following structure
+            // on$methodName will trigger the event handler properties
+        }
+        else if (prop.startsWith("on$")) {
+            return advancedNativeProxy[prop.substring(3)];
+            // Everything else will be taken as a property
+        }
+        else {
+            return advancedNativeProxy[prop];
+        }
+    }
+};
+/**
+ * AdvancedNativeProxy will provide an easy way to communicate between native proxies
+ * and other parts of the architecture such as the controller layer
+ */
+class AdvancedNativeProxy extends BaseNativeProxy {
+    constructor(nativeCaller, events = []) {
+        super();
+        this.nativeCaller = nativeCaller;
+        this.events = events;
+        this.eventSubscriptions = new Map();
+        this.events.forEach((event) => __awaiter(this, undefined, undefined, function* () {
+            yield this._registerEvent(event);
+        }));
+        // Wrapping the AdvancedNativeProxy instance with the JS proxy hook
+        return new Proxy(this, advancedNativeProxyHook);
+    }
+    dispose() {
+        return __awaiter(this, undefined, undefined, function* () {
+            for (const event of this.events) {
+                yield this._unregisterEvent(event);
+            }
+            this.eventSubscriptions.clear();
+            this.events = [];
+        });
+    }
+    _call(fnName, args) {
+        return this.nativeCaller.callFn(fnName, args);
+    }
+    _registerEvent(event) {
+        return __awaiter(this, undefined, undefined, function* () {
+            const handler = (args) => __awaiter(this, undefined, undefined, function* () {
+                this.eventEmitter.emit(event.nativeEventName, args);
+            });
+            this.eventEmitter.on(event.nativeEventName, (args) => __awaiter(this, undefined, undefined, function* () {
+                // Call to the special method defined on the JS Proxy hook
+                try {
+                    const hookArg = this.nativeCaller.eventHook(args);
+                    yield this[`on$${event.name}`](hookArg);
+                }
+                catch (e) {
+                    console.error(`Error while trying to execute handler for ${event.nativeEventName}`, e);
+                    throw e;
+                }
+            }));
+            const subscription = yield this.nativeCaller.registerEvent(event.nativeEventName, handler);
+            this.eventSubscriptions.set(event.name, subscription);
+        });
+    }
+    _unregisterEvent(event) {
+        return __awaiter(this, undefined, undefined, function* () {
+            const subscription = this.eventSubscriptions.get(event.name);
+            yield this.nativeCaller.unregisterEvent(event.nativeEventName, subscription);
+            this.eventEmitter.off(event.nativeEventName);
+            this.eventSubscriptions.delete(event.name);
+        });
+    }
+}
+/**
+ * Function to create a custom AdvancedNativeProxy. This will return an object which will provide dynamically the
+ * methods specified in the PROXY interface.
+ *
+ * The Proxy interface implemented in order to call native methods will require a special mark
+ * `$methodName` for method calls
+ * `on$methodName` for the listeners added to the events defined in eventsEnum
+ * @param nativeCaller
+ * @param eventsEnum
+ */
+function createAdvancedNativeProxy(nativeCaller, eventsEnum = undefined) {
+    const eventsList = eventsEnum == null ? [] : Object.entries(eventsEnum).map(([key, value]) => ({
+        name: key,
+        nativeEventName: value
+    }));
+    return new AdvancedNativeProxy(nativeCaller, eventsList);
+}
+/**
+ * Function to create a custom AdvancedNativeProxy. This will return an object which will provide dynamically the
+ * methods specified in the PROXY interface.
+ *
+ * The Proxy interface implemented in order to call native methods will require a special mark
+ * `$methodName` for method calls
+ * `on$methodName` for the listeners added to the events defined in eventsEnum
+ * @param klass
+ * @param nativeCaller
+ * @param eventsEnum
+ */
+function createAdvancedNativeFromCtorProxy(klass, nativeCaller, eventsEnum = undefined) {
+    const eventsList = Object.entries(eventsEnum).map(([key, value]) => ({
+        name: key,
+        nativeEventName: value
+    }));
+    return new klass(nativeCaller, eventsList);
 }
 
 function getCoreDefaults() {
@@ -503,45 +701,6 @@ class PrivateZoomGestureDeserializer {
     }
 }
 
-/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
-
-
-function __decorate(decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-}
-
-typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};
-
 var FrameSourceState;
 (function (FrameSourceState) {
     FrameSourceState["On"] = "on";
@@ -579,6 +738,747 @@ var FrameSourceListenerEvents;
     FrameSourceListenerEvents["didChangeState"] = "FrameSourceListener.onStateChanged";
 })(FrameSourceListenerEvents || (FrameSourceListenerEvents = {}));
 
+var FontFamily;
+(function (FontFamily) {
+    FontFamily["SystemDefault"] = "systemDefault";
+    FontFamily["ModernMono"] = "modernMono";
+    FontFamily["SystemSans"] = "systemSans";
+})(FontFamily || (FontFamily = {}));
+
+var TextAlignment;
+(function (TextAlignment) {
+    TextAlignment["Left"] = "left";
+    TextAlignment["Right"] = "right";
+    TextAlignment["Center"] = "center";
+    TextAlignment["Start"] = "start";
+    TextAlignment["End"] = "end";
+})(TextAlignment || (TextAlignment = {}));
+
+class Point extends DefaultSerializeable {
+    get x() {
+        return this._x;
+    }
+    get y() {
+        return this._y;
+    }
+    static fromJSON(json) {
+        return new Point(json.x, json.y);
+    }
+    constructor(x, y) {
+        super();
+        this._x = x;
+        this._y = y;
+    }
+}
+__decorate([
+    nameForSerialization('x')
+], Point.prototype, "_x", undefined);
+__decorate([
+    nameForSerialization('y')
+], Point.prototype, "_y", undefined);
+
+class Quadrilateral extends DefaultSerializeable {
+    get topLeft() {
+        return this._topLeft;
+    }
+    get topRight() {
+        return this._topRight;
+    }
+    get bottomRight() {
+        return this._bottomRight;
+    }
+    get bottomLeft() {
+        return this._bottomLeft;
+    }
+    static fromJSON(json) {
+        return new Quadrilateral(Point.fromJSON(json.topLeft), Point.fromJSON(json.topRight), Point.fromJSON(json.bottomRight), Point.fromJSON(json.bottomLeft));
+    }
+    constructor(topLeft, topRight, bottomRight, bottomLeft) {
+        super();
+        this._topLeft = topLeft;
+        this._topRight = topRight;
+        this._bottomRight = bottomRight;
+        this._bottomLeft = bottomLeft;
+    }
+}
+__decorate([
+    nameForSerialization('topLeft')
+], Quadrilateral.prototype, "_topLeft", undefined);
+__decorate([
+    nameForSerialization('topRight')
+], Quadrilateral.prototype, "_topRight", undefined);
+__decorate([
+    nameForSerialization('bottomRight')
+], Quadrilateral.prototype, "_bottomRight", undefined);
+__decorate([
+    nameForSerialization('bottomLeft')
+], Quadrilateral.prototype, "_bottomLeft", undefined);
+
+class NumberWithUnit extends DefaultSerializeable {
+    get value() {
+        return this._value;
+    }
+    get unit() {
+        return this._unit;
+    }
+    static fromJSON(json) {
+        return new NumberWithUnit(json.value, json.unit);
+    }
+    constructor(value, unit) {
+        super();
+        this._value = value;
+        this._unit = unit;
+    }
+}
+__decorate([
+    nameForSerialization('value')
+], NumberWithUnit.prototype, "_value", undefined);
+__decorate([
+    nameForSerialization('unit')
+], NumberWithUnit.prototype, "_unit", undefined);
+
+var MeasureUnit;
+(function (MeasureUnit) {
+    MeasureUnit["DIP"] = "dip";
+    MeasureUnit["Pixel"] = "pixel";
+    MeasureUnit["Fraction"] = "fraction";
+})(MeasureUnit || (MeasureUnit = {}));
+
+class PointWithUnit extends DefaultSerializeable {
+    get x() {
+        return this._x;
+    }
+    get y() {
+        return this._y;
+    }
+    static fromJSON(json) {
+        return new PointWithUnit(NumberWithUnit.fromJSON(json.x), NumberWithUnit.fromJSON(json.y));
+    }
+    static get zero() {
+        return new PointWithUnit(new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel));
+    }
+    constructor(x, y) {
+        super();
+        this._x = x;
+        this._y = y;
+    }
+}
+__decorate([
+    nameForSerialization('x')
+], PointWithUnit.prototype, "_x", undefined);
+__decorate([
+    nameForSerialization('y')
+], PointWithUnit.prototype, "_y", undefined);
+
+class Rect extends DefaultSerializeable {
+    get origin() {
+        return this._origin;
+    }
+    get size() {
+        return this._size;
+    }
+    constructor(origin, size) {
+        super();
+        this._origin = origin;
+        this._size = size;
+    }
+}
+__decorate([
+    nameForSerialization('origin')
+], Rect.prototype, "_origin", undefined);
+__decorate([
+    nameForSerialization('size')
+], Rect.prototype, "_size", undefined);
+
+class RectWithUnit extends DefaultSerializeable {
+    get origin() {
+        return this._origin;
+    }
+    get size() {
+        return this._size;
+    }
+    constructor(origin, size) {
+        super();
+        this._origin = origin;
+        this._size = size;
+    }
+}
+__decorate([
+    nameForSerialization('origin')
+], RectWithUnit.prototype, "_origin", undefined);
+__decorate([
+    nameForSerialization('size')
+], RectWithUnit.prototype, "_size", undefined);
+
+class ScanditIcon extends DefaultSerializeable {
+    static fromJSON(json) {
+        if (!json) {
+            return null;
+        }
+        const scanditIcon = new ScanditIcon(json.iconColor || null, json.backgroundColor || null, json.backgroundShape || null, json.icon || null, json.backgroundStrokeColor || null, json.backgroundStrokeWidth);
+        return scanditIcon;
+    }
+    constructor(iconColor, backgroundColor, backgroundShape, icon, backgroundStrokeColor, backgroundStrokeWidth) {
+        super();
+        this._backgroundStrokeWidth = 3.0;
+        this._iconColor = iconColor;
+        this._backgroundColor = backgroundColor;
+        this._backgroundShape = backgroundShape;
+        this._icon = icon;
+        this._backgroundStrokeColor = backgroundStrokeColor;
+        this._backgroundStrokeWidth = backgroundStrokeWidth;
+    }
+    get backgroundColor() {
+        return this._backgroundColor;
+    }
+    get backgroundShape() {
+        return this._backgroundShape;
+    }
+    get icon() {
+        return this._icon;
+    }
+    get iconColor() {
+        return this._iconColor;
+    }
+    get backgroundStrokeColor() {
+        return this._backgroundStrokeColor;
+    }
+    get backgroundStrokeWidth() {
+        return this._backgroundStrokeWidth;
+    }
+}
+__decorate([
+    nameForSerialization('backgroundColor'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_backgroundColor", undefined);
+__decorate([
+    nameForSerialization('backgroundShape'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_backgroundShape", undefined);
+__decorate([
+    nameForSerialization('icon'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_icon", undefined);
+__decorate([
+    nameForSerialization('iconColor'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_iconColor", undefined);
+__decorate([
+    nameForSerialization('backgroundStrokeColor'),
+    ignoreFromSerializationIfNull
+], ScanditIcon.prototype, "_backgroundStrokeColor", undefined);
+__decorate([
+    nameForSerialization('backgroundStrokeWidth')
+], ScanditIcon.prototype, "_backgroundStrokeWidth", undefined);
+
+class ScanditIconBuilder {
+    constructor() {
+        this._iconColor = null;
+        this._backgroundColor = null;
+        this._backgroundShape = null;
+        this._icon = null;
+        this._backgroundStrokeColor = null;
+        this._backgroundStrokeWidth = 3.0;
+    }
+    withIconColor(iconColor) {
+        this._iconColor = iconColor;
+        return this;
+    }
+    withBackgroundColor(backgroundColor) {
+        this._backgroundColor = backgroundColor;
+        return this;
+    }
+    withBackgroundShape(backgroundShape) {
+        this._backgroundShape = backgroundShape;
+        return this;
+    }
+    withIcon(iconType) {
+        this._icon = iconType;
+        return this;
+    }
+    withBackgroundStrokeColor(backgroundStrokeColor) {
+        this._backgroundStrokeColor = backgroundStrokeColor;
+        return this;
+    }
+    withBackgroundStrokeWidth(backgroundStrokeWidth) {
+        this._backgroundStrokeWidth = backgroundStrokeWidth;
+        return this;
+    }
+    build() {
+        return new ScanditIcon(this._iconColor, this._backgroundColor, this._backgroundShape, this._icon, this._backgroundStrokeColor, this._backgroundStrokeWidth);
+    }
+}
+
+var ScanditIconShape;
+(function (ScanditIconShape) {
+    ScanditIconShape["Circle"] = "circle";
+    ScanditIconShape["Square"] = "square";
+})(ScanditIconShape || (ScanditIconShape = {}));
+
+var ScanditIconType;
+(function (ScanditIconType) {
+    ScanditIconType["ArrowRight"] = "arrowRight";
+    ScanditIconType["ArrowLeft"] = "arrowLeft";
+    ScanditIconType["ArrowUp"] = "arrowUp";
+    ScanditIconType["ArrowDown"] = "arrowDown";
+    ScanditIconType["ToPick"] = "toPick";
+    ScanditIconType["Checkmark"] = "checkmark";
+    ScanditIconType["XMark"] = "xmark";
+    ScanditIconType["QuestionMark"] = "questionMark";
+    ScanditIconType["ExclamationMark"] = "exclamationMark";
+    ScanditIconType["LowStock"] = "lowStock";
+    ScanditIconType["ExpiredItem"] = "expiredItem";
+    ScanditIconType["WrongItem"] = "wrongItem";
+    ScanditIconType["FragileItem"] = "fragileItem";
+    ScanditIconType["StarFilled"] = "starFilled";
+    ScanditIconType["StarHalfFilled"] = "starHalfFilled";
+    ScanditIconType["ChevronUp"] = "chevronUp";
+    ScanditIconType["ChevronDown"] = "chevronDown";
+    ScanditIconType["ChevronLeft"] = "chevronLeft";
+    ScanditIconType["ChevronRight"] = "chevronRight";
+    ScanditIconType["InspectItem"] = "inspectItem";
+    ScanditIconType["StarOutlined"] = "starOutlined";
+    ScanditIconType["Print"] = "print";
+})(ScanditIconType || (ScanditIconType = {}));
+
+class Size extends DefaultSerializeable {
+    get width() {
+        return this._width;
+    }
+    get height() {
+        return this._height;
+    }
+    static fromJSON(json) {
+        return new Size(json.width, json.height);
+    }
+    constructor(width, height) {
+        super();
+        this._width = width;
+        this._height = height;
+    }
+}
+__decorate([
+    nameForSerialization('width')
+], Size.prototype, "_width", undefined);
+__decorate([
+    nameForSerialization('height')
+], Size.prototype, "_height", undefined);
+
+class SizeWithAspect extends DefaultSerializeable {
+    get size() {
+        return this._size;
+    }
+    get aspect() {
+        return this._aspect;
+    }
+    constructor(size, aspect) {
+        super();
+        this._size = size;
+        this._aspect = aspect;
+    }
+}
+__decorate([
+    nameForSerialization('size')
+], SizeWithAspect.prototype, "_size", undefined);
+__decorate([
+    nameForSerialization('aspect')
+], SizeWithAspect.prototype, "_aspect", undefined);
+
+class SizeWithUnit extends DefaultSerializeable {
+    get width() {
+        return this._width;
+    }
+    get height() {
+        return this._height;
+    }
+    constructor(width, height) {
+        super();
+        this._width = width;
+        this._height = height;
+    }
+}
+__decorate([
+    nameForSerialization('width')
+], SizeWithUnit.prototype, "_width", undefined);
+__decorate([
+    nameForSerialization('height')
+], SizeWithUnit.prototype, "_height", undefined);
+
+var SizingMode;
+(function (SizingMode) {
+    SizingMode["WidthAndHeight"] = "widthAndHeight";
+    SizingMode["WidthAndAspectRatio"] = "widthAndAspectRatio";
+    SizingMode["HeightAndAspectRatio"] = "heightAndAspectRatio";
+    SizingMode["ShorterDimensionAndAspectRatio"] = "shorterDimensionAndAspectRatio";
+})(SizingMode || (SizingMode = {}));
+
+class SizeWithUnitAndAspect {
+    constructor() {
+        this._widthAndHeight = null;
+        this._widthAndAspectRatio = null;
+        this._heightAndAspectRatio = null;
+        this._shorterDimensionAndAspectRatio = null;
+    }
+    get widthAndHeight() {
+        return this._widthAndHeight;
+    }
+    get widthAndAspectRatio() {
+        return this._widthAndAspectRatio;
+    }
+    get heightAndAspectRatio() {
+        return this._heightAndAspectRatio;
+    }
+    get shorterDimensionAndAspectRatio() {
+        return this._shorterDimensionAndAspectRatio;
+    }
+    get sizingMode() {
+        if (this.widthAndAspectRatio) {
+            return SizingMode.WidthAndAspectRatio;
+        }
+        if (this.heightAndAspectRatio) {
+            return SizingMode.HeightAndAspectRatio;
+        }
+        if (this.shorterDimensionAndAspectRatio) {
+            return SizingMode.ShorterDimensionAndAspectRatio;
+        }
+        return SizingMode.WidthAndHeight;
+    }
+    static sizeWithWidthAndHeight(widthAndHeight) {
+        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
+        sizeWithUnitAndAspect._widthAndHeight = widthAndHeight;
+        return sizeWithUnitAndAspect;
+    }
+    static sizeWithWidthAndAspectRatio(width, aspectRatio) {
+        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
+        sizeWithUnitAndAspect._widthAndAspectRatio = new SizeWithAspect(width, aspectRatio);
+        return sizeWithUnitAndAspect;
+    }
+    static sizeWithHeightAndAspectRatio(height, aspectRatio) {
+        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
+        sizeWithUnitAndAspect._heightAndAspectRatio = new SizeWithAspect(height, aspectRatio);
+        return sizeWithUnitAndAspect;
+    }
+    static sizeWithShorterDimensionAndAspectRatio(shorterDimension, aspectRatio) {
+        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
+        sizeWithUnitAndAspect._shorterDimensionAndAspectRatio = new SizeWithAspect(shorterDimension, aspectRatio);
+        return sizeWithUnitAndAspect;
+    }
+    static fromJSON(json) {
+        if (json.width && json.height) {
+            return this.sizeWithWidthAndHeight(new SizeWithUnit(NumberWithUnit.fromJSON(json.width), NumberWithUnit.fromJSON(json.height)));
+        }
+        else if (json.width && json.aspect) {
+            return this.sizeWithWidthAndAspectRatio(NumberWithUnit.fromJSON(json.width), json.aspect);
+        }
+        else if (json.height && json.aspect) {
+            return this.sizeWithHeightAndAspectRatio(NumberWithUnit.fromJSON(json.height), json.aspect);
+        }
+        else if (json.shorterDimension && json.aspect) {
+            return this.sizeWithShorterDimensionAndAspectRatio(NumberWithUnit.fromJSON(json.shorterDimension), json.aspect);
+        }
+        else {
+            throw new Error(`SizeWithUnitAndAspectJSON is malformed: ${JSON.stringify(json)}`);
+        }
+    }
+    toJSON() {
+        switch (this.sizingMode) {
+            case SizingMode.WidthAndAspectRatio:
+                return {
+                    width: this.widthAndAspectRatio.size.toJSON(),
+                    aspect: this.widthAndAspectRatio.aspect,
+                };
+            case SizingMode.HeightAndAspectRatio:
+                return {
+                    height: this.heightAndAspectRatio.size.toJSON(),
+                    aspect: this.heightAndAspectRatio.aspect,
+                };
+            case SizingMode.ShorterDimensionAndAspectRatio:
+                return {
+                    shorterDimension: this.shorterDimensionAndAspectRatio.size.toJSON(),
+                    aspect: this.shorterDimensionAndAspectRatio.aspect,
+                };
+            default:
+                return {
+                    width: this.widthAndHeight.width.toJSON(),
+                    height: this.widthAndHeight.height.toJSON(),
+                };
+        }
+    }
+}
+__decorate([
+    nameForSerialization('widthAndHeight')
+], SizeWithUnitAndAspect.prototype, "_widthAndHeight", undefined);
+__decorate([
+    nameForSerialization('widthAndAspectRatio')
+], SizeWithUnitAndAspect.prototype, "_widthAndAspectRatio", undefined);
+__decorate([
+    nameForSerialization('heightAndAspectRatio')
+], SizeWithUnitAndAspect.prototype, "_heightAndAspectRatio", undefined);
+__decorate([
+    nameForSerialization('shorterDimensionAndAspectRatio')
+], SizeWithUnitAndAspect.prototype, "_shorterDimensionAndAspectRatio", undefined);
+
+class MarginsWithUnit extends DefaultSerializeable {
+    get left() {
+        return this._left;
+    }
+    get right() {
+        return this._right;
+    }
+    get top() {
+        return this._top;
+    }
+    get bottom() {
+        return this._bottom;
+    }
+    static fromJSON(json) {
+        return new MarginsWithUnit(NumberWithUnit.fromJSON(json.left), NumberWithUnit.fromJSON(json.right), NumberWithUnit.fromJSON(json.top), NumberWithUnit.fromJSON(json.bottom));
+    }
+    static get zero() {
+        return new MarginsWithUnit(new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel));
+    }
+    constructor(left, right, top, bottom) {
+        super();
+        this._left = left;
+        this._right = right;
+        this._top = top;
+        this._bottom = bottom;
+    }
+}
+__decorate([
+    nameForSerialization('left')
+], MarginsWithUnit.prototype, "_left", undefined);
+__decorate([
+    nameForSerialization('right')
+], MarginsWithUnit.prototype, "_right", undefined);
+__decorate([
+    nameForSerialization('top')
+], MarginsWithUnit.prototype, "_top", undefined);
+__decorate([
+    nameForSerialization('bottom')
+], MarginsWithUnit.prototype, "_bottom", undefined);
+
+class Color {
+    get redComponent() {
+        return this.hexadecimalString.slice(0, 2);
+    }
+    get greenComponent() {
+        return this.hexadecimalString.slice(2, 4);
+    }
+    get blueComponent() {
+        return this.hexadecimalString.slice(4, 6);
+    }
+    get alphaComponent() {
+        return this.hexadecimalString.slice(6, 8);
+    }
+    get red() {
+        return Color.hexToNumber(this.redComponent);
+    }
+    get green() {
+        return Color.hexToNumber(this.greenComponent);
+    }
+    get blue() {
+        return Color.hexToNumber(this.blueComponent);
+    }
+    get alpha() {
+        return Color.hexToNumber(this.alphaComponent);
+    }
+    static fromHex(hex) {
+        return new Color(Color.normalizeHex(hex));
+    }
+    static fromRGBA(red, green, blue, alpha = 1) {
+        const hexString = [red, green, blue, this.normalizeAlpha(alpha)]
+            .reduce((hex, colorComponent) => hex + this.numberToHex(colorComponent), '');
+        return new Color(hexString);
+    }
+    static hexToNumber(hex) {
+        return parseInt(hex, 16);
+    }
+    static fromJSON(json) {
+        return Color.fromHex(json);
+    }
+    static numberToHex(x) {
+        x = Math.round(x);
+        let hex = x.toString(16);
+        if (hex.length === 1) {
+            hex = '0' + hex;
+        }
+        return hex.toUpperCase();
+    }
+    static normalizeHex(hex) {
+        // remove leading #
+        if (hex[0] === '#') {
+            hex = hex.slice(1);
+        }
+        // double digits if single digit
+        if (hex.length < 6) {
+            hex = hex.split('').map(s => s + s).join('');
+        }
+        // add alpha if missing
+        if (hex.length === 6) {
+            hex = hex + 'FF';
+        }
+        return '#' + hex.toUpperCase();
+    }
+    static normalizeAlpha(alpha) {
+        if (alpha > 0 && alpha <= 1) {
+            return 255 * alpha;
+        }
+        return alpha;
+    }
+    constructor(hex) {
+        this.hexadecimalString = hex;
+    }
+    withAlpha(alpha) {
+        const newHex = this.hexadecimalString.slice(0, 6) + Color.numberToHex(Color.normalizeAlpha(alpha));
+        return Color.fromHex(newHex);
+    }
+    toJSON() {
+        return this.hexadecimalString;
+    }
+}
+
+class Brush extends DefaultSerializeable {
+    static get transparent() {
+        const transparentBlack = Color.fromRGBA(255, 255, 255, 0);
+        return new Brush(transparentBlack, transparentBlack, 0);
+    }
+    get fillColor() {
+        return this.fill.color;
+    }
+    get strokeColor() {
+        return this.stroke.color;
+    }
+    get strokeWidth() {
+        return this.stroke.width;
+    }
+    get copy() {
+        return new Brush(this.fillColor, this.strokeColor, this.strokeWidth);
+    }
+    constructor(fillColor = Brush.defaults.fillColor, strokeColor = Brush.defaults.strokeColor, strokeWidth = Brush.defaults.strokeWidth) {
+        super();
+        this.fill = { color: fillColor };
+        this.stroke = { color: strokeColor, width: strokeWidth };
+    }
+    static fromJSON(brushJson) {
+        return new Brush(Color.fromHex(brushJson.fillColor), Color.fromHex(brushJson.strokeColor), brushJson.strokeWidth);
+    }
+}
+
+var Anchor;
+(function (Anchor) {
+    Anchor["TopLeft"] = "topLeft";
+    Anchor["TopCenter"] = "topCenter";
+    Anchor["TopRight"] = "topRight";
+    Anchor["CenterLeft"] = "centerLeft";
+    Anchor["Center"] = "center";
+    Anchor["CenterRight"] = "centerRight";
+    Anchor["BottomLeft"] = "bottomLeft";
+    Anchor["BottomCenter"] = "bottomCenter";
+    Anchor["BottomRight"] = "bottomRight";
+})(Anchor || (Anchor = {}));
+
+var Orientation;
+(function (Orientation) {
+    Orientation["Unknown"] = "unknown";
+    Orientation["Portrait"] = "portrait";
+    Orientation["PortraitUpsideDown"] = "portraitUpsideDown";
+    Orientation["LandscapeRight"] = "landscapeRight";
+    Orientation["LandscapeLeft"] = "landscapeLeft";
+})(Orientation || (Orientation = {}));
+
+var Direction;
+(function (Direction) {
+    Direction["None"] = "none";
+    Direction["Horizontal"] = "horizontal";
+    Direction["LeftToRight"] = "leftToRight";
+    Direction["RightToLeft"] = "rightToLeft";
+    Direction["Vertical"] = "vertical";
+    Direction["TopToBottom"] = "topToBottom";
+    Direction["BottomToTop"] = "bottomToTop";
+})(Direction || (Direction = {}));
+
+var ScanIntention;
+(function (ScanIntention) {
+    ScanIntention["Manual"] = "manual";
+    ScanIntention["Smart"] = "smart";
+})(ScanIntention || (ScanIntention = {}));
+
+class EventDataParser {
+    static parse(data) {
+        if (data == null) {
+            return null;
+        }
+        return JSON.parse(data);
+    }
+}
+
+class Observable extends DefaultSerializeable {
+    constructor() {
+        super(...arguments);
+        this.listeners = [];
+    }
+    addListener(listener) {
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        this.listeners = this.listeners.filter(l => l !== listener);
+    }
+    notifyListeners(property, value) {
+        this.listeners.forEach(listener => listener(property, value));
+    }
+}
+__decorate([
+    ignoreFromSerialization
+], Observable.prototype, "listeners", undefined);
+
+class HtmlElementPosition {
+    constructor(top, left) {
+        this.top = 0;
+        this.left = 0;
+        this.top = top;
+        this.left = left;
+    }
+    didChangeComparedTo(other) {
+        if (!other)
+            return true;
+        return this.top !== other.top || this.left !== other.left;
+    }
+}
+class HtmlElementSize {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+    didChangeComparedTo(other) {
+        if (!other)
+            return true;
+        return this.width !== other.width || this.height !== other.height;
+    }
+}
+class HTMLElementState {
+    constructor() {
+        this.isShown = false;
+        this.position = null;
+        this.size = null;
+        this.shouldBeUnderContent = false;
+    }
+    get isValid() {
+        return this.isShown !== undefined && this.isShown !== null
+            && this.position !== undefined && this.position !== null
+            && this.size !== undefined && this.size !== null
+            && this.shouldBeUnderContent !== undefined && this.shouldBeUnderContent !== null;
+    }
+    didChangeComparedTo(other) {
+        var _a, _b, _c, _d;
+        if (!other)
+            return true;
+        const positionChanged = (_b = (_a = this.position) === null || _a === undefined ? undefined : _a.didChangeComparedTo(other.position)) !== null && _b !== undefined ? _b : (this.position !== other.position);
+        const sizeChanged = (_d = (_c = this.size) === null || _c === undefined ? undefined : _c.didChangeComparedTo(other.size)) !== null && _d !== undefined ? _d : (this.size !== other.size);
+        return positionChanged || sizeChanged || this.shouldBeUnderContent !== other.shouldBeUnderContent;
+    }
+}
+
 class ImageFrameSourceController {
     static forImage(imageFrameSource) {
         const controller = new ImageFrameSourceController();
@@ -590,7 +1490,13 @@ class ImageFrameSourceController {
         this._proxy = FactoryMaker.getInstance('ImageFrameSourceProxy');
     }
     getCurrentState() {
-        return this._proxy.getCurrentCameraState(this.imageFrameSource.position);
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield this._proxy.getCurrentCameraState(this.imageFrameSource.position);
+            if (result == null) {
+                return FrameSourceState.Off;
+            }
+            return result.data;
+        });
     }
     switchCameraToDesiredState(desiredStateJson) {
         return this._proxy.switchCameraToDesiredState(desiredStateJson);
@@ -598,9 +1504,14 @@ class ImageFrameSourceController {
     subscribeListener() {
         var _a, _b;
         this._proxy.registerListenerForEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (payload) => {
-            const newState = payload.state;
+        (_b = (_a = this._proxy).subscribeDidChangeState) === null || _b === undefined ? undefined : _b.call(_a);
+        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('ImageFrameSourceController didChangeState payload is null');
+                return;
+            }
+            const newState = event.state;
             this.imageFrameSource.listeners.forEach(listener => {
                 if (listener.didChangeState) {
                     listener.didChangeState(this.imageFrameSource, newState);
@@ -684,19 +1595,19 @@ class ImageFrameSource extends DefaultSerializeable {
 }
 __decorate([
     nameForSerialization('id')
-], ImageFrameSource.prototype, "_id", void 0);
+], ImageFrameSource.prototype, "_id", undefined);
 __decorate([
     nameForSerialization('desiredState')
-], ImageFrameSource.prototype, "_desiredState", void 0);
+], ImageFrameSource.prototype, "_desiredState", undefined);
 __decorate([
     ignoreFromSerialization
-], ImageFrameSource.prototype, "listeners", void 0);
+], ImageFrameSource.prototype, "listeners", undefined);
 __decorate([
     ignoreFromSerialization
-], ImageFrameSource.prototype, "_context", void 0);
+], ImageFrameSource.prototype, "_context", undefined);
 __decorate([
     ignoreFromSerialization
-], ImageFrameSource.prototype, "controller", void 0);
+], ImageFrameSource.prototype, "controller", undefined);
 
 class PrivateFrameData {
     get imageBuffers() {
@@ -717,6 +1628,12 @@ class PrivateFrameData {
         frameData._orientation = json.orientation;
         return frameData;
     }
+    static empty() {
+        const frameData = new PrivateFrameData();
+        frameData._imageBuffers = [];
+        frameData._orientation = 90;
+        return frameData;
+    }
 }
 
 class CameraController {
@@ -734,28 +1651,43 @@ class CameraController {
     get privateCamera() {
         return this.camera;
     }
-    static getLastFrame() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const frameDataJSONString = yield CameraController._proxy.getLastFrame();
-            const frameDataJSON = JSON.parse(frameDataJSONString);
+    static getFrame(frameId) {
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield CameraController._proxy.getFrame(frameId);
+            if (result == null) {
+                return PrivateFrameData.empty();
+            }
+            const frameDataJSON = JSON.parse(result.data);
             return PrivateFrameData.fromJSON(frameDataJSON);
         });
     }
-    static getLastFrameOrNull() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const frameDataJSONString = yield CameraController._proxy.getLastFrameOrNull();
-            if (frameDataJSONString === null || frameDataJSONString === undefined) {
+    static getFrameOrNull(frameId) {
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield CameraController._proxy.getFrame(frameId);
+            if (result == null) {
                 return null;
             }
-            const frameDataJSON = JSON.parse(frameDataJSONString);
+            const frameDataJSON = JSON.parse(result.data);
             return PrivateFrameData.fromJSON(frameDataJSON);
         });
     }
     getCurrentState() {
-        return CameraController._proxy.getCurrentCameraState(this.privateCamera.position);
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield CameraController._proxy.getCurrentCameraState(this.privateCamera.position);
+            if (result == null) {
+                return FrameSourceState.Off;
+            }
+            return result.data;
+        });
     }
     getIsTorchAvailable() {
-        return CameraController._proxy.isTorchAvailable(this.privateCamera.position);
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield CameraController._proxy.isTorchAvailable(this.privateCamera.position);
+            if (result == null) {
+                return false;
+            }
+            return result.data === 'true';
+        });
     }
     switchCameraToDesiredState(desiredState) {
         return CameraController._proxy.switchCameraToDesiredState(desiredState);
@@ -763,12 +1695,15 @@ class CameraController {
     subscribeListener() {
         var _a, _b;
         CameraController._proxy.registerListenerForCameraEvents();
-        (_b = (_a = CameraController._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (state) => {
-            this.privateCamera.listeners.forEach(listener => {
-                var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, state);
-            });
+        (_b = (_a = CameraController._proxy).subscribeDidChangeState) === null || _b === undefined ? undefined : _b.call(_a);
+        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event) {
+                this.privateCamera.listeners.forEach(listener => {
+                    var _a;
+                    (_a = listener === null || listener === undefined ? undefined : listener.didChangeState) === null || _a === undefined ? undefined : _a.call(listener, this.camera, event.state);
+                });
+            }
         });
     }
     unsubscribeListener() {
@@ -898,7 +1833,7 @@ class Camera extends DefaultSerializeable {
         return this.didChange();
     }
     didChange() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, undefined, undefined, function* () {
             if (this.context) {
                 yield this.context.update();
             }
@@ -907,22 +1842,22 @@ class Camera extends DefaultSerializeable {
 }
 __decorate([
     serializationDefault({})
-], Camera.prototype, "settings", void 0);
+], Camera.prototype, "settings", undefined);
 __decorate([
     nameForSerialization('desiredTorchState')
-], Camera.prototype, "_desiredTorchState", void 0);
+], Camera.prototype, "_desiredTorchState", undefined);
 __decorate([
     ignoreFromSerialization
-], Camera.prototype, "_desiredState", void 0);
+], Camera.prototype, "_desiredState", undefined);
 __decorate([
     ignoreFromSerialization
-], Camera.prototype, "listeners", void 0);
+], Camera.prototype, "listeners", undefined);
 __decorate([
     ignoreFromSerialization
-], Camera.prototype, "_context", void 0);
+], Camera.prototype, "_context", undefined);
 __decorate([
     ignoreFromSerialization
-], Camera.prototype, "controller", void 0);
+], Camera.prototype, "controller", undefined);
 __decorate([
     ignoreFromSerialization
 ], Camera, "coreDefaults", null);
@@ -952,11 +1887,11 @@ class ControlImage extends DefaultSerializeable {
 __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('data')
-], ControlImage.prototype, "_data", void 0);
+], ControlImage.prototype, "_data", undefined);
 __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('name')
-], ControlImage.prototype, "_name", void 0);
+], ControlImage.prototype, "_name", undefined);
 
 class ContextStatus {
     static fromJSON(json) {
@@ -989,17 +1924,26 @@ class DataCaptureContextSettings extends DefaultSerializeable {
     }
 }
 
+class OpenSourceSoftwareLicenseInfo {
+    constructor(licenseText) {
+        this._licenseText = licenseText;
+    }
+    get licenseText() {
+        return this._licenseText;
+    }
+}
+
 var DataCaptureContextEvents;
 (function (DataCaptureContextEvents) {
     DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
     DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
 })(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
 class DataCaptureContextController {
-    get framework() {
-        return this._proxy.framework;
+    static get framework() {
+        return FactoryMaker.getInstance('DataCaptureContextProxy').framework;
     }
-    get frameworkVersion() {
-        return this._proxy.frameworkVersion;
+    static get frameworkVersion() {
+        return FactoryMaker.getInstance('DataCaptureContextProxy').frameworkVersion;
     }
     get privateContext() {
         return this.context;
@@ -1007,17 +1951,17 @@ class DataCaptureContextController {
     static forDataCaptureContext(context) {
         const controller = new DataCaptureContextController();
         controller.context = context;
-        controller.initialize();
         return controller;
     }
     constructor() {
+        this._listenerRegistered = false;
         this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
     updateContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, undefined, undefined, function* () {
             try {
-                yield this._proxy.updateContextFromJSON(this.context);
+                yield this._proxy.updateContextFromJSON(JSON.stringify(this.context.toJSON()));
             }
             catch (error) {
                 this.notifyListenersOfDeserializationError(error);
@@ -1048,9 +1992,9 @@ class DataCaptureContextController {
         return this.initializeContextFromJSON();
     }
     initializeContextFromJSON() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, undefined, undefined, function* () {
             try {
-                yield this._proxy.contextFromJSON(this.context);
+                yield this._proxy.contextFromJSON(JSON.stringify(this.context.toJSON()));
             }
             catch (error) {
                 this.notifyListenersOfDeserializationError(error);
@@ -1058,20 +2002,37 @@ class DataCaptureContextController {
             }
         });
     }
+    static getOpenSourceSoftwareLicenseInfo() {
+        return __awaiter(this, undefined, undefined, function* () {
+            const proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+            const result = yield proxy.getOpenSourceSoftwareLicenseInfo();
+            return new OpenSourceSoftwareLicenseInfo(result.data);
+        });
+    }
     subscribeListener() {
         var _a, _b, _c, _d;
+        if (this._listenerRegistered) {
+            return;
+        }
         this._proxy.registerListenerForDataCaptureContext();
-        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
-        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
-        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (contextStatus) => {
+        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === undefined ? undefined : _b.call(_a);
+        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === undefined ? undefined : _d.call(_c);
+        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('DataCaptureContextController didChangeStatus payload is null');
+                return;
+            }
+            const contextStatus = ContextStatus.fromJSON(JSON.parse(event.status));
             this.notifyListenersOfDidChangeStatus(contextStatus);
         });
         this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
             this.privateContext.listeners.forEach(listener => {
                 var _a;
-                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
+                (_a = listener.didStartObservingContext) === null || _a === undefined ? undefined : _a.call(listener, this.context);
             });
         });
+        this._listenerRegistered = true;
     }
     notifyListenersOfDeserializationError(error) {
         const contextStatus = ContextStatus
@@ -1092,11 +2053,11 @@ class DataCaptureContextController {
 }
 
 class DataCaptureContext extends DefaultSerializeable {
-    get framework() {
-        return this.controller.framework;
-    }
-    get frameworkVersion() {
-        return this.controller.frameworkVersion;
+    static get sharedInstance() {
+        if (DataCaptureContext._instance == null) {
+            DataCaptureContext._instance = new DataCaptureContext('', '', null);
+        }
+        return DataCaptureContext._instance;
     }
     static get coreDefaults() {
         return getCoreDefaults();
@@ -1115,34 +2076,53 @@ class DataCaptureContext extends DefaultSerializeable {
         return DataCaptureContext.deviceID;
     }
     static forLicenseKey(licenseKey) {
-        return DataCaptureContext.forLicenseKeyWithOptions(licenseKey, null);
+        const instance = DataCaptureContext.create(licenseKey, null, null);
+        // Call initialize to ensure the shared instance is updated.
+        instance.controller.initialize();
+        return instance;
     }
     static forLicenseKeyWithSettings(licenseKey, settings) {
-        const context = this.forLicenseKey(licenseKey);
-        if (settings !== null) {
-            context.applySettings(settings);
-        }
-        return context;
+        const instance = DataCaptureContext.create(licenseKey, null, settings);
+        // Call initialize to ensure the shared instance is updated.
+        instance.controller.initialize();
+        return instance;
     }
     static forLicenseKeyWithOptions(licenseKey, options) {
-        if (options == null) {
-            options = { deviceName: null };
-        }
-        if (!DataCaptureContext.instance) {
-            DataCaptureContext.instance = new DataCaptureContext(licenseKey, options.deviceName || '');
-        }
-        return DataCaptureContext.instance;
+        const instance = DataCaptureContext.create(licenseKey, options, null);
+        // Call initialize to ensure the shared instance is updated.
+        instance.controller.initialize();
+        return instance;
     }
-    constructor(licenseKey, deviceName) {
+    static initialize(licenseKey, options = null, settings = null) {
+        DataCaptureContext.create(licenseKey, options, settings);
+        DataCaptureContext.sharedInstance.controller.initialize();
+        return DataCaptureContext.sharedInstance;
+    }
+    static create(licenseKey, options, settings) {
+        DataCaptureContext.sharedInstance.licenseKey = licenseKey;
+        DataCaptureContext.sharedInstance.deviceName = (options === null || options === undefined ? undefined : options.deviceName) || '';
+        DataCaptureContext.sharedInstance.settings = settings || new DataCaptureContextSettings();
+        return DataCaptureContext.sharedInstance;
+    }
+    constructor(licenseKey, deviceName, settings) {
         super();
         this.licenseKey = licenseKey;
         this.deviceName = deviceName;
+        this._framework = DataCaptureContextController.framework;
+        this._frameworkVersion = DataCaptureContextController.frameworkVersion;
         this.settings = new DataCaptureContextSettings();
         this._frameSource = null;
         this.view = null;
         this.modes = [];
         this.listeners = [];
-        this.initialize();
+        this.licenseKey = licenseKey;
+        this.deviceName = deviceName;
+        if (settings) {
+            this.settings = settings;
+        }
+        if (this.controller == null) {
+            this.controller = DataCaptureContextController.forDataCaptureContext(this);
+        }
     }
     setFrameSource(frameSource) {
         if (this._frameSource) {
@@ -1173,6 +2153,17 @@ class DataCaptureContext extends DefaultSerializeable {
             this.controller.addModeToContext(mode);
         }
     }
+    setMode(mode) {
+        if (this.modes.length > 0) {
+            this.removeAllModes();
+        }
+        this.addMode(mode);
+    }
+    removeCurrentMode() {
+        if (this.modes.length > 0) {
+            this.removeMode(this.modes[0]);
+        }
+    }
     removeMode(mode) {
         if (this.modes.includes(mode)) {
             this.modes.splice(this.modes.indexOf(mode), 1);
@@ -1192,8 +2183,7 @@ class DataCaptureContext extends DefaultSerializeable {
         if (!this.controller) {
             return;
         }
-        DataCaptureContext.instance = null;
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.dispose();
         this.removeAllModes();
         this.controller.dispose();
     }
@@ -1201,12 +2191,10 @@ class DataCaptureContext extends DefaultSerializeable {
         this.settings = settings;
         return this.update();
     }
-    // Called when the capture view is shown, that is the earliest point that we need the context deserialized.
-    initialize() {
-        if (this.controller) {
-            return;
-        }
-        this.controller = DataCaptureContextController.forDataCaptureContext(this);
+    static getOpenSourceSoftwareLicenseInfo() {
+        return __awaiter(this, undefined, undefined, function* () {
+            return DataCaptureContextController.getOpenSourceSoftwareLicenseInfo();
+        });
     }
     update() {
         if (!this.controller) {
@@ -1215,588 +2203,33 @@ class DataCaptureContext extends DefaultSerializeable {
         return this.controller.updateContextFromJSON();
     }
 }
-DataCaptureContext.instance = null;
+__decorate([
+    ignoreFromSerialization
+], DataCaptureContext.prototype, "controller", undefined);
+__decorate([
+    nameForSerialization('framework')
+], DataCaptureContext.prototype, "_framework", undefined);
+__decorate([
+    nameForSerialization('frameworkVersion')
+], DataCaptureContext.prototype, "_frameworkVersion", undefined);
 __decorate([
     nameForSerialization('frameSource')
-], DataCaptureContext.prototype, "_frameSource", void 0);
+], DataCaptureContext.prototype, "_frameSource", undefined);
 __decorate([
     ignoreFromSerialization
-], DataCaptureContext.prototype, "view", void 0);
+], DataCaptureContext.prototype, "view", undefined);
 __decorate([
     ignoreFromSerialization
-], DataCaptureContext.prototype, "modes", void 0);
+], DataCaptureContext.prototype, "modes", undefined);
 __decorate([
     ignoreFromSerialization
-], DataCaptureContext.prototype, "controller", void 0);
+], DataCaptureContext.prototype, "listeners", undefined);
 __decorate([
     ignoreFromSerialization
-], DataCaptureContext.prototype, "listeners", void 0);
+], DataCaptureContext, "_instance", undefined);
 __decorate([
     ignoreFromSerialization
 ], DataCaptureContext, "coreDefaults", null);
-
-class Point extends DefaultSerializeable {
-    get x() {
-        return this._x;
-    }
-    get y() {
-        return this._y;
-    }
-    static fromJSON(json) {
-        return new Point(json.x, json.y);
-    }
-    constructor(x, y) {
-        super();
-        this._x = x;
-        this._y = y;
-    }
-}
-__decorate([
-    nameForSerialization('x')
-], Point.prototype, "_x", void 0);
-__decorate([
-    nameForSerialization('y')
-], Point.prototype, "_y", void 0);
-
-class Quadrilateral extends DefaultSerializeable {
-    get topLeft() {
-        return this._topLeft;
-    }
-    get topRight() {
-        return this._topRight;
-    }
-    get bottomRight() {
-        return this._bottomRight;
-    }
-    get bottomLeft() {
-        return this._bottomLeft;
-    }
-    static fromJSON(json) {
-        return new Quadrilateral(Point.fromJSON(json.topLeft), Point.fromJSON(json.topRight), Point.fromJSON(json.bottomRight), Point.fromJSON(json.bottomLeft));
-    }
-    constructor(topLeft, topRight, bottomRight, bottomLeft) {
-        super();
-        this._topLeft = topLeft;
-        this._topRight = topRight;
-        this._bottomRight = bottomRight;
-        this._bottomLeft = bottomLeft;
-    }
-}
-__decorate([
-    nameForSerialization('topLeft')
-], Quadrilateral.prototype, "_topLeft", void 0);
-__decorate([
-    nameForSerialization('topRight')
-], Quadrilateral.prototype, "_topRight", void 0);
-__decorate([
-    nameForSerialization('bottomRight')
-], Quadrilateral.prototype, "_bottomRight", void 0);
-__decorate([
-    nameForSerialization('bottomLeft')
-], Quadrilateral.prototype, "_bottomLeft", void 0);
-
-class NumberWithUnit extends DefaultSerializeable {
-    get value() {
-        return this._value;
-    }
-    get unit() {
-        return this._unit;
-    }
-    static fromJSON(json) {
-        return new NumberWithUnit(json.value, json.unit);
-    }
-    constructor(value, unit) {
-        super();
-        this._value = value;
-        this._unit = unit;
-    }
-}
-__decorate([
-    nameForSerialization('value')
-], NumberWithUnit.prototype, "_value", void 0);
-__decorate([
-    nameForSerialization('unit')
-], NumberWithUnit.prototype, "_unit", void 0);
-
-var MeasureUnit;
-(function (MeasureUnit) {
-    MeasureUnit["DIP"] = "dip";
-    MeasureUnit["Pixel"] = "pixel";
-    MeasureUnit["Fraction"] = "fraction";
-})(MeasureUnit || (MeasureUnit = {}));
-
-class PointWithUnit extends DefaultSerializeable {
-    get x() {
-        return this._x;
-    }
-    get y() {
-        return this._y;
-    }
-    static fromJSON(json) {
-        return new PointWithUnit(NumberWithUnit.fromJSON(json.x), NumberWithUnit.fromJSON(json.y));
-    }
-    static get zero() {
-        return new PointWithUnit(new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel));
-    }
-    constructor(x, y) {
-        super();
-        this._x = x;
-        this._y = y;
-    }
-}
-__decorate([
-    nameForSerialization('x')
-], PointWithUnit.prototype, "_x", void 0);
-__decorate([
-    nameForSerialization('y')
-], PointWithUnit.prototype, "_y", void 0);
-
-class Rect extends DefaultSerializeable {
-    get origin() {
-        return this._origin;
-    }
-    get size() {
-        return this._size;
-    }
-    constructor(origin, size) {
-        super();
-        this._origin = origin;
-        this._size = size;
-    }
-}
-__decorate([
-    nameForSerialization('origin')
-], Rect.prototype, "_origin", void 0);
-__decorate([
-    nameForSerialization('size')
-], Rect.prototype, "_size", void 0);
-
-class RectWithUnit extends DefaultSerializeable {
-    get origin() {
-        return this._origin;
-    }
-    get size() {
-        return this._size;
-    }
-    constructor(origin, size) {
-        super();
-        this._origin = origin;
-        this._size = size;
-    }
-}
-__decorate([
-    nameForSerialization('origin')
-], RectWithUnit.prototype, "_origin", void 0);
-__decorate([
-    nameForSerialization('size')
-], RectWithUnit.prototype, "_size", void 0);
-
-class Size extends DefaultSerializeable {
-    get width() {
-        return this._width;
-    }
-    get height() {
-        return this._height;
-    }
-    static fromJSON(json) {
-        return new Size(json.width, json.height);
-    }
-    constructor(width, height) {
-        super();
-        this._width = width;
-        this._height = height;
-    }
-}
-__decorate([
-    nameForSerialization('width')
-], Size.prototype, "_width", void 0);
-__decorate([
-    nameForSerialization('height')
-], Size.prototype, "_height", void 0);
-
-class SizeWithAspect extends DefaultSerializeable {
-    get size() {
-        return this._size;
-    }
-    get aspect() {
-        return this._aspect;
-    }
-    constructor(size, aspect) {
-        super();
-        this._size = size;
-        this._aspect = aspect;
-    }
-}
-__decorate([
-    nameForSerialization('size')
-], SizeWithAspect.prototype, "_size", void 0);
-__decorate([
-    nameForSerialization('aspect')
-], SizeWithAspect.prototype, "_aspect", void 0);
-
-class SizeWithUnit extends DefaultSerializeable {
-    get width() {
-        return this._width;
-    }
-    get height() {
-        return this._height;
-    }
-    constructor(width, height) {
-        super();
-        this._width = width;
-        this._height = height;
-    }
-}
-__decorate([
-    nameForSerialization('width')
-], SizeWithUnit.prototype, "_width", void 0);
-__decorate([
-    nameForSerialization('height')
-], SizeWithUnit.prototype, "_height", void 0);
-
-var SizingMode;
-(function (SizingMode) {
-    SizingMode["WidthAndHeight"] = "widthAndHeight";
-    SizingMode["WidthAndAspectRatio"] = "widthAndAspectRatio";
-    SizingMode["HeightAndAspectRatio"] = "heightAndAspectRatio";
-    SizingMode["ShorterDimensionAndAspectRatio"] = "shorterDimensionAndAspectRatio";
-})(SizingMode || (SizingMode = {}));
-
-class SizeWithUnitAndAspect {
-    constructor() {
-        this._widthAndHeight = null;
-        this._widthAndAspectRatio = null;
-        this._heightAndAspectRatio = null;
-        this._shorterDimensionAndAspectRatio = null;
-    }
-    get widthAndHeight() {
-        return this._widthAndHeight;
-    }
-    get widthAndAspectRatio() {
-        return this._widthAndAspectRatio;
-    }
-    get heightAndAspectRatio() {
-        return this._heightAndAspectRatio;
-    }
-    get shorterDimensionAndAspectRatio() {
-        return this._shorterDimensionAndAspectRatio;
-    }
-    get sizingMode() {
-        if (this.widthAndAspectRatio) {
-            return SizingMode.WidthAndAspectRatio;
-        }
-        if (this.heightAndAspectRatio) {
-            return SizingMode.HeightAndAspectRatio;
-        }
-        if (this.shorterDimensionAndAspectRatio) {
-            return SizingMode.ShorterDimensionAndAspectRatio;
-        }
-        return SizingMode.WidthAndHeight;
-    }
-    static sizeWithWidthAndHeight(widthAndHeight) {
-        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
-        sizeWithUnitAndAspect._widthAndHeight = widthAndHeight;
-        return sizeWithUnitAndAspect;
-    }
-    static sizeWithWidthAndAspectRatio(width, aspectRatio) {
-        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
-        sizeWithUnitAndAspect._widthAndAspectRatio = new SizeWithAspect(width, aspectRatio);
-        return sizeWithUnitAndAspect;
-    }
-    static sizeWithHeightAndAspectRatio(height, aspectRatio) {
-        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
-        sizeWithUnitAndAspect._heightAndAspectRatio = new SizeWithAspect(height, aspectRatio);
-        return sizeWithUnitAndAspect;
-    }
-    static sizeWithShorterDimensionAndAspectRatio(shorterDimension, aspectRatio) {
-        const sizeWithUnitAndAspect = new SizeWithUnitAndAspect();
-        sizeWithUnitAndAspect._shorterDimensionAndAspectRatio = new SizeWithAspect(shorterDimension, aspectRatio);
-        return sizeWithUnitAndAspect;
-    }
-    static fromJSON(json) {
-        if (json.width && json.height) {
-            return this.sizeWithWidthAndHeight(new SizeWithUnit(NumberWithUnit.fromJSON(json.width), NumberWithUnit.fromJSON(json.height)));
-        }
-        else if (json.width && json.aspect) {
-            return this.sizeWithWidthAndAspectRatio(NumberWithUnit.fromJSON(json.width), json.aspect);
-        }
-        else if (json.height && json.aspect) {
-            return this.sizeWithHeightAndAspectRatio(NumberWithUnit.fromJSON(json.height), json.aspect);
-        }
-        else if (json.shorterDimension && json.aspect) {
-            return this.sizeWithShorterDimensionAndAspectRatio(NumberWithUnit.fromJSON(json.shorterDimension), json.aspect);
-        }
-        else {
-            throw new Error(`SizeWithUnitAndAspectJSON is malformed: ${JSON.stringify(json)}`);
-        }
-    }
-    toJSON() {
-        switch (this.sizingMode) {
-            case SizingMode.WidthAndAspectRatio:
-                return {
-                    width: this.widthAndAspectRatio.size.toJSON(),
-                    aspect: this.widthAndAspectRatio.aspect,
-                };
-            case SizingMode.HeightAndAspectRatio:
-                return {
-                    height: this.heightAndAspectRatio.size.toJSON(),
-                    aspect: this.heightAndAspectRatio.aspect,
-                };
-            case SizingMode.ShorterDimensionAndAspectRatio:
-                return {
-                    shorterDimension: this.shorterDimensionAndAspectRatio.size.toJSON(),
-                    aspect: this.shorterDimensionAndAspectRatio.aspect,
-                };
-            default:
-                return {
-                    width: this.widthAndHeight.width.toJSON(),
-                    height: this.widthAndHeight.height.toJSON(),
-                };
-        }
-    }
-}
-__decorate([
-    nameForSerialization('widthAndHeight')
-], SizeWithUnitAndAspect.prototype, "_widthAndHeight", void 0);
-__decorate([
-    nameForSerialization('widthAndAspectRatio')
-], SizeWithUnitAndAspect.prototype, "_widthAndAspectRatio", void 0);
-__decorate([
-    nameForSerialization('heightAndAspectRatio')
-], SizeWithUnitAndAspect.prototype, "_heightAndAspectRatio", void 0);
-__decorate([
-    nameForSerialization('shorterDimensionAndAspectRatio')
-], SizeWithUnitAndAspect.prototype, "_shorterDimensionAndAspectRatio", void 0);
-
-class MarginsWithUnit extends DefaultSerializeable {
-    get left() {
-        return this._left;
-    }
-    get right() {
-        return this._right;
-    }
-    get top() {
-        return this._top;
-    }
-    get bottom() {
-        return this._bottom;
-    }
-    static fromJSON(json) {
-        return new MarginsWithUnit(NumberWithUnit.fromJSON(json.left), NumberWithUnit.fromJSON(json.right), NumberWithUnit.fromJSON(json.top), NumberWithUnit.fromJSON(json.bottom));
-    }
-    static get zero() {
-        return new MarginsWithUnit(new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel), new NumberWithUnit(0, MeasureUnit.Pixel));
-    }
-    constructor(left, right, top, bottom) {
-        super();
-        this._left = left;
-        this._right = right;
-        this._top = top;
-        this._bottom = bottom;
-    }
-}
-__decorate([
-    nameForSerialization('left')
-], MarginsWithUnit.prototype, "_left", void 0);
-__decorate([
-    nameForSerialization('right')
-], MarginsWithUnit.prototype, "_right", void 0);
-__decorate([
-    nameForSerialization('top')
-], MarginsWithUnit.prototype, "_top", void 0);
-__decorate([
-    nameForSerialization('bottom')
-], MarginsWithUnit.prototype, "_bottom", void 0);
-
-class Color {
-    get redComponent() {
-        return this.hexadecimalString.slice(0, 2);
-    }
-    get greenComponent() {
-        return this.hexadecimalString.slice(2, 4);
-    }
-    get blueComponent() {
-        return this.hexadecimalString.slice(4, 6);
-    }
-    get alphaComponent() {
-        return this.hexadecimalString.slice(6, 8);
-    }
-    get red() {
-        return Color.hexToNumber(this.redComponent);
-    }
-    get green() {
-        return Color.hexToNumber(this.greenComponent);
-    }
-    get blue() {
-        return Color.hexToNumber(this.blueComponent);
-    }
-    get alpha() {
-        return Color.hexToNumber(this.alphaComponent);
-    }
-    static fromHex(hex) {
-        return new Color(Color.normalizeHex(hex));
-    }
-    static fromRGBA(red, green, blue, alpha = 1) {
-        const hexString = [red, green, blue, this.normalizeAlpha(alpha)]
-            .reduce((hex, colorComponent) => hex + this.numberToHex(colorComponent), '');
-        return new Color(hexString);
-    }
-    static hexToNumber(hex) {
-        return parseInt(hex, 16);
-    }
-    static fromJSON(json) {
-        return Color.fromHex(json);
-    }
-    static numberToHex(x) {
-        x = Math.round(x);
-        let hex = x.toString(16);
-        if (hex.length === 1) {
-            hex = '0' + hex;
-        }
-        return hex.toUpperCase();
-    }
-    static normalizeHex(hex) {
-        // remove leading #
-        if (hex[0] === '#') {
-            hex = hex.slice(1);
-        }
-        // double digits if single digit
-        if (hex.length < 6) {
-            hex = hex.split('').map(s => s + s).join('');
-        }
-        // add alpha if missing
-        if (hex.length === 6) {
-            hex = hex + 'FF';
-        }
-        return hex.toUpperCase();
-    }
-    static normalizeAlpha(alpha) {
-        if (alpha > 0 && alpha <= 1) {
-            return 255 * alpha;
-        }
-        return alpha;
-    }
-    constructor(hex) {
-        this.hexadecimalString = hex;
-    }
-    withAlpha(alpha) {
-        const newHex = this.hexadecimalString.slice(0, 6) + Color.numberToHex(Color.normalizeAlpha(alpha));
-        return Color.fromHex(newHex);
-    }
-    toJSON() {
-        return this.hexadecimalString;
-    }
-}
-
-class Brush extends DefaultSerializeable {
-    static get transparent() {
-        const transparentBlack = Color.fromRGBA(255, 255, 255, 0);
-        return new Brush(transparentBlack, transparentBlack, 0);
-    }
-    get fillColor() {
-        return this.fill.color;
-    }
-    get strokeColor() {
-        return this.stroke.color;
-    }
-    get strokeWidth() {
-        return this.stroke.width;
-    }
-    get copy() {
-        return new Brush(this.fillColor, this.strokeColor, this.strokeWidth);
-    }
-    constructor(fillColor = Brush.defaults.fillColor, strokeColor = Brush.defaults.strokeColor, strokeWidth = Brush.defaults.strokeWidth) {
-        super();
-        this.fill = { color: fillColor };
-        this.stroke = { color: strokeColor, width: strokeWidth };
-    }
-}
-
-var Anchor;
-(function (Anchor) {
-    Anchor["TopLeft"] = "topLeft";
-    Anchor["TopCenter"] = "topCenter";
-    Anchor["TopRight"] = "topRight";
-    Anchor["CenterLeft"] = "centerLeft";
-    Anchor["Center"] = "center";
-    Anchor["CenterRight"] = "centerRight";
-    Anchor["BottomLeft"] = "bottomLeft";
-    Anchor["BottomCenter"] = "bottomCenter";
-    Anchor["BottomRight"] = "bottomRight";
-})(Anchor || (Anchor = {}));
-
-var Orientation;
-(function (Orientation) {
-    Orientation["Unknown"] = "unknown";
-    Orientation["Portrait"] = "portrait";
-    Orientation["PortraitUpsideDown"] = "portraitUpsideDown";
-    Orientation["LandscapeRight"] = "landscapeRight";
-    Orientation["LandscapeLeft"] = "landscapeLeft";
-})(Orientation || (Orientation = {}));
-
-var Direction;
-(function (Direction) {
-    Direction["None"] = "none";
-    Direction["Horizontal"] = "horizontal";
-    Direction["LeftToRight"] = "leftToRight";
-    Direction["RightToLeft"] = "rightToLeft";
-    Direction["Vertical"] = "vertical";
-    Direction["TopToBottom"] = "topToBottom";
-    Direction["BottomToTop"] = "bottomToTop";
-})(Direction || (Direction = {}));
-
-var ScanIntention;
-(function (ScanIntention) {
-    ScanIntention["Manual"] = "manual";
-    ScanIntention["Smart"] = "smart";
-})(ScanIntention || (ScanIntention = {}));
-
-class HtmlElementPosition {
-    constructor(top, left) {
-        this.top = 0;
-        this.left = 0;
-        this.top = top;
-        this.left = left;
-    }
-    didChangeComparedTo(other) {
-        if (!other)
-            return true;
-        return this.top !== other.top || this.left !== other.left;
-    }
-}
-class HtmlElementSize {
-    constructor(width, height) {
-        this.width = width;
-        this.height = height;
-    }
-    didChangeComparedTo(other) {
-        if (!other)
-            return true;
-        return this.width !== other.width || this.height !== other.height;
-    }
-}
-class HTMLElementState {
-    constructor() {
-        this.isShown = false;
-        this.position = null;
-        this.size = null;
-        this.shouldBeUnderContent = false;
-    }
-    get isValid() {
-        return this.isShown !== undefined && this.isShown !== null
-            && this.position !== undefined && this.position !== null
-            && this.size !== undefined && this.size !== null
-            && this.shouldBeUnderContent !== undefined && this.shouldBeUnderContent !== null;
-    }
-    didChangeComparedTo(other) {
-        var _a, _b, _c, _d;
-        if (!other)
-            return true;
-        const positionChanged = (_b = (_a = this.position) === null || _a === void 0 ? void 0 : _a.didChangeComparedTo(other.position)) !== null && _b !== void 0 ? _b : (this.position !== other.position);
-        const sizeChanged = (_d = (_c = this.size) === null || _c === void 0 ? void 0 : _c.didChangeComparedTo(other.size)) !== null && _d !== void 0 ? _d : (this.size !== other.size);
-        return positionChanged || sizeChanged || this.shouldBeUnderContent !== other.shouldBeUnderContent;
-    }
-}
 
 var DataCaptureViewEvents;
 (function (DataCaptureViewEvents) {
@@ -1816,15 +2249,15 @@ class DataCaptureViewController extends BaseController {
         super('DataCaptureViewProxy');
     }
     viewPointForFramePoint(point) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const jsonString = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
-            return Point.fromJSON(JSON.parse(jsonString));
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield this._proxy.viewPointForFramePoint(JSON.stringify(point.toJSON()));
+            return Point.fromJSON(JSON.parse(result.data));
         });
     }
     viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const jsonString = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
-            return Quadrilateral.fromJSON(JSON.parse(jsonString));
+        return __awaiter(this, undefined, undefined, function* () {
+            const result = yield this._proxy.viewQuadrilateralForFrameQuadrilateral(JSON.stringify(quadrilateral.toJSON()));
+            return Quadrilateral.fromJSON(JSON.parse(result.data));
         });
     }
     setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
@@ -1837,7 +2270,7 @@ class DataCaptureViewController extends BaseController {
         return this._proxy.hide();
     }
     createNativeView() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, undefined, undefined, function* () {
             yield this.createView();
             this.subscribeListener();
         });
@@ -1857,11 +2290,15 @@ class DataCaptureViewController extends BaseController {
     subscribeListener() {
         var _a, _b;
         this._proxy.registerListenerForViewEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (payload) => {
-            const payloadJSON = JSON.parse(payload);
-            const size = Size.fromJSON(payloadJSON.size);
-            const orientation = payloadJSON.orientation;
+        (_b = (_a = this._proxy).subscribeDidChangeSize) === null || _b === undefined ? undefined : _b.call(_a);
+        this.eventEmitter.on(DataCaptureViewEvents.didChangeSize, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('DataCaptureViewController didChangeSize payload is null');
+                return;
+            }
+            const size = Size.fromJSON(event.size);
+            const orientation = event.orientation;
             this.view.listeners.forEach(listener => {
                 if (listener.didChangeSize) {
                     listener.didChangeSize(this.view.viewComponent, size, orientation);
@@ -1953,6 +2390,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
     constructor(autoCreateNativeView) {
         super();
         this._context = null;
+        this.viewId = null;
         this.overlays = [];
         this.controls = [];
         this.listeners = [];
@@ -2025,7 +2463,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controller.updateView();
     }
     createNativeView() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, undefined, undefined, function* () {
             if (this.isViewCreated) {
                 return Promise.resolve();
             }
@@ -2034,7 +2472,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         });
     }
     removeNativeView() {
-        return __awaiter(this, void 0, void 0, function* () {
+        return __awaiter(this, undefined, undefined, function* () {
             if (!this.isViewCreated) {
                 return Promise.resolve();
             }
@@ -2059,7 +2497,6 @@ class BaseDataCaptureView extends DefaultSerializeable {
         if (!this.context) {
             throw new Error('There should be a context attached to a view that should be shown');
         }
-        this.privateContext.initialize();
         return this.controller.show();
     }
     hide() {
@@ -2071,43 +2508,46 @@ class BaseDataCaptureView extends DefaultSerializeable {
 }
 __decorate([
     ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_context", void 0);
+], BaseDataCaptureView.prototype, "_context", undefined);
 __decorate([
     ignoreFromSerialization
-], BaseDataCaptureView.prototype, "viewComponent", void 0);
+], BaseDataCaptureView.prototype, "viewComponent", undefined);
 __decorate([
     ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "coreDefaults", null);
 __decorate([
     nameForSerialization('scanAreaMargins')
-], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
+], BaseDataCaptureView.prototype, "_scanAreaMargins", undefined);
+__decorate([
+    ignoreFromSerializationIfNull
+], BaseDataCaptureView.prototype, "viewId", undefined);
 __decorate([
     nameForSerialization('pointOfInterest')
-], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
+], BaseDataCaptureView.prototype, "_pointOfInterest", undefined);
 __decorate([
     nameForSerialization('logoAnchor')
-], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
+], BaseDataCaptureView.prototype, "_logoAnchor", undefined);
 __decorate([
     nameForSerialization('logoOffset')
-], BaseDataCaptureView.prototype, "_logoOffset", void 0);
+], BaseDataCaptureView.prototype, "_logoOffset", undefined);
 __decorate([
     nameForSerialization('focusGesture')
-], BaseDataCaptureView.prototype, "_focusGesture", void 0);
+], BaseDataCaptureView.prototype, "_focusGesture", undefined);
 __decorate([
     nameForSerialization('zoomGesture')
-], BaseDataCaptureView.prototype, "_zoomGesture", void 0);
+], BaseDataCaptureView.prototype, "_zoomGesture", undefined);
 __decorate([
     nameForSerialization('logoStyle')
-], BaseDataCaptureView.prototype, "_logoStyle", void 0);
+], BaseDataCaptureView.prototype, "_logoStyle", undefined);
 __decorate([
     ignoreFromSerialization
-], BaseDataCaptureView.prototype, "controller", void 0);
+], BaseDataCaptureView.prototype, "controller", undefined);
 __decorate([
     ignoreFromSerialization
-], BaseDataCaptureView.prototype, "listeners", void 0);
+], BaseDataCaptureView.prototype, "listeners", undefined);
 __decorate([
     ignoreFromSerialization
-], BaseDataCaptureView.prototype, "isViewCreated", void 0);
+], BaseDataCaptureView.prototype, "isViewCreated", undefined);
 
 class ZoomSwitchControl extends DefaultSerializeable {
     constructor() {
@@ -2123,76 +2563,76 @@ class ZoomSwitchControl extends DefaultSerializeable {
     }
     get zoomedOutImage() {
         var _a, _b;
-        if (((_a = this.icon.zoomedOut.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedOut.default) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.zoomedOut.default) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.zoomedOut.default) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set zoomedOutImage(zoomedOutImage) {
         var _a;
         this.icon.zoomedOut.default = ControlImage.fromBase64EncodedImage(zoomedOutImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     get zoomedInImage() {
         var _a, _b;
-        if (((_a = this.icon.zoomedIn.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedIn.default) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.zoomedIn.default) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.zoomedIn.default) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set zoomedInImage(zoomedInImage) {
         var _a;
         this.icon.zoomedIn.default = ControlImage.fromBase64EncodedImage(zoomedInImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     get zoomedInPressedImage() {
         var _a, _b;
-        if (((_a = this.icon.zoomedIn.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedIn.pressed) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.zoomedIn.pressed) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.zoomedIn.pressed) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set zoomedInPressedImage(zoomedInPressedImage) {
         var _a;
         this.icon.zoomedIn.pressed = ControlImage.fromBase64EncodedImage(zoomedInPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     get zoomedOutPressedImage() {
         var _a, _b;
-        if (((_a = this.icon.zoomedOut.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.zoomedOut.pressed) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.zoomedOut.pressed) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.zoomedOut.pressed) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set zoomedOutPressedImage(zoomedOutPressedImage) {
         var _a;
         this.icon.zoomedOut.pressed = ControlImage.fromBase64EncodedImage(zoomedOutPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setZoomedInImage(resource) {
         var _a;
         this.icon.zoomedIn.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setZoomedInPressedImage(resource) {
         var _a;
         this.icon.zoomedIn.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setZoomedOutImage(resource) {
         var _a;
         this.icon.zoomedOut.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setZoomedOutPressedImage(resource) {
         var _a;
         this.icon.zoomedOut.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
 }
 __decorate([
     ignoreFromSerialization
-], ZoomSwitchControl.prototype, "view", void 0);
+], ZoomSwitchControl.prototype, "view", undefined);
 
 class TorchSwitchControl extends DefaultSerializeable {
     constructor() {
@@ -2208,66 +2648,66 @@ class TorchSwitchControl extends DefaultSerializeable {
     }
     get torchOffImage() {
         var _a, _b;
-        if (((_a = this.icon.off.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.off.default) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.off.default) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.off.default) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set torchOffImage(torchOffImage) {
         var _a;
         this.icon.off.default = ControlImage.fromBase64EncodedImage(torchOffImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     get torchOffPressedImage() {
         var _a, _b;
-        if (((_a = this.icon.off.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.off.pressed) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.off.pressed) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.off.pressed) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set torchOffPressedImage(torchOffPressedImage) {
         var _a;
         this.icon.off.pressed = ControlImage.fromBase64EncodedImage(torchOffPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     get torchOnImage() {
         var _a, _b;
-        if (((_a = this.icon.on.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.on.default) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.on.default) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.on.default) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     set torchOnImage(torchOnImage) {
         var _a;
         this.icon.on.default = ControlImage.fromBase64EncodedImage(torchOnImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     get torchOnPressedImage() {
         var _a, _b;
-        if (((_a = this.icon.on.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
-            return (_b = this.icon.on.pressed) === null || _b === void 0 ? void 0 : _b.data;
+        if (((_a = this.icon.on.pressed) === null || _a === undefined ? undefined : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.on.pressed) === null || _b === undefined ? undefined : _b.data;
         }
         return null;
     }
     setTorchOffImage(resource) {
         var _a;
         this.icon.off.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setTorchOffPressedImage(resource) {
         var _a;
         this.icon.off.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setTorchOnImage(resource) {
         var _a;
         this.icon.on.default = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setTorchOnPressedImage(resource) {
         var _a;
         this.icon.on.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     setImageResource(resource) {
         var _a;
@@ -2275,17 +2715,17 @@ class TorchSwitchControl extends DefaultSerializeable {
         this.icon.off.pressed = ControlImage.fromResourceName(resource);
         this.icon.on.default = ControlImage.fromResourceName(resource);
         this.icon.on.pressed = ControlImage.fromResourceName(resource);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
     set torchOnPressedImage(torchOnPressedImage) {
         var _a;
         this.icon.on.pressed = ControlImage.fromBase64EncodedImage(torchOnPressedImage);
-        (_a = this.view) === null || _a === void 0 ? void 0 : _a.controlUpdated();
+        (_a = this.view) === null || _a === undefined ? undefined : _a.controlUpdated();
     }
 }
 __decorate([
     ignoreFromSerialization
-], TorchSwitchControl.prototype, "view", void 0);
+], TorchSwitchControl.prototype, "view", undefined);
 
 var VideoResolution;
 (function (VideoResolution) {
@@ -2337,15 +2777,6 @@ class CameraSettings extends DefaultSerializeable {
     }
     set shouldPreferSmoothAutoFocus(newShouldPreferSmoothAutoFocus) {
         this.focus.shouldPreferSmoothAutoFocus = newShouldPreferSmoothAutoFocus;
-    }
-    get maxFrameRate() {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
-        return 0;
-    }
-    set maxFrameRate(newValue) {
-        // tslint:disable-next-line:no-console
-        console.warn('maxFrameRate is deprecated');
     }
     static fromJSON(json) {
         const settings = new CameraSettings();
@@ -2409,7 +2840,7 @@ class CameraSettings extends DefaultSerializeable {
 }
 __decorate([
     ignoreFromSerialization
-], CameraSettings.prototype, "focusHiddenProperties", void 0);
+], CameraSettings.prototype, "focusHiddenProperties", undefined);
 
 const NoViewfinder = { type: 'none' };
 
@@ -2431,70 +2862,7 @@ class RectangularViewfinderAnimation extends DefaultSerializeable {
 }
 __decorate([
     nameForSerialization('isLooping')
-], RectangularViewfinderAnimation.prototype, "_isLooping", void 0);
-
-class SpotlightViewfinder extends DefaultSerializeable {
-    get sizeWithUnitAndAspect() {
-        return this._sizeWithUnitAndAspect;
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor() {
-        super();
-        this.type = 'spotlight';
-        console.warn('SpotlightViewfinder is deprecated and will be removed in a future release. Use RectangularViewfinder instead.');
-        this._sizeWithUnitAndAspect = this.coreDefaults.SpotlightViewfinder.size;
-        this.enabledBorderColor = this.coreDefaults.SpotlightViewfinder.enabledBorderColor;
-        this.disabledBorderColor = this.coreDefaults.SpotlightViewfinder.disabledBorderColor;
-        this.backgroundColor = this.coreDefaults.SpotlightViewfinder.backgroundColor;
-    }
-    setSize(size) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndHeight(size);
-    }
-    setWidthAndAspectRatio(width, heightToWidthAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithWidthAndAspectRatio(width, heightToWidthAspectRatio);
-    }
-    setHeightAndAspectRatio(height, widthToHeightAspectRatio) {
-        this._sizeWithUnitAndAspect = SizeWithUnitAndAspect.sizeWithHeightAndAspectRatio(height, widthToHeightAspectRatio);
-    }
-}
-__decorate([
-    nameForSerialization('size')
-], SpotlightViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
-
-/**
- * @deprecated LaserlineViewfinder is deprecated.
- */
-class LaserlineViewfinder extends DefaultSerializeable {
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    constructor(style) {
-        super();
-        this.type = 'laserline';
-        const viewfinderStyle = style || this.coreDefaults.LaserlineViewfinder.defaultStyle;
-        this._style = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].style;
-        this.width = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].width;
-        this.enabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].enabledColor;
-        this.disabledColor = this.coreDefaults.LaserlineViewfinder.styles[viewfinderStyle].disabledColor;
-    }
-    get style() {
-        return this._style;
-    }
-}
-__decorate([
-    nameForSerialization('style')
-], LaserlineViewfinder.prototype, "_style", void 0);
-
-/**
- * @deprecated LaserlineViewfinderStyle is deprecated.
- */
-var LaserlineViewfinderStyle;
-(function (LaserlineViewfinderStyle) {
-    LaserlineViewfinderStyle["Legacy"] = "legacy";
-    LaserlineViewfinderStyle["Animated"] = "animated";
-})(LaserlineViewfinderStyle || (LaserlineViewfinderStyle = {}));
+], RectangularViewfinderAnimation.prototype, "_isLooping", undefined);
 
 class RectangularViewfinder extends DefaultSerializeable {
     get sizeWithUnitAndAspect() {
@@ -2577,36 +2945,32 @@ class RectangularViewfinder extends DefaultSerializeable {
 }
 __decorate([
     nameForSerialization('style')
-], RectangularViewfinder.prototype, "_style", void 0);
+], RectangularViewfinder.prototype, "_style", undefined);
 __decorate([
     nameForSerialization('lineStyle')
-], RectangularViewfinder.prototype, "_lineStyle", void 0);
+], RectangularViewfinder.prototype, "_lineStyle", undefined);
 __decorate([
     nameForSerialization('dimming')
-], RectangularViewfinder.prototype, "_dimming", void 0);
+], RectangularViewfinder.prototype, "_dimming", undefined);
 __decorate([
     nameForSerialization('disabledDimming')
-], RectangularViewfinder.prototype, "_disabledDimming", void 0);
+], RectangularViewfinder.prototype, "_disabledDimming", undefined);
 __decorate([
     nameForSerialization('animation'),
     ignoreFromSerialization
-], RectangularViewfinder.prototype, "_animation", void 0);
+], RectangularViewfinder.prototype, "_animation", undefined);
 __decorate([
     nameForSerialization('size')
-], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", void 0);
+], RectangularViewfinder.prototype, "_sizeWithUnitAndAspect", undefined);
 __decorate([
     nameForSerialization('disabledColor')
-], RectangularViewfinder.prototype, "_disabledColor", void 0);
+], RectangularViewfinder.prototype, "_disabledColor", undefined);
 __decorate([
     ignoreFromSerialization
-], RectangularViewfinder.prototype, "eventEmitter", void 0);
+], RectangularViewfinder.prototype, "eventEmitter", undefined);
 
 var RectangularViewfinderStyle;
 (function (RectangularViewfinderStyle) {
-    /**
-     * @deprecated The legacy style of the RectangularViewfinder is deprecated.
-     */
-    RectangularViewfinderStyle["Legacy"] = "legacy";
     RectangularViewfinderStyle["Rounded"] = "rounded";
     RectangularViewfinderStyle["Square"] = "square";
 })(RectangularViewfinderStyle || (RectangularViewfinderStyle = {}));
@@ -2658,21 +3022,6 @@ function parseDefaults(jsonDefaults) {
                 .fromJSON(JSON.parse(jsonDefaults.DataCaptureView.zoomGesture)),
             logoStyle: jsonDefaults.DataCaptureView.logoStyle,
         },
-        LaserlineViewfinder: Object
-            .keys(jsonDefaults.LaserlineViewfinder.styles)
-            .reduce((acc, key) => {
-            const viewfinder = jsonDefaults.LaserlineViewfinder.styles[key];
-            acc.styles[key] = {
-                width: NumberWithUnit
-                    .fromJSON(JSON.parse(viewfinder.width)),
-                enabledColor: Color
-                    .fromJSON(viewfinder.enabledColor),
-                disabledColor: Color
-                    .fromJSON(viewfinder.disabledColor),
-                style: viewfinder.style,
-            };
-            return acc;
-        }, { defaultStyle: jsonDefaults.LaserlineViewfinder.defaultStyle, styles: {} }),
         RectangularViewfinder: Object
             .keys(jsonDefaults.RectangularViewfinder.styles)
             .reduce((acc, key) => {
@@ -2691,27 +3040,13 @@ function parseDefaults(jsonDefaults) {
             };
             return acc;
         }, { defaultStyle: jsonDefaults.RectangularViewfinder.defaultStyle, styles: {} }),
-        SpotlightViewfinder: {
-            size: SizeWithUnitAndAspect
-                .fromJSON(JSON.parse(jsonDefaults.SpotlightViewfinder.size)),
-            enabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.enabledBorderColor),
-            disabledBorderColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.disabledBorderColor),
-            backgroundColor: Color
-                .fromJSON(jsonDefaults.SpotlightViewfinder.backgroundColor),
-        },
         AimerViewfinder: {
             frameColor: Color.fromJSON(jsonDefaults.AimerViewfinder.frameColor),
             dotColor: Color.fromJSON(jsonDefaults.AimerViewfinder.dotColor),
         },
-        Brush: {
-            fillColor: Color
-                .fromJSON(jsonDefaults.Brush.fillColor),
-            strokeColor: Color
-                .fromJSON(jsonDefaults.Brush.strokeColor),
-            strokeWidth: jsonDefaults.Brush.strokeWidth,
-        },
+        Brush: new Brush(Color
+            .fromJSON(jsonDefaults.Brush.fillColor), Color
+            .fromJSON(jsonDefaults.Brush.strokeColor), jsonDefaults.Brush.strokeWidth),
         deviceID: jsonDefaults.deviceID,
     };
     // Inject defaults to avoid a circular dependency between these classes and the defaults
@@ -2772,11 +3107,11 @@ class WaveFormVibration extends Vibration {
 }
 __decorate([
     nameForSerialization('timings')
-], WaveFormVibration.prototype, "_timings", void 0);
+], WaveFormVibration.prototype, "_timings", undefined);
 __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('amplitudes')
-], WaveFormVibration.prototype, "_amplitudes", void 0);
+], WaveFormVibration.prototype, "_amplitudes", undefined);
 
 class Sound extends DefaultSerializeable {
     static get defaultSound() {
@@ -2793,7 +3128,7 @@ class Sound extends DefaultSerializeable {
 }
 __decorate([
     ignoreFromSerializationIfNull
-], Sound.prototype, "resource", void 0);
+], Sound.prototype, "resource", undefined);
 
 class FeedbackController {
     constructor(feedback) {
@@ -2820,7 +3155,7 @@ class Feedback extends DefaultSerializeable {
         return this._sound;
     }
     static fromJSON(json) {
-        return new Feedback((json === null || json === void 0 ? void 0 : json.vibration) ? Vibration.fromJSON(json.vibration) : null, (json === null || json === void 0 ? void 0 : json.sound) ? Sound.fromJSON(json.sound) : null);
+        return new Feedback((json === null || json === undefined ? undefined : json.vibration) ? Vibration.fromJSON(json.vibration) : null, (json === null || json === undefined ? undefined : json.sound) ? Sound.fromJSON(json.sound) : null);
     }
     constructor(vibration, sound) {
         super();
@@ -2840,14 +3175,14 @@ class Feedback extends DefaultSerializeable {
 __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('vibration')
-], Feedback.prototype, "_vibration", void 0);
+], Feedback.prototype, "_vibration", undefined);
 __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('sound')
-], Feedback.prototype, "_sound", void 0);
+], Feedback.prototype, "_sound", undefined);
 __decorate([
     ignoreFromSerialization
-], Feedback.prototype, "controller", void 0);
+], Feedback.prototype, "controller", undefined);
 
 const NoneLocationSelection = { type: 'none' };
 
@@ -2867,7 +3202,7 @@ class RadiusLocationSelection extends DefaultSerializeable {
 }
 __decorate([
     nameForSerialization('radius')
-], RadiusLocationSelection.prototype, "_radius", void 0);
+], RadiusLocationSelection.prototype, "_radius", undefined);
 
 class RectangularLocationSelection extends DefaultSerializeable {
     constructor() {
@@ -2929,7 +3264,7 @@ class RectangularLocationSelection extends DefaultSerializeable {
 }
 __decorate([
     nameForSerialization('size')
-], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", void 0);
+], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", undefined);
 
 class LicenseInfo extends DefaultSerializeable {
     get expiration() {
@@ -2939,7 +3274,7 @@ class LicenseInfo extends DefaultSerializeable {
 __decorate([
     nameForSerialization('expiration')
     // @ts-ignore
-], LicenseInfo.prototype, "_expiration", void 0);
+], LicenseInfo.prototype, "_expiration", undefined);
 
 var Expiration;
 (function (Expiration) {
@@ -2950,5 +3285,5 @@ var Expiration;
 
 createEventEmitter();
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LaserlineViewfinderStyle, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SpotlightViewfinder, SwipeToZoom, TapToFocus, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

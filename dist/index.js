@@ -1,19 +1,19 @@
-import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureContextEvents, DataCaptureViewEvents, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceState, ImageBuffer, ImageFrameSource, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, Platform, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
+import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureViewEvents, createNativeProxy, loadCoreDefaults, BaseDataCaptureView } from './core.js';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
+import { NativeModules, NativeEventEmitter, InteractionManager, findNodeHandle, requireNativeComponent, Platform } from 'react-native';
 import React from 'react';
 
 // tslint:disable-next-line:variable-name
-const NativeModule$6 = NativeModules.ScanditDataCaptureCore;
+const NativeModule$4 = NativeModules.ScanditDataCaptureCore;
 class NativeFeedbackProxy {
     emitFeedback(feedback) {
-        return NativeModule$6.emitFeedback(JSON.stringify(feedback.toJSON()));
+        return NativeModule$4.emitFeedback(JSON.stringify(feedback.toJSON()));
     }
 }
 
 // tslint:disable:variable-name
-const NativeModule$5 = NativeModules.ScanditDataCaptureCore;
-const RNEventEmitter$3 = new NativeEventEmitter(NativeModule$5);
+const NativeModule$3 = NativeModules.ScanditDataCaptureCore;
+const RNEventEmitter$1 = new NativeEventEmitter(NativeModule$3);
 // tslint:enable:variable-name
 class NativeImageFrameSourceProxy {
     eventEmitter;
@@ -22,21 +22,21 @@ class NativeImageFrameSourceProxy {
         this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
     getCurrentCameraState(position) {
-        return NativeModule$5.getCurrentCameraState(position);
+        return NativeModule$3.getCurrentCameraState(position);
     }
     switchCameraToDesiredState(desiredStateJson) {
-        return NativeModule$5.switchCameraToDesiredState(desiredStateJson);
+        return NativeModule$3.switchCameraToDesiredState(desiredStateJson);
     }
     registerListenerForEvents() {
-        NativeModule$5.registerListenerForCameraEvents();
+        NativeModule$3.registerListenerForCameraEvents();
     }
     unregisterListenerForEvents() {
-        NativeModule$5.unregisterListenerForCameraEvents();
+        NativeModule$3.unregisterListenerForCameraEvents();
         this.nativeListeners.forEach(listener => listener.remove());
         this.nativeListeners = [];
     }
     subscribeDidChangeState() {
-        const didChangeState = RNEventEmitter$3.addListener(FrameSourceListenerEvents.didChangeState, (event) => {
+        const didChangeState = RNEventEmitter$1.addListener(FrameSourceListenerEvents.didChangeState, (event) => {
             this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, event.data);
         });
         this.nativeListeners.push(didChangeState);
@@ -44,65 +44,8 @@ class NativeImageFrameSourceProxy {
 }
 
 // tslint:disable:variable-name
-const NativeModule$4 = NativeModules.ScanditDataCaptureCore;
-const RNEventEmitter$2 = new NativeEventEmitter(NativeModule$4);
-// tslint:enable:variable-name
-const { major, minor, patch } = Platform.constants?.reactNativeVersion;
-class NativeDataCaptureContextProxy extends BaseNativeProxy {
-    nativeListeners = [];
-    get framework() {
-        return 'react-native';
-    }
-    get frameworkVersion() {
-        return `${major}.${minor}.${patch}`;
-    }
-    contextFromJSON(contextJson) {
-        return NativeModule$4.contextFromJSON(contextJson);
-    }
-    updateContextFromJSON(contextJson) {
-        return NativeModule$4.updateContextFromJSON(contextJson);
-    }
-    addModeToContext(modeJson) {
-        return NativeModule$4.addModeToContext(modeJson);
-    }
-    removeModeFromContext(modeJson) {
-        return NativeModule$4.removeModeFromContext(modeJson);
-    }
-    removeAllModesFromContext() {
-        return NativeModule$4.removeAllModesFromContext();
-    }
-    dispose() {
-        return NativeModule$4.dispose();
-    }
-    registerListenerForDataCaptureContext() {
-        NativeModule$4.registerListenerForEvents();
-    }
-    unregisterListenerForDataCaptureContext() {
-        const p = NativeModule$4.unregisterListenerForEvents();
-        this.nativeListeners.forEach(listener => listener.remove());
-        this.nativeListeners = [];
-        return p;
-    }
-    subscribeDidChangeStatus() {
-        const didChangeStatus = RNEventEmitter$2.addListener(DataCaptureContextEvents.didChangeStatus, (event) => {
-            this.eventEmitter.emit(DataCaptureContextEvents.didChangeStatus, event.data);
-        });
-        this.nativeListeners.push(didChangeStatus);
-    }
-    subscribeDidStartObservingContext() {
-        const didStartObservingContext = RNEventEmitter$2.addListener(DataCaptureContextEvents.didStartObservingContext, () => {
-            this.eventEmitter.emit(DataCaptureContextEvents.didStartObservingContext);
-        });
-        this.nativeListeners.push(didStartObservingContext);
-    }
-    getOpenSourceSoftwareLicenseInfo() {
-        return NativeModule$4.getOpenSourceSoftwareLicenseInfo();
-    }
-}
-
-// tslint:disable:variable-name
-const NativeModule$3 = NativeModules.ScanditDataCaptureCore;
-const RNEventEmitter$1 = new NativeEventEmitter(NativeModule$3);
+const NativeModule$2 = NativeModules.ScanditDataCaptureCore;
+const RNEventEmitter = new NativeEventEmitter(NativeModule$2);
 // tslint:enable:variable-name
 class NativeDataCaptureViewProxy extends BaseNativeProxy {
     nativeListeners = [];
@@ -110,36 +53,36 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
         super();
     }
     addOverlay(overlayJson) {
-        return NativeModule$3.addOverlay(overlayJson);
+        return NativeModule$2.addOverlay(overlayJson);
     }
     removeOverlay(overlayJson) {
-        return NativeModule$3.removeOverlay(overlayJson);
+        return NativeModule$2.removeOverlay(overlayJson);
     }
     createView(viewJson) {
-        return NativeModule$3.createDataCaptureView(viewJson);
+        return NativeModule$2.createDataCaptureView(viewJson);
     }
     updateView(viewJson) {
-        return NativeModule$3.updateDataCaptureView(viewJson);
+        return NativeModule$2.updateDataCaptureView(viewJson);
     }
-    removeView() {
+    removeView(viewId) {
         return Promise.resolve();
     }
-    viewPointForFramePoint(pointJson) {
-        return NativeModule$3.viewPointForFramePoint(pointJson);
+    viewPointForFramePoint({ viewId, pointJson }) {
+        return NativeModule$2.viewPointForFramePoint({ viewId, point: pointJson });
     }
-    viewQuadrilateralForFrameQuadrilateral(quadrilateralJson) {
-        return NativeModule$3.viewQuadrilateralForFrameQuadrilateral(quadrilateralJson);
+    viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateralJson }) {
+        return NativeModule$2.viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateral: quadrilateralJson });
     }
-    registerListenerForViewEvents() {
-        NativeModule$3.registerListenerForViewEvents();
+    registerListenerForViewEvents(viewId) {
+        NativeModule$2.registerListenerForViewEvents(viewId);
     }
-    unregisterListenerForViewEvents() {
-        NativeModule$3.unregisterListenerForViewEvents();
+    unregisterListenerForViewEvents(viewId) {
+        NativeModule$2.unregisterListenerForViewEvents(viewId);
         this.nativeListeners.forEach(listener => listener.remove());
         this.nativeListeners = [];
     }
     subscribeDidChangeSize() {
-        const didChangeSize = RNEventEmitter$1.addListener(DataCaptureViewEvents.didChangeSize, (event) => {
+        const didChangeSize = RNEventEmitter.addListener(DataCaptureViewEvents.didChangeSize, (event) => {
             this.eventEmitter.emit(DataCaptureViewEvents.didChangeSize, event.data);
         });
         this.nativeListeners.push(didChangeSize);
@@ -156,51 +99,18 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
     }
 }
 
-// tslint:disable:variable-name
-const NativeModule$2 = NativeModules.ScanditDataCaptureCore;
-const RNEventEmitter = new NativeEventEmitter(NativeModule$2);
-// tslint:enable:variable-name
-class NativeCameraProxy {
-    nativeListeners = [];
-    eventEmitter;
-    constructor() {
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-    }
-    getFrame(frameId) {
-        return NativeModule$2.getFrame(frameId);
-    }
-    getCurrentCameraState(position) {
-        return NativeModule$2.getCurrentCameraState(position);
-    }
-    isTorchAvailable(position) {
-        return NativeModule$2.isTorchAvailable(position);
-    }
-    switchCameraToDesiredState(desiredStateJson) {
-        return NativeModule$2.switchCameraToDesiredState(desiredStateJson);
-    }
-    registerListenerForCameraEvents() {
-        NativeModule$2.registerListenerForCameraEvents();
-    }
-    unregisterListenerForCameraEvents() {
-        const p = NativeModule$2.unregisterListenerForCameraEvents();
-        this.nativeListeners.forEach(listener => listener.remove());
-        this.nativeListeners = [];
-        return p;
-    }
-    subscribeDidChangeState() {
-        const didChangeState = RNEventEmitter.addListener(FrameSourceListenerEvents.didChangeState, (event) => {
-            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, event.data);
-        });
-        this.nativeListeners.push(didChangeState);
-    }
-}
-
 function initCoreProxy() {
-    FactoryMaker.bindInstance('DataCaptureContextProxy', new NativeDataCaptureContextProxy());
     FactoryMaker.bindInstance('FeedbackProxy', new NativeFeedbackProxy());
     FactoryMaker.bindInstance('ImageFrameSourceProxy', new NativeImageFrameSourceProxy());
     FactoryMaker.bindInstance('DataCaptureViewProxy', new NativeDataCaptureViewProxy());
-    FactoryMaker.bindInstance('CameraProxy', new NativeCameraProxy());
+    FactoryMaker.bindLazyInstance('DataCaptureContextProxy', () => {
+        const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
+        return createNativeProxy(caller);
+    });
+    FactoryMaker.bindLazyInstance('CameraProxy', () => {
+        const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
+        return createNativeProxy(caller);
+    });
 }
 
 // tslint:disable-next-line:variable-name
@@ -213,7 +123,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.2.4';
+        return '7.5.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -222,11 +132,13 @@ class DataCaptureVersion {
 
 class DataCaptureView extends React.Component {
     view;
+    _isMounted = false;
     constructor(props) {
         super(props);
         // Do not create the view automatically. Do that only when componentDidMount is called.
         this.view = BaseDataCaptureView.forContext(props.context, false);
         this.view.viewComponent = this;
+        this.view.parentId = props.parentId ?? null;
     }
     get scanAreaMargins() {
         return this.view.scanAreaMargins;
@@ -298,12 +210,17 @@ class DataCaptureView extends React.Component {
         return this.view.removeControl(control);
     }
     componentWillUnmount() {
+        this._isMounted = false;
         this.view.dispose();
     }
     componentDidMount() {
+        this._isMounted = true;
         // This is required to ensure that findNodeHandle returns a valid handle
         InteractionManager.runAfterInteractions(() => {
-            this.createDataCaptureView();
+            // Check if component is still mounted before creating view
+            if (this._isMounted) {
+                this.createDataCaptureView();
+            }
         });
     }
     render() {
@@ -311,8 +228,10 @@ class DataCaptureView extends React.Component {
     }
     createDataCaptureView() {
         const viewId = findNodeHandle(this);
-        this.view.viewId = viewId;
-        this.view.createNativeView();
+        this.view.createNativeView(viewId);
+    }
+    removeAllOverlays() {
+        this.view.removeAllOverlays();
     }
 }
 // tslint:disable-next-line:variable-name
@@ -324,6 +243,13 @@ class RNNativeCaller {
     constructor(nativeModule) {
         this.nativeModule = nativeModule;
         this.nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
+    }
+    get framework() {
+        return 'react-native';
+    }
+    get frameworkVersion() {
+        const { major, minor, patch } = Platform.constants?.reactNativeVersion;
+        return `${major}.${minor}.${patch}`;
     }
     callFn(fnName, args) {
         // @ts-ignore

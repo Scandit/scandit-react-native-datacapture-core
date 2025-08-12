@@ -10,11 +10,13 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
+import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
 import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
 import com.scandit.datacapture.frameworks.core.utils.MainThread
@@ -51,12 +53,12 @@ class ScanditDataCaptureCoreModule(
     )
 
     @ReactMethod
-    fun registerListenerForEvents() {
+    fun subscribeContextListener() {
         coreModule.registerDataCaptureContextListener()
     }
 
     @ReactMethod
-    fun unregisterListenerForEvents() {
+    fun unsubscribeContextListener() {
         coreModule.unregisterDataCaptureContextListener()
     }
 
@@ -71,29 +73,38 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun registerListenerForViewEvents() {
-        coreModule.registerDataCaptureViewListener()
+    fun registerListenerForViewEvents(viewId: Int) {
+        coreModule.registerDataCaptureViewListener(viewId)
     }
 
     @ReactMethod
-    fun unregisterListenerForViewEvents() {
-        coreModule.unregisterDataCaptureViewListener()
+    fun unregisterListenerForViewEvents(viewId: Int) {
+        coreModule.unregisterDataCaptureViewListener(viewId)
     }
 
     @ReactMethod
-    fun contextFromJSON(json: String, promise: Promise) {
-        coreModule.createContextFromJson(json, ReactNativeResult(promise))
+    fun contextFromJSON(readableMap: ReadableMap, promise: Promise) {
+        val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
+            ParameterNullError("contextJson")
+        )
+        coreModule.createContextFromJson(contextJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun updateContextFromJSON(json: String, promise: Promise) {
+    fun updateContextFromJSON(readableMap: ReadableMap, promise: Promise) {
+        val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
+            ParameterNullError("contextJson")
+        )
         mainThread.runOnMainThread {
-            coreModule.updateContextFromJson(json, ReactNativeResult(promise))
+            coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
         }
     }
 
     @ReactMethod
-    fun getFrame(frameId: String, promise: Promise) {
+    fun getFrame(readableMap: ReadableMap, promise: Promise) {
+        val frameId = readableMap.getString("frameId") ?: return promise.reject(
+            ParameterNullError("frameId")
+        )
         coreModule.getLastFrameAsJson(frameId, ReactNativeResult(promise))
     }
 
@@ -108,42 +119,73 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun viewPointForFramePoint(json: String, promise: Promise) {
-        coreModule.viewPointForFramePoint(json, ReactNativeResult(promise))
+    fun viewPointForFramePoint(readableMap: ReadableMap, promise: Promise) {
+        val pointJson = readableMap.getString("point") ?: return promise.reject(
+            ParameterNullError("point")
+        )
+
+        coreModule.viewPointForFramePoint(
+            readableMap.getInt("viewId"),
+            pointJson,
+            ReactNativeResult(promise)
+        )
     }
 
     @ReactMethod
-    fun viewQuadrilateralForFrameQuadrilateral(json: String, promise: Promise) {
-        coreModule.viewQuadrilateralForFrameQuadrilateral(json, ReactNativeResult(promise))
+    fun viewQuadrilateralForFrameQuadrilateral(readableMap: ReadableMap, promise: Promise) {
+        val quadrilateralJson = readableMap.getString("quadrilateral") ?: return promise.reject(
+            ParameterNullError("quadrilateral")
+        )
+
+        coreModule.viewQuadrilateralForFrameQuadrilateral(
+            readableMap.getInt("viewId"),
+            quadrilateralJson,
+            ReactNativeResult(promise)
+        )
     }
 
     @ReactMethod
-    fun getCurrentCameraState(cameraPosition: String, promise: Promise) {
+    fun getCurrentCameraState(readableMap: ReadableMap, promise: Promise) {
+        val cameraPosition = readableMap.getString("position") ?: return promise.reject(
+            ParameterNullError("position")
+        )
         coreModule.getCameraState(cameraPosition, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun isTorchAvailable(cameraPosition: String, promise: Promise) {
+    fun isTorchAvailable(readableMap: ReadableMap, promise: Promise) {
+        val cameraPosition = readableMap.getString("cameraPosition") ?: return promise.reject(
+            ParameterNullError("cameraPosition")
+        )
         coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun switchCameraToDesiredState(desiredStateJson: String, promise: Promise) {
+    fun switchCameraToDesiredState(readableMap: ReadableMap, promise: Promise) {
+        val desiredStateJson = readableMap.getString("desiredStateJson") ?: return promise.reject(
+            ParameterNullError("desiredStateJson")
+        )
         coreModule.switchCameraToDesiredState(desiredStateJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun addModeToContext(modeJson: String, promise: Promise) {
+    fun addModeToContext(readableMap: ReadableMap, promise: Promise) {
+        val modeJson = readableMap.getString("modeJson") ?: return promise.reject(
+            ParameterNullError("modeJson")
+        )
         coreModule.addModeToContext(modeJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun removeModeFromContext(modeJson: String, promise: Promise) {
+    fun removeModeFromContext(readableMap: ReadableMap, promise: Promise) {
+        val modeJson = readableMap.getString("modeJson") ?: return promise.reject(
+            ParameterNullError("modeJson")
+        )
         coreModule.removeModeFromContext(modeJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun removeAllModesFromContext(promise: Promise) {
+    fun removeAllModes(promise: Promise) {
         coreModule.removeAllModes(ReactNativeResult(promise))
     }
 
@@ -167,6 +209,16 @@ class ScanditDataCaptureCoreModule(
     @ReactMethod
     fun getOpenSourceSoftwareLicenseInfo(promise: Promise) {
         coreModule.getOpenSourceSoftwareLicenseInfo(ReactNativeResult(promise))
+    }
+
+    @ReactMethod
+    fun addListener(@Suppress("UNUSED_PARAMETER") eventName: String?) {
+        // Keep: Required for RN built in Event Emitter Calls.
+    }
+
+    @ReactMethod
+    fun removeListeners(@Suppress("UNUSED_PARAMETER") count: Int?) {
+        // Keep: Required for RN built in Event Emitter Calls.
     }
 
     private val coreModule: CoreModule

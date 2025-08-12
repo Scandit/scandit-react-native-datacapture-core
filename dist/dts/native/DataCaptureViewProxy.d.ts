@@ -6,11 +6,17 @@ export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implemen
     removeOverlay(overlayJson: string): Promise<void>;
     createView(viewJson: string): Promise<void>;
     updateView(viewJson: string): Promise<void>;
-    removeView(): Promise<void>;
-    viewPointForFramePoint(pointJson: string): Promise<NativeCallResult>;
-    viewQuadrilateralForFrameQuadrilateral(quadrilateralJson: string): Promise<NativeCallResult>;
-    registerListenerForViewEvents(): void;
-    unregisterListenerForViewEvents(): void;
+    removeView(viewId: number): Promise<void>;
+    viewPointForFramePoint({ viewId, pointJson }: {
+        viewId: number;
+        pointJson: string;
+    }): Promise<NativeCallResult>;
+    viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateralJson }: {
+        viewId: number;
+        quadrilateralJson: string;
+    }): Promise<NativeCallResult>;
+    registerListenerForViewEvents(viewId: number): void;
+    unregisterListenerForViewEvents(viewId: number): void;
     subscribeDidChangeSize(): void;
     setPositionAndSize(top: number, left: number, width: number, height: number, shouldBeUnderWebView: boolean): Promise<void>;
     show(): Promise<void>;

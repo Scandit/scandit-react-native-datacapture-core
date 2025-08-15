@@ -19,7 +19,6 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
     case nilFrame
     case nilViewId
     case nilContainerView
-    case nilParameter
 
     var domain: String {
         "ScanditDataCaptureCoreErrorDomain"
@@ -41,8 +40,6 @@ enum ScanditDataCaptureCoreError: Int, CustomNSError {
             return "Unable to add the DataCaptureView with the provided json. The json doesn't contain the viewId field."
         case.nilContainerView:
             return "Unable to add the DataCaptureView, the container with the provided tag was not found."
-        case .nilParameter:
-            return "Missing required parameter."
         }
     }
 
@@ -128,25 +125,17 @@ class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(contextFromJSON:resolve:reject:)
-    func contextFromJSON(data: [String: Any],
+    func contextFromJSON(json: String,
                          resolve: @escaping RCTPromiseResolveBlock,
                          reject: @escaping RCTPromiseRejectBlock) {
-        guard let contextJson = data["contextJson"] as? String else {
-            reject(String(ScanditDataCaptureCoreError.nilParameter.code), "Missing contextJson parameter", nil)
-            return
-        }
-        coreModule.createContextFromJSON(contextJson, result: ReactNativeResult(resolve, reject))
+        coreModule.createContextFromJSON(json, result: ReactNativeResult(resolve, reject))
     }
 
     @objc(updateContextFromJSON:resolve:reject:)
-    func updateContextFromJSON(data: [String: Any],
+    func updateContextFromJSON(json: String,
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
-        guard let contextJson = data["contextJson"] as? String else {
-            reject(String(ScanditDataCaptureCoreError.nilParameter.code), "Missing contextJson parameter", nil)
-            return
-        }
-        coreModule.updateContextFromJSON(contextJson, result: ReactNativeResult(resolve, reject))
+        coreModule.updateContextFromJSON(json, result: ReactNativeResult(resolve, reject))
     }
 
     @objc
@@ -186,35 +175,23 @@ class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(getCurrentCameraState:resolve:reject:)
-    func getCurrentCameraState(data: [String: Any],
+    func getCurrentCameraState(cameraPosition: String,
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
-        guard let cameraPosition = data["position"] as? String else {
-            ReactNativeResult(resolve, reject).reject(error: ScanditFrameworksCoreError.nilArgument)
-            return
-        }
         coreModule.getCameraState(cameraPosition: cameraPosition, result: ReactNativeResult(resolve, reject))
     }
 
     @objc(isTorchAvailable:resolve:reject:)
-    func isTorchAvailable(data: [String: Any],
+    func isTorchAvailable(cameraPosition: String,
                           resolve: @escaping RCTPromiseResolveBlock,
                           reject: @escaping RCTPromiseRejectBlock) {
-        guard let cameraPosition = data["position"] as? String else {
-            ReactNativeResult(resolve, reject).reject(error: ScanditFrameworksCoreError.nilArgument)
-            return
-        }
         coreModule.isTorchAvailable(cameraPosition: cameraPosition, result: ReactNativeResult(resolve, reject))
     }
 
     @objc(switchCameraToDesiredState:resolve:reject:)
-    func switchCameraToDesiredState(data: [String: Any],
+    func switchCameraToDesiredState(desiredStateJson: String,
                                     resolve: @escaping RCTPromiseResolveBlock,
                                     reject: @escaping RCTPromiseRejectBlock) {
-        guard let desiredStateJson = data["desiredStateJson"] as? String else {
-            ReactNativeResult(resolve, reject).reject(error: ScanditFrameworksCoreError.nilArgument)
-            return
-        }
         coreModule.switchCameraToDesiredState(
             stateJson: desiredStateJson,
             result: ReactNativeResult(resolve, reject)
@@ -222,13 +199,9 @@ class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(getFrame:resolve:reject:)
-    func getFrame(data: [String: Any],
-                  resolve: @escaping RCTPromiseResolveBlock,
-                  reject: @escaping RCTPromiseRejectBlock) {
-        guard let frameId = data["frameId"] as? String else {
-            ReactNativeResult(resolve, reject).reject(error: ScanditFrameworksCoreError.nilArgument)
-            return
-        }
+    func getFrame(frameId: String,
+                      resolve: @escaping RCTPromiseResolveBlock,
+                      reject: @escaping RCTPromiseRejectBlock) {
         coreModule.getLastFrameAsJson(frameId: frameId, result: ReactNativeResult(resolve, reject))
     }
 
@@ -240,11 +213,11 @@ class ScanditDataCaptureCore: RCTEventEmitter {
         coreModule.unregisterFrameSourceListener()
     }
 
-    @objc func subscribeContextListener() {
+    @objc func registerListenerForEvents() {
         coreModule.registerDataCaptureContextListener()
     }
 
-    @objc func unsubscribeContextListener() {
+    @objc func unregisterListenerForEvents() {
         coreModule.unregisterDataCaptureContextListener()
     }
 
@@ -265,29 +238,21 @@ class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc(addModeToContext:resolve:reject:)
-    func addModeToContext(data: [String: Any],
+    func addModeToContext(modeJson: String,
                           resolve: @escaping RCTPromiseResolveBlock,
                           reject: @escaping RCTPromiseRejectBlock) {
-        guard let modeJson = data["modeJson"] as? String else {
-            reject(String(ScanditDataCaptureCoreError.nilParameter.code), "Missing modeJson parameter", nil)
-            return
-        }
         coreModule.addModeToContext(modeJson: modeJson, result: ReactNativeResult(resolve, reject))
     }
 
     @objc(removeModeFromContext:resolve:reject:)
-    func removeModeFromContext(data: [String: Any],
+    func removeModeFromContext(modeJson: String,
                                resolve: @escaping RCTPromiseResolveBlock,
                                reject: @escaping RCTPromiseRejectBlock) {
-        guard let modeJson = data["modeJson"] as? String else {
-            reject(String(ScanditDataCaptureCoreError.nilParameter.code), "Missing modeJson parameter", nil)
-            return
-        }
         coreModule.removeModeFromContext(modeJson: modeJson, result: ReactNativeResult(resolve, reject))
     }
 
-    @objc(removeAllModes:reject:)
-    func removeAllModes(resolve: @escaping RCTPromiseResolveBlock,
+    @objc(removeAllModesFromContext:reject:)
+    func removeAllModesFromContext(resolve: @escaping RCTPromiseResolveBlock,
                         reject: @escaping RCTPromiseRejectBlock) {
         coreModule.removeAllModes(result: ReactNativeResult(resolve, reject))
     }

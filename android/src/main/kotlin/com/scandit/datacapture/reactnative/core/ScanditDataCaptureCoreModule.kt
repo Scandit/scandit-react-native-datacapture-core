@@ -53,12 +53,12 @@ class ScanditDataCaptureCoreModule(
     )
 
     @ReactMethod
-    fun subscribeContextListener() {
+    fun registerListenerForEvents() {
         coreModule.registerDataCaptureContextListener()
     }
 
     @ReactMethod
-    fun unsubscribeContextListener() {
+    fun unregisterListenerForEvents() {
         coreModule.unregisterDataCaptureContextListener()
     }
 
@@ -83,28 +83,19 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun contextFromJSON(readableMap: ReadableMap, promise: Promise) {
-        val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
-            ParameterNullError("contextJson")
-        )
-        coreModule.createContextFromJson(contextJson, ReactNativeResult(promise))
+    fun contextFromJSON(json: String, promise: Promise) {
+        coreModule.createContextFromJson(json, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun updateContextFromJSON(readableMap: ReadableMap, promise: Promise) {
-        val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
-            ParameterNullError("contextJson")
-        )
+    fun updateContextFromJSON(json: String, promise: Promise) {
         mainThread.runOnMainThread {
-            coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
+            coreModule.updateContextFromJson(json, ReactNativeResult(promise))
         }
     }
 
     @ReactMethod
-    fun getFrame(readableMap: ReadableMap, promise: Promise) {
-        val frameId = readableMap.getString("frameId") ?: return promise.reject(
-            ParameterNullError("frameId")
-        )
+    fun getFrame(frameId: String, promise: Promise) {
         coreModule.getLastFrameAsJson(frameId, ReactNativeResult(promise))
     }
 
@@ -145,47 +136,32 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun getCurrentCameraState(readableMap: ReadableMap, promise: Promise) {
-        val cameraPosition = readableMap.getString("position") ?: return promise.reject(
-            ParameterNullError("position")
-        )
+    fun getCurrentCameraState(cameraPosition: String, promise: Promise) {
         coreModule.getCameraState(cameraPosition, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun isTorchAvailable(readableMap: ReadableMap, promise: Promise) {
-        val cameraPosition = readableMap.getString("cameraPosition") ?: return promise.reject(
-            ParameterNullError("cameraPosition")
-        )
+    fun isTorchAvailable(cameraPosition: String, promise: Promise) {
         coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun switchCameraToDesiredState(readableMap: ReadableMap, promise: Promise) {
-        val desiredStateJson = readableMap.getString("desiredStateJson") ?: return promise.reject(
-            ParameterNullError("desiredStateJson")
-        )
+    fun switchCameraToDesiredState(desiredStateJson: String, promise: Promise) {
         coreModule.switchCameraToDesiredState(desiredStateJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun addModeToContext(readableMap: ReadableMap, promise: Promise) {
-        val modeJson = readableMap.getString("modeJson") ?: return promise.reject(
-            ParameterNullError("modeJson")
-        )
+    fun addModeToContext(modeJson: String, promise: Promise) {
         coreModule.addModeToContext(modeJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun removeModeFromContext(readableMap: ReadableMap, promise: Promise) {
-        val modeJson = readableMap.getString("modeJson") ?: return promise.reject(
-            ParameterNullError("modeJson")
-        )
+    fun removeModeFromContext(modeJson: String, promise: Promise) {
         coreModule.removeModeFromContext(modeJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun removeAllModes(promise: Promise) {
+    fun removeAllModesFromContext(promise: Promise) {
         coreModule.removeAllModes(ReactNativeResult(promise))
     }
 

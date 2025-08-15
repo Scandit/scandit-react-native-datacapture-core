@@ -714,66 +714,6 @@ class ImageBuffer {
     }
 }
 
-class FrameDataSettings extends DefaultSerializeable {
-    constructor() {
-        super();
-        // Enables the file system cache for the frame.
-        this._isFileSystemCacheEnabled = false;
-        // The quality of the image. 0-100.
-        this._imageQuality = 100;
-        // Enables the auto-rotation of the frame.
-        this._isAutoRotateEnabled = false;
-    }
-    get isFileSystemCacheEnabled() {
-        return this._isFileSystemCacheEnabled;
-    }
-    set isFileSystemCacheEnabled(enabled) {
-        this._isFileSystemCacheEnabled = enabled;
-    }
-    get imageQuality() {
-        return this._imageQuality;
-    }
-    set imageQuality(quality) {
-        if (quality < 0 || quality > 100) {
-            throw new Error('Image quality must be between 0 and 100');
-        }
-        this._imageQuality = quality;
-    }
-    get isAutoRotateEnabled() {
-        return this._isAutoRotateEnabled;
-    }
-    set isAutoRotateEnabled(enabled) {
-        this._isAutoRotateEnabled = enabled;
-    }
-}
-__decorate([
-    nameForSerialization('sc_frame_isFileSystemCacheEnabled')
-], FrameDataSettings.prototype, "_isFileSystemCacheEnabled", void 0);
-__decorate([
-    nameForSerialization('sc_frame_imageQuality')
-], FrameDataSettings.prototype, "_imageQuality", void 0);
-__decorate([
-    nameForSerialization('sc_frame_autoRotate')
-], FrameDataSettings.prototype, "_isAutoRotateEnabled", void 0);
-
-class FrameDataSettingsBuilder {
-    constructor(settings) {
-        this.settings = settings;
-    }
-    enableFileSystemCache(enabled) {
-        this.settings.isFileSystemCacheEnabled = enabled;
-        return this;
-    }
-    setImageQuality(quality) {
-        this.settings.imageQuality = quality;
-        return this;
-    }
-    enableAutoRotate(enabled) {
-        this.settings.isAutoRotateEnabled = enabled;
-        return this;
-    }
-}
-
 var CameraPosition;
 (function (CameraPosition) {
     CameraPosition["WorldFacing"] = "worldFacing";
@@ -1450,7 +1390,6 @@ var ScanIntention;
 (function (ScanIntention) {
     ScanIntention["Manual"] = "manual";
     ScanIntention["Smart"] = "smart";
-    ScanIntention["SmartSelection"] = "smartSelection";
 })(ScanIntention || (ScanIntention = {}));
 
 class EventDataParser {
@@ -1685,16 +1624,7 @@ class PrivateFrameData {
     }
 }
 
-class BaseNewController {
-    get _proxy() {
-        return this._cachedProxy;
-    }
-    constructor(proxyName) {
-        this._cachedProxy = FactoryMaker.createInstance(proxyName);
-    }
-}
-
-class CameraController extends BaseNewController {
+class CameraController {
     static get _proxy() {
         return FactoryMaker.getInstance('CameraProxy');
     }
@@ -1704,14 +1634,14 @@ class CameraController extends BaseNewController {
         return controller;
     }
     constructor() {
-        super('CameraProxy');
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
     get privateCamera() {
         return this.camera;
     }
     static getFrame(frameId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield CameraController._proxy.$getFrame({ frameId });
+            const result = yield CameraController._proxy.getFrame(frameId);
             if (result == null) {
                 return PrivateFrameData.empty();
             }
@@ -1721,7 +1651,7 @@ class CameraController extends BaseNewController {
     }
     static getFrameOrNull(frameId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield CameraController._proxy.$getFrame({ frameId });
+            const result = yield CameraController._proxy.getFrame(frameId);
             if (result == null) {
                 return null;
             }
@@ -1731,7 +1661,7 @@ class CameraController extends BaseNewController {
     }
     getCurrentState() {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this._proxy.$getCurrentCameraState({ position: this.privateCamera.position });
+            const result = yield CameraController._proxy.getCurrentCameraState(this.privateCamera.position);
             if (result == null) {
                 return FrameSourceState.Off;
             }
@@ -1740,7 +1670,7 @@ class CameraController extends BaseNewController {
     }
     getIsTorchAvailable() {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this._proxy.$isTorchAvailable({ position: this.privateCamera.position });
+            const result = yield CameraController._proxy.isTorchAvailable(this.privateCamera.position);
             if (result == null) {
                 return false;
             }
@@ -1748,30 +1678,25 @@ class CameraController extends BaseNewController {
         });
     }
     switchCameraToDesiredState(desiredState) {
-        return this._proxy.$switchCameraToDesiredState({ desiredStateJson: desiredState.toString() });
+        return CameraController._proxy.switchCameraToDesiredState(desiredState);
     }
     subscribeListener() {
-        this._proxy.$registerListenerForCameraEvents();
-        this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
-        this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
+        var _a, _b;
+        CameraController._proxy.registerListenerForCameraEvents();
+        (_b = (_a = CameraController._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event) {
+                this.privateCamera.listeners.forEach(listener => {
+                    var _a;
+                    (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, event.state);
+                });
+            }
+        });
     }
     unsubscribeListener() {
-        this._proxy.$unregisterListenerForCameraEvents();
-        this._proxy.unsubscribeFromEvents([FrameSourceListenerEvents.didChangeState]);
-        this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
-    }
-    dispose() {
-        this.unsubscribeListener();
-        this._proxy.dispose();
-    }
-    handleDidChangeStateEvent(ev) {
-        const event = EventDataParser.parse(ev.data);
-        if (event) {
-            this.privateCamera.listeners.forEach(listener => {
-                var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, event.state);
-            });
-        }
+        CameraController._proxy.unregisterListenerForCameraEvents();
+        this.eventEmitter.off(FrameSourceListenerEvents.didChangeState);
     }
 }
 
@@ -1978,16 +1903,6 @@ class ContextStatus {
 class DataCaptureContextSettings extends DefaultSerializeable {
     constructor() {
         super();
-        this._frameSettings = new FrameDataSettings();
-    }
-    get frameDataSettings() {
-        return this._frameSettings;
-    }
-    set frameDataSettings(settings) {
-        this._frameSettings = settings;
-    }
-    frameDataSettingsBuilder() {
-        return new FrameDataSettingsBuilder(this._frameSettings);
     }
     setProperty(name, value) {
         this[name] = value;
@@ -1996,9 +1911,6 @@ class DataCaptureContextSettings extends DefaultSerializeable {
         return this[name];
     }
 }
-__decorate([
-    nameForSerialization('frameSettings')
-], DataCaptureContextSettings.prototype, "_frameSettings", void 0);
 
 class OpenSourceSoftwareLicenseInfo {
     constructor(licenseText) {
@@ -2014,12 +1926,12 @@ var DataCaptureContextEvents;
     DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
     DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
 })(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
-class DataCaptureContextController extends BaseNewController {
-    get framework() {
-        return this._proxy.framework;
+class DataCaptureContextController {
+    static get framework() {
+        return FactoryMaker.getInstance('DataCaptureContextProxy').framework;
     }
-    get frameworkVersion() {
-        return this._proxy.frameworkVersion;
+    static get frameworkVersion() {
+        return FactoryMaker.getInstance('DataCaptureContextProxy').frameworkVersion;
     }
     get privateContext() {
         return this.context;
@@ -2030,13 +1942,14 @@ class DataCaptureContextController extends BaseNewController {
         return controller;
     }
     constructor() {
-        super('DataCaptureContextProxy');
         this._listenerRegistered = false;
+        this._proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
+        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
     }
     updateContextFromJSON() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield this._proxy.$updateContextFromJSON({ contextJson: JSON.stringify(this.context.toJSON()) });
+                yield this._proxy.updateContextFromJSON(JSON.stringify(this.context.toJSON()));
             }
             catch (error) {
                 this.notifyListenersOfDeserializationError(error);
@@ -2045,36 +1958,31 @@ class DataCaptureContextController extends BaseNewController {
         });
     }
     addModeToContext(mode) {
-        return this._proxy.$addModeToContext({ modeJson: JSON.stringify(mode.toJSON()) });
+        return this._proxy.addModeToContext(JSON.stringify(mode.toJSON()));
     }
     removeModeFromContext(mode) {
-        return this._proxy.$removeModeFromContext({ modeJson: JSON.stringify(mode.toJSON()) });
+        return this._proxy.removeModeFromContext(JSON.stringify(mode.toJSON()));
     }
     removeAllModesFromContext() {
-        return this._proxy.$removeAllModes();
+        return this._proxy.removeAllModesFromContext();
     }
     dispose() {
         this.unsubscribeListener();
-        this._proxy.$disposeContext();
         this._proxy.dispose();
     }
     unsubscribeListener() {
-        if (!this._listenerRegistered) {
-            return;
-        }
-        this._proxy.$unsubscribeContextListener();
-        this._proxy.unsubscribeFromEvents(Object.values(DataCaptureContextEvents));
-        this._proxy.eventEmitter.off(DataCaptureContextEvents.didChangeStatus, this.handleDidChangeStatusEvent.bind(this));
-        this._proxy.eventEmitter.off(DataCaptureContextEvents.didStartObservingContext, this.handleDidStartObservingContextEvent.bind(this));
-        this._listenerRegistered = false;
+        this._proxy.unregisterListenerForDataCaptureContext();
+        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didChangeStatus);
+        this.eventEmitter.removeAllListeners(DataCaptureContextEvents.didStartObservingContext);
     }
     initialize() {
+        this.subscribeListener();
         return this.initializeContextFromJSON();
     }
     initializeContextFromJSON() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield this._proxy.$contextFromJSON({ contextJson: JSON.stringify(this.context.toJSON()) });
+                yield this._proxy.contextFromJSON(JSON.stringify(this.context.toJSON()));
             }
             catch (error) {
                 this.notifyListenersOfDeserializationError(error);
@@ -2085,34 +1993,34 @@ class DataCaptureContextController extends BaseNewController {
     static getOpenSourceSoftwareLicenseInfo() {
         return __awaiter(this, void 0, void 0, function* () {
             const proxy = FactoryMaker.getInstance('DataCaptureContextProxy');
-            const result = yield proxy.$getOpenSourceSoftwareLicenseInfo();
+            const result = yield proxy.getOpenSourceSoftwareLicenseInfo();
             return new OpenSourceSoftwareLicenseInfo(result.data);
         });
     }
     subscribeListener() {
+        var _a, _b, _c, _d;
         if (this._listenerRegistered) {
             return;
         }
-        this._proxy.$subscribeContextListener();
-        this._proxy.subscribeForEvents(Object.values(DataCaptureContextEvents));
-        this._proxy.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, this.handleDidChangeStatusEvent.bind(this));
-        this._proxy.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, this.handleDidStartObservingContextEvent.bind(this));
-        this._listenerRegistered = true;
-    }
-    handleDidChangeStatusEvent(eventPayload) {
-        const event = EventDataParser.parse(eventPayload.data);
-        if (event === null) {
-            console.error('DataCaptureContextController didChangeStatus payload is null');
-            return;
-        }
-        const contextStatus = ContextStatus.fromJSON(JSON.parse(event.status));
-        this.notifyListenersOfDidChangeStatus(contextStatus);
-    }
-    handleDidStartObservingContextEvent() {
-        this.privateContext.listeners.forEach(listener => {
-            var _a;
-            (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
+        this._proxy.registerListenerForDataCaptureContext();
+        (_b = (_a = this._proxy).subscribeDidChangeStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+        (_d = (_c = this._proxy).subscribeDidStartObservingContext) === null || _d === void 0 ? void 0 : _d.call(_c);
+        this.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, (data) => {
+            const event = EventDataParser.parse(data);
+            if (event === null) {
+                console.error('DataCaptureContextController didChangeStatus payload is null');
+                return;
+            }
+            const contextStatus = ContextStatus.fromJSON(JSON.parse(event.status));
+            this.notifyListenersOfDidChangeStatus(contextStatus);
         });
+        this.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, () => {
+            this.privateContext.listeners.forEach(listener => {
+                var _a;
+                (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
+            });
+        });
+        this._listenerRegistered = true;
     }
     notifyListenersOfDeserializationError(error) {
         const contextStatus = ContextStatus
@@ -2188,8 +2096,8 @@ class DataCaptureContext extends DefaultSerializeable {
         super();
         this.licenseKey = licenseKey;
         this.deviceName = deviceName;
-        this._framework = 'unknown';
-        this._frameworkVersion = 'unknown';
+        this._framework = DataCaptureContextController.framework;
+        this._frameworkVersion = DataCaptureContextController.frameworkVersion;
         this.settings = new DataCaptureContextSettings();
         this._frameSource = null;
         this.view = null;
@@ -2202,8 +2110,6 @@ class DataCaptureContext extends DefaultSerializeable {
         }
         if (this.controller == null) {
             this.controller = DataCaptureContextController.forDataCaptureContext(this);
-            this._framework = this.controller.framework;
-            this._frameworkVersion = this.controller.frameworkVersion;
         }
     }
     setFrameSource(frameSource) {
@@ -2217,9 +2123,6 @@ class DataCaptureContext extends DefaultSerializeable {
         return this.update();
     }
     addListener(listener) {
-        if (this.listeners.length === 0) {
-            this.controller.subscribeListener();
-        }
         if (this.listeners.includes(listener)) {
             return;
         }
@@ -2230,9 +2133,6 @@ class DataCaptureContext extends DefaultSerializeable {
             return;
         }
         this.listeners.splice(this.listeners.indexOf(listener), 1);
-        if (this.listeners.length === 0) {
-            this.controller.unsubscribeListener();
-        }
     }
     addMode(mode) {
         if (!this.modes.includes(mode)) {
@@ -2352,13 +2252,9 @@ class DataCaptureViewController extends BaseController {
         return this._proxy.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
     }
     show() {
-        if (!this.isViewCreated())
-            return Promise.resolve();
         return this._proxy.show();
     }
     hide() {
-        if (!this.isViewCreated())
-            return Promise.resolve();
         return this._proxy.hide();
     }
     createNativeView() {
@@ -2374,8 +2270,6 @@ class DataCaptureViewController extends BaseController {
         return this._proxy.createView(JSON.stringify(this.view.toJSON()));
     }
     updateView() {
-        if (!this.isViewCreated())
-            return Promise.resolve();
         return this._proxy.updateView(JSON.stringify(this.view.toJSON()));
     }
     dispose() {
@@ -2406,9 +2300,6 @@ class DataCaptureViewController extends BaseController {
     unsubscribeListener() {
         this._proxy.unregisterListenerForViewEvents(this.view.viewId);
         this.eventEmitter.removeAllListeners(DataCaptureViewEvents.didChangeSize);
-    }
-    isViewCreated() {
-        return this.view.viewId > 0;
     }
 }
 
@@ -2497,8 +2388,6 @@ class BaseDataCaptureView extends DefaultSerializeable {
     constructor(autoCreateNativeView) {
         super();
         this._context = null;
-        this._viewId = -1;
-        this.parentId = null;
         this.overlays = [];
         this.controls = [];
         this.listeners = [];
@@ -2526,10 +2415,6 @@ class BaseDataCaptureView extends DefaultSerializeable {
         }
         overlay.view = null;
         this.overlays.splice(this.overlays.indexOf(overlay), 1);
-        this.controller.updateView();
-    }
-    removeAllOverlays() {
-        this.overlays = [];
         this.controller.updateView();
     }
     addListener(listener) {
@@ -2597,7 +2482,6 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.overlays = [];
         this.listeners.forEach(listener => this.removeListener(listener));
         this.controller.dispose();
-        this.viewId = -1;
         this.isViewCreated = false;
     }
     // HTML Views only
@@ -2636,10 +2520,6 @@ __decorate([
     nameForSerialization('viewId')
 ], BaseDataCaptureView.prototype, "_viewId", void 0);
 __decorate([
-    nameForSerialization('parentId'),
-    ignoreFromSerializationIfNull
-], BaseDataCaptureView.prototype, "parentId", void 0);
-__decorate([
     nameForSerialization('pointOfInterest')
 ], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
 __decorate([
@@ -2666,27 +2546,6 @@ __decorate([
 __decorate([
     ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "isViewCreated", void 0);
-
-class ScreenStateManager {
-    constructor() {
-        this.activeScreenId = null;
-    }
-    static getInstance() {
-        if (!ScreenStateManager.instance) {
-            ScreenStateManager.instance = new ScreenStateManager();
-        }
-        return ScreenStateManager.instance;
-    }
-    setActiveScreen(screenId) {
-        if (this.activeScreenId === screenId) {
-            return;
-        }
-        this.activeScreenId = screenId;
-    }
-    isScreenActive(screenId) {
-        return (this.activeScreenId === null || this.activeScreenId === screenId);
-    }
-}
 
 class ZoomSwitchControl extends DefaultSerializeable {
     constructor() {
@@ -3617,18 +3476,6 @@ class NativeProxy extends BaseInstanceAwareNativeProxy {
         // Wrapping the NativeProxy instance with the JS proxy hook
         return new Proxy(this, nativeProxyHook);
     }
-    get framework() {
-        if ('framework' in this.nativeCaller) {
-            return this.nativeCaller.framework;
-        }
-        return 'unknown';
-    }
-    get frameworkVersion() {
-        if ('frameworkVersion' in this.nativeCaller) {
-            return this.nativeCaller.frameworkVersion;
-        }
-        return 'unknown';
-    }
     subscribeForEvents(events) {
         return __awaiter(this, void 0, void 0, function* () {
             for (const event of events) {
@@ -3673,7 +3520,16 @@ function createNativeProxy(nativeCaller) {
     return new NativeProxy(nativeCaller);
 }
 
+class BaseNewController {
+    get _proxy() {
+        return this._cachedProxy;
+    }
+    constructor(proxyName) {
+        this._cachedProxy = FactoryMaker.createInstance(proxyName);
+    }
+}
+
 createEventEmitter();
 
-export { AdvancedInstanceAwareNativeProxy, AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseInstanceAwareNativeProxy, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, ScreenStateManager, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedInstanceAwareNativeProxy, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, createNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AdvancedInstanceAwareNativeProxy, AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseInstanceAwareNativeProxy, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedInstanceAwareNativeProxy, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, createNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

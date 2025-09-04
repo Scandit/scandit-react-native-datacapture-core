@@ -49,7 +49,6 @@ class DataCaptureViewManager(
     override fun onDropViewInstance(view: FrameLayout) {
         // remove current DCView from core cache
         coreModule.dataCaptureViewDisposed(view.id)
-
         super.onDropViewInstance(view)
     }
 

@@ -123,7 +123,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.5.1';
+        return '7.6.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -136,7 +136,7 @@ class DataCaptureView extends React.Component {
     constructor(props) {
         super(props);
         // Do not create the view automatically. Do that only when componentDidMount is called.
-        this.view = BaseDataCaptureView.forContext(props.context, false);
+        this.view = new BaseDataCaptureView(props.context);
         this.view.viewComponent = this;
         this.view.parentId = props.parentId ?? null;
     }

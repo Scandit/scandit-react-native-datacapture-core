@@ -109,7 +109,7 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun dispose() {
+    fun disposeContext() {
         coreModule.disposeContext()
     }
 

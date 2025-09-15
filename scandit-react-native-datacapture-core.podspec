@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.module_name             = "ScanditDataCaptureCore"
   s.header_dir              = "ScanditDataCaptureCore"
 
-  s.dependency "scandit-datacapture-frameworks-core", '= 7.5.1'
+  s.dependency "scandit-datacapture-frameworks-core", '= 7.6.0'
   s.dependency "React"
 
   # Check if new architecture is enabled

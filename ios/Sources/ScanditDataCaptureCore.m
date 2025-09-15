@@ -23,7 +23,7 @@ RCT_EXTERN_METHOD(updateContextFromJSON
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(dispose)
+RCT_EXTERN_METHOD(disposeContext)
 
 RCT_EXTERN_METHOD(emitFeedback
                   : (NSString *)JSON resolve

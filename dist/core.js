@@ -2239,31 +2239,44 @@ class DataCaptureContext extends DefaultSerializeable {
         }
     }
     addMode(mode) {
-        if (!this.modes.includes(mode)) {
-            this.modes.push(mode);
-            mode._context = this;
-            this.controller.addModeToContext(mode);
-        }
+        this.addModeInternal(mode);
     }
     setMode(mode) {
-        if (this.modes.length > 0) {
-            this.removeAllModes();
+        this.removeAllModes();
+        this.addModeInternal(mode);
+    }
+    addModeInternal(mode) {
+        if (!this.modes.includes(mode)) {
+            this.modes.push(mode);
+            this.controller.addModeToContext(mode);
+            mode._context = this;
         }
-        this.addMode(mode);
     }
     removeCurrentMode() {
-        if (this.modes.length > 0) {
-            this.removeMode(this.modes[0]);
+        if (this.modes.length === 0) {
+            return;
         }
+        if (this.modes.length > 1) {
+            console.warn('removeCurrentMode() called with multiple modes active. Consider using removeMode() for specific mode removal. Only the first mode will be removed.');
+        }
+        this.removeModeInternal(this.modes[0]);
     }
     removeMode(mode) {
-        if (this.modes.includes(mode)) {
-            this.modes.splice(this.modes.indexOf(mode), 1);
-            mode._context = null;
-            this.controller.removeModeFromContext(mode);
-        }
+        this.removeModeInternal(mode);
+    }
+    removeModeInternal(mode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.modes.includes(mode)) {
+                this.modes.splice(this.modes.indexOf(mode), 1);
+                mode._context = null;
+                this.controller.removeModeFromContext(mode);
+            }
+        });
     }
     removeAllModes() {
+        if (this.modes.length === 0) {
+            return;
+        }
         this.modes.forEach(mode => {
             mode._context = null;
         });
@@ -2328,17 +2341,9 @@ var DataCaptureViewEvents;
     DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
 })(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
 class DataCaptureViewController extends BaseController {
-    static forDataCaptureView(view, autoCreateNativeView) {
-        const controller = new DataCaptureViewController();
-        controller.view = view;
-        if (autoCreateNativeView) {
-            controller.createView();
-            controller.subscribeListener();
-        }
-        return controller;
-    }
-    constructor() {
+    constructor(view) {
         super('DataCaptureViewProxy');
+        this.view = view;
     }
     viewPointForFramePoint(point) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2492,13 +2497,12 @@ class BaseDataCaptureView extends DefaultSerializeable {
     get privateContext() {
         return this.context;
     }
-    static forContext(context, autoCreateNativeView = true) {
-        const view = new BaseDataCaptureView(autoCreateNativeView);
+    static forContext(context) {
+        const view = new BaseDataCaptureView(context);
         view.context = context;
-        view.isViewCreated = autoCreateNativeView;
         return view;
     }
-    constructor(autoCreateNativeView) {
+    constructor(context) {
         super();
         this._context = null;
         this._viewId = -1;
@@ -2507,7 +2511,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controls = [];
         this.listeners = [];
         this.isViewCreated = false;
-        this.controller = DataCaptureViewController.forDataCaptureView(this, autoCreateNativeView);
+        this.context = context;
         this._scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
         this._pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
         this._logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
@@ -2515,6 +2519,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this._focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
         this._zoomGesture = this.coreDefaults.DataCaptureView.zoomGesture;
         this._logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
+        this.controller = new DataCaptureViewController(this);
     }
     addOverlay(overlay) {
         if (this.overlays.includes(overlay)) {
@@ -2533,7 +2538,14 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controller.updateView();
     }
     removeAllOverlays() {
-        this.overlays = [];
+        if (this.overlays.length === 0) {
+            return;
+        }
+        const overlaysCopy = [...this.overlays];
+        for (const overlay of overlaysCopy) {
+            overlay.view = null;
+            this.overlays.splice(this.overlays.indexOf(overlay), 1);
+        }
         this.controller.updateView();
     }
     addListener(listener) {
@@ -2598,7 +2610,7 @@ class BaseDataCaptureView extends DefaultSerializeable {
         });
     }
     dispose() {
-        this.overlays = [];
+        this.removeAllOverlays();
         this.listeners.forEach(listener => this.removeListener(listener));
         this.controller.dispose();
         this.viewId = -1;
@@ -2937,6 +2949,7 @@ class CameraSettings extends DefaultSerializeable {
         return settings;
     }
     constructor(settings) {
+        var _a, _b, _c, _d, _e, _f;
         super();
         this.focusHiddenProperties = [
             'range',
@@ -2953,13 +2966,13 @@ class CameraSettings extends DefaultSerializeable {
             focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
             shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus
         };
-        this.preferredResolution = CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
-        this.zoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
-        this.zoomGestureZoomFactor = CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
+        this.preferredResolution = (_a = settings === null || settings === void 0 ? void 0 : settings.preferredResolution) !== null && _a !== void 0 ? _a : CameraSettings.coreDefaults.Camera.Settings.preferredResolution;
+        this.zoomFactor = (_b = settings === null || settings === void 0 ? void 0 : settings.zoomFactor) !== null && _b !== void 0 ? _b : CameraSettings.coreDefaults.Camera.Settings.zoomFactor;
+        this.zoomGestureZoomFactor = (_c = settings === null || settings === void 0 ? void 0 : settings.zoomGestureZoomFactor) !== null && _c !== void 0 ? _c : CameraSettings.coreDefaults.Camera.Settings.zoomGestureZoomFactor;
         this.focus = {
-            range: CameraSettings.coreDefaults.Camera.Settings.focusRange,
-            focusGestureStrategy: CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
-            shouldPreferSmoothAutoFocus: CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
+            range: (_d = settings === null || settings === void 0 ? void 0 : settings.focusRange) !== null && _d !== void 0 ? _d : CameraSettings.coreDefaults.Camera.Settings.focusRange,
+            focusGestureStrategy: (_e = settings === null || settings === void 0 ? void 0 : settings.focusGestureStrategy) !== null && _e !== void 0 ? _e : CameraSettings.coreDefaults.Camera.Settings.focusGestureStrategy,
+            shouldPreferSmoothAutoFocus: (_f = settings === null || settings === void 0 ? void 0 : settings.shouldPreferSmoothAutoFocus) !== null && _f !== void 0 ? _f : CameraSettings.coreDefaults.Camera.Settings.shouldPreferSmoothAutoFocus,
         };
         if (settings !== undefined && settings !== null) {
             Object.getOwnPropertyNames(settings).forEach(propertyName => {

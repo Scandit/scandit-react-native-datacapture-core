@@ -150,7 +150,7 @@ class ScanditDataCaptureCore: RCTEventEmitter {
     }
 
     @objc
-    func dispose() {
+    func disposeContext() {
         coreModule.disposeContext()
     }
 

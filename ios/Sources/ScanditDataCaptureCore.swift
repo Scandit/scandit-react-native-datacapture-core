@@ -212,7 +212,11 @@ class ScanditDataCaptureCore: RCTEventEmitter {
                                     resolve: @escaping RCTPromiseResolveBlock,
                                     reject: @escaping RCTPromiseRejectBlock) {
         guard let desiredStateJson = data["desiredStateJson"] as? String else {
-            ReactNativeResult(resolve, reject).reject(error: ScanditFrameworksCoreError.nilArgument)
+            reject(
+                String(ScanditFrameworksCoreError.nilArgument.errorCode),
+                ScanditFrameworksCoreError.nilArgument.localizedDescription,
+                ScanditFrameworksCoreError.nilArgument
+            )
             return
         }
         coreModule.switchCameraToDesiredState(
@@ -232,12 +236,18 @@ class ScanditDataCaptureCore: RCTEventEmitter {
         coreModule.getLastFrameAsJson(frameId: frameId, result: ReactNativeResult(resolve, reject))
     }
 
-    @objc func registerListenerForCameraEvents() {
+     @objc(registerListenerForCameraEvents:reject:)
+     func registerListenerForCameraEvents(resolve: @escaping RCTPromiseResolveBlock,
+                                          reject: @escaping RCTPromiseRejectBlock) {
         coreModule.registerFrameSourceListener()
+        resolve(nil)
     }
 
-    @objc func unregisterListenerForCameraEvents() {
+    @objc(unregisterListenerForCameraEvents:reject:)
+    func unregisterListenerForCameraEvents(resolve: @escaping RCTPromiseResolveBlock,
+                                           reject: @escaping RCTPromiseRejectBlock) {
         coreModule.unregisterFrameSourceListener()
+        resolve(nil)
     }
 
     @objc func subscribeContextListener() {

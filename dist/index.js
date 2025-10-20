@@ -1,45 +1,13 @@
-import { FactoryMaker, FrameSourceListenerEvents, BaseNativeProxy, DataCaptureViewEvents, createNativeProxy, loadCoreDefaults, BaseDataCaptureView } from './core.js';
+import { BaseNativeProxy, DataCaptureViewEvents, FactoryMaker, createNativeProxy, loadCoreDefaults, BaseDataCaptureView } from './core.js';
 export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
 import { NativeModules, NativeEventEmitter, InteractionManager, findNodeHandle, requireNativeComponent, Platform } from 'react-native';
 import React from 'react';
 
 // tslint:disable-next-line:variable-name
-const NativeModule$4 = NativeModules.ScanditDataCaptureCore;
+const NativeModule$3 = NativeModules.ScanditDataCaptureCore;
 class NativeFeedbackProxy {
     emitFeedback(feedback) {
-        return NativeModule$4.emitFeedback(JSON.stringify(feedback.toJSON()));
-    }
-}
-
-// tslint:disable:variable-name
-const NativeModule$3 = NativeModules.ScanditDataCaptureCore;
-const RNEventEmitter$1 = new NativeEventEmitter(NativeModule$3);
-// tslint:enable:variable-name
-class NativeImageFrameSourceProxy {
-    eventEmitter;
-    nativeListeners = [];
-    constructor() {
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-    }
-    getCurrentCameraState(position) {
-        return NativeModule$3.getCurrentCameraState(position);
-    }
-    switchCameraToDesiredState(desiredStateJson) {
-        return NativeModule$3.switchCameraToDesiredState(desiredStateJson);
-    }
-    registerListenerForEvents() {
-        NativeModule$3.registerListenerForCameraEvents();
-    }
-    unregisterListenerForEvents() {
-        NativeModule$3.unregisterListenerForCameraEvents();
-        this.nativeListeners.forEach(listener => listener.remove());
-        this.nativeListeners = [];
-    }
-    subscribeDidChangeState() {
-        const didChangeState = RNEventEmitter$1.addListener(FrameSourceListenerEvents.didChangeState, (event) => {
-            this.eventEmitter.emit(FrameSourceListenerEvents.didChangeState, event.data);
-        });
-        this.nativeListeners.push(didChangeState);
+        return NativeModule$3.emitFeedback(JSON.stringify(feedback.toJSON()));
     }
 }
 
@@ -101,13 +69,16 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
 
 function initCoreProxy() {
     FactoryMaker.bindInstance('FeedbackProxy', new NativeFeedbackProxy());
-    FactoryMaker.bindInstance('ImageFrameSourceProxy', new NativeImageFrameSourceProxy());
     FactoryMaker.bindInstance('DataCaptureViewProxy', new NativeDataCaptureViewProxy());
     FactoryMaker.bindLazyInstance('DataCaptureContextProxy', () => {
         const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
         return createNativeProxy(caller);
     });
     FactoryMaker.bindLazyInstance('CameraProxy', () => {
+        const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
+        return createNativeProxy(caller);
+    });
+    FactoryMaker.bindLazyInstance('ImageFrameSourceProxy', () => {
         const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
         return createNativeProxy(caller);
     });
@@ -123,7 +94,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.6.1';
+        return '7.6.2';
     }
     static get sdkVersion() {
         return NativeModule.Version;

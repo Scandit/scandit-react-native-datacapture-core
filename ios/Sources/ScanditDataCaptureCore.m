@@ -60,9 +60,13 @@ RCT_EXTERN_METHOD(getFrame
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(registerListenerForCameraEvents)
+RCT_EXTERN_METHOD(registerListenerForCameraEvents
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(unregisterListenerForCameraEvents)
+RCT_EXTERN_METHOD(unregisterListenerForCameraEvents
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(subscribeContextListener)
 

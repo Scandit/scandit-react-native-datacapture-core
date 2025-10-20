@@ -18,8 +18,6 @@ import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
 import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
-import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
-import com.scandit.datacapture.frameworks.core.utils.MainThread
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 
@@ -27,7 +25,6 @@ class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
     private val serviceLocator: ServiceLocator<FrameworkModule>,
     private val viewManagers: Map<String, ViewGroupManager<*>>,
-    private val mainThread: MainThread = DefaultMainThread.getInstance(),
 ) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
@@ -63,13 +60,15 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun registerListenerForCameraEvents() {
+    fun registerListenerForCameraEvents(promise: Promise) {
         coreModule.registerFrameSourceListener()
+        promise.resolve(null)
     }
 
     @ReactMethod
-    fun unregisterListenerForCameraEvents() {
+    fun unregisterListenerForCameraEvents(promise: Promise) {
         coreModule.unregisterFrameSourceListener()
+        promise.resolve(null)
     }
 
     @ReactMethod
@@ -95,9 +94,7 @@ class ScanditDataCaptureCoreModule(
         val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
             ParameterNullError("contextJson")
         )
-        mainThread.runOnMainThread {
-            coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
-        }
+        coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
     }
 
     @ReactMethod

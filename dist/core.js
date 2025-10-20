@@ -778,13 +778,6 @@ class FrameDataSettingsBuilder {
     }
 }
 
-var CameraPosition;
-(function (CameraPosition) {
-    CameraPosition["WorldFacing"] = "worldFacing";
-    CameraPosition["UserFacing"] = "userFacing";
-    CameraPosition["Unspecified"] = "unspecified";
-})(CameraPosition || (CameraPosition = {}));
-
 var FrameSourceListenerEvents;
 (function (FrameSourceListenerEvents) {
     FrameSourceListenerEvents["didChangeState"] = "FrameSourceListener.onStateChanged";
@@ -1532,19 +1525,30 @@ class HTMLElementState {
     }
 }
 
-class ImageFrameSourceController {
-    static forImage(imageFrameSource) {
-        const controller = new ImageFrameSourceController();
-        controller.imageFrameSource = imageFrameSource;
-        return controller;
+class BaseNewController {
+    get _proxy() {
+        return this._cachedProxy;
     }
-    constructor() {
-        this.eventEmitter = FactoryMaker.getInstance('EventEmitter');
-        this._proxy = FactoryMaker.getInstance('ImageFrameSourceProxy');
+    constructor(proxyName) {
+        this._cachedProxy = FactoryMaker.createInstance(proxyName);
+    }
+}
+
+class ImageFrameSourceController extends BaseNewController {
+    constructor(imageFrameSource) {
+        super('ImageFrameSourceProxy');
+        this.handleDidChangeStateEventWrapper = (ev) => {
+            return this.handleDidChangeStateEvent(ev);
+        };
+        this.imageFrameSource = imageFrameSource;
+        this.subscribeListener();
+    }
+    get privateImageFrameSource() {
+        return this.imageFrameSource;
     }
     getCurrentState() {
         return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this._proxy.getCurrentCameraState(this.imageFrameSource.position);
+            const result = yield this._proxy.$getCurrentCameraState({ position: this.privateImageFrameSource.position });
             if (result == null) {
                 return FrameSourceState.Off;
             }
@@ -1552,29 +1556,38 @@ class ImageFrameSourceController {
         });
     }
     switchCameraToDesiredState(desiredStateJson) {
-        return this._proxy.switchCameraToDesiredState(desiredStateJson);
+        return this._proxy.$switchCameraToDesiredState({ desiredStateJson });
     }
     subscribeListener() {
-        var _a, _b;
-        this._proxy.registerListenerForEvents();
-        (_b = (_a = this._proxy).subscribeDidChangeState) === null || _b === void 0 ? void 0 : _b.call(_a);
-        this.eventEmitter.on(FrameSourceListenerEvents.didChangeState, (data) => {
-            const event = EventDataParser.parse(data);
-            if (event === null) {
-                console.error('ImageFrameSourceController didChangeState payload is null');
-                return;
-            }
-            const newState = event.state;
-            this.imageFrameSource.listeners.forEach(listener => {
-                if (listener.didChangeState) {
-                    listener.didChangeState(this.imageFrameSource, newState);
-                }
-            });
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._proxy.$registerListenerForCameraEvents();
+            this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEventWrapper);
         });
     }
     unsubscribeListener() {
-        this._proxy.unregisterListenerForEvents();
-        this.eventEmitter.removeAllListeners(FrameSourceListenerEvents.didChangeState);
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._proxy.$unregisterListenerForCameraEvents();
+            this._proxy.unsubscribeFromEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEventWrapper);
+        });
+    }
+    dispose() {
+        this.unsubscribeListener();
+        this._proxy.dispose();
+    }
+    handleDidChangeStateEvent(ev) {
+        const event = EventDataParser.parse(ev.data);
+        if (event === null) {
+            console.error('ImageFrameSourceController didChangeState payload is null');
+            return;
+        }
+        const newState = event.state;
+        this.privateImageFrameSource.listeners.forEach(listener => {
+            if (listener.didChangeState) {
+                listener.didChangeState(this.imageFrameSource, newState);
+            }
+        });
     }
 }
 
@@ -1610,7 +1623,7 @@ class ImageFrameSource extends DefaultSerializeable {
         this._desiredState = FrameSourceState.Off;
         this.listeners = [];
         this._context = null;
-        this.controller = ImageFrameSourceController.forImage(this);
+        this.controller = new ImageFrameSourceController(this);
     }
     didChange() {
         if (this.context) {
@@ -1689,14 +1702,12 @@ class PrivateFrameData {
     }
 }
 
-class BaseNewController {
-    get _proxy() {
-        return this._cachedProxy;
-    }
-    constructor(proxyName) {
-        this._cachedProxy = FactoryMaker.createInstance(proxyName);
-    }
-}
+var CameraPosition;
+(function (CameraPosition) {
+    CameraPosition["WorldFacing"] = "worldFacing";
+    CameraPosition["UserFacing"] = "userFacing";
+    CameraPosition["Unspecified"] = "unspecified";
+})(CameraPosition || (CameraPosition = {}));
 
 class CameraController extends BaseNewController {
     static get _proxy() {
@@ -1755,14 +1766,18 @@ class CameraController extends BaseNewController {
         return this._proxy.$switchCameraToDesiredState({ desiredStateJson: desiredState.toString() });
     }
     subscribeListener() {
-        this._proxy.$registerListenerForCameraEvents();
-        this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
-        this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._proxy.$registerListenerForCameraEvents();
+            this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
+        });
     }
     unsubscribeListener() {
-        this._proxy.$unregisterListenerForCameraEvents();
-        this._proxy.unsubscribeFromEvents([FrameSourceListenerEvents.didChangeState]);
-        this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._proxy.$unregisterListenerForCameraEvents();
+            this._proxy.unsubscribeFromEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
+        });
     }
     dispose() {
         this.unsubscribeListener();

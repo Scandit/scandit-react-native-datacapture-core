@@ -22,14 +22,17 @@ public struct ReactNativeResult: FrameworksResult {
             do {
                 let jsonData = try JSONSerialization.data(withJSONObject: resultDict, options: [])
                 if let jsonString = String(data: jsonData, encoding: .utf8) {
-                    resolve(jsonString)
+                    resolve(["data": jsonString])
                 }
-            } catch let error {
+            } catch {
                 reject(code: "JSON_ERROR", message: "Failed to convert to JSON", details: error)
             }
-            return
+        } else if let unwrappedObject = object {
+            let dataString = String(describing: unwrappedObject)
+            resolve(["data": dataString])
+        } else {
+            resolve(nil)
         }
-        resolve(object)
     }
 
     public func reject(code: String, message: String?, details: Any?) {

@@ -17,15 +17,16 @@ import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
-import com.scandit.datacapture.reactnative.core.data.ViewCreationRequest
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
+
+private class CreateRequest(val viewJson: String, val promise: Promise)
 
 class DataCaptureViewManager(
     private val serviceLocator: ServiceLocator<FrameworkModule>,
 ) : ScanditViewGroupManager<FrameLayout>() {
     override fun getName(): String = "RNTDataCaptureView"
 
-    private val cachedCreationRequests = mutableMapOf<Int, ViewCreationRequest>()
+    private val cachedCreationRequests = mutableMapOf<Int, CreateRequest>()
 
     override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
         FrameLayout(reactContext)
@@ -48,7 +49,13 @@ class DataCaptureViewManager(
 
     override fun onDropViewInstance(view: FrameLayout) {
         // remove current DCView from core cache
-        coreModule.dataCaptureViewDisposed(view.id)
+        for (i in 0 until view.childCount) {
+            val child = view.getChildAt(i)
+            if (child is DataCaptureView) { // it should always be a DCView but you never know
+                coreModule.dataCaptureViewDisposed(child)
+            }
+        }
+
         super.onDropViewInstance(view)
     }
 
@@ -62,7 +69,7 @@ class DataCaptureViewManager(
         val container = containers.firstOrNull { it.id == viewId }
 
         if (container == null) {
-            cachedCreationRequests[viewId] = ViewCreationRequest(viewId, viewJson, promise)
+            cachedCreationRequests[viewId] = CreateRequest(viewJson, promise)
             return
         }
 

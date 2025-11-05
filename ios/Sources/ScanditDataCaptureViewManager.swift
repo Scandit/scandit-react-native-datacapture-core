@@ -32,13 +32,10 @@ class RNTSDCDataCaptureViewWrapper: UIView {
         if self.findFirstSubview(ofType: DataCaptureView.self) == nil {
             // In case no DCView was still added to the container, we need to check whether a DCView was already
             // created for this container and in case add the view here.
-            if let frameworksDataCaptureView = DataCaptureViewHandler.shared.getView(self.reactTag.intValue) {
-                guard let currentView = frameworksDataCaptureView.view else {
-                    return
-                }
-                currentView.frame = currentView.bounds
-                currentView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                self.addSubview(currentView)
+            if let dcView = DataCaptureViewHandler.shared.getViewById(self.reactTag.intValue) {
+                dcView.frame = dcView.bounds
+                dcView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                self.addSubview(dcView)
             }
         }
     }

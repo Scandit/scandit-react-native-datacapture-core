@@ -10,11 +10,9 @@ export interface DataCaptureViewListener {
 interface DataCaptureViewProps {
     context: DataCaptureContext;
     style: any;
-    parentId?: number;
 }
 export declare class DataCaptureView extends React.Component<DataCaptureViewProps> {
     private view;
-    private _isMounted;
     constructor(props: DataCaptureViewProps);
     get scanAreaMargins(): MarginsWithUnit;
     set scanAreaMargins(newValue: MarginsWithUnit);
@@ -30,8 +28,8 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     set focusGesture(newValue: FocusGesture | null);
     get zoomGesture(): ZoomGesture | null;
     set zoomGesture(newValue: ZoomGesture | null);
-    addOverlay(overlay: DataCaptureOverlay): Promise<void>;
-    removeOverlay(overlay: DataCaptureOverlay): Promise<void>;
+    addOverlay(overlay: DataCaptureOverlay): void;
+    removeOverlay(overlay: DataCaptureOverlay): void;
     addListener(listener: DataCaptureViewListener): void;
     removeListener(listener: DataCaptureViewListener): void;
     viewPointForFramePoint(point: Point): Promise<Point>;
@@ -43,6 +41,5 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     componentDidMount(): void;
     render(): React.JSX.Element;
     private createDataCaptureView;
-    private removeAllOverlays;
 }
 export {};

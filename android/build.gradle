@@ -25,7 +25,7 @@ buildscript {
         if (ext.has("kotlinVersion")) {
             ext.kotlinVersion()
         } else {
-            ext.safeExtGet("kotlinVersion", "1.9.25")
+            ext.safeExtGet("kotlinVersion", "1.8.22")
         }
     }
 
@@ -68,7 +68,7 @@ if (file( "${rootProject.projectDir}/build-test.gradle").exists()) {
 }
 
 dependencies {
-    def sdk_version = "7.6.4"
+    def sdk_version = "7.2.6"
 
     println("Version of the native sdk used in this build: ${safeExtGet('global_sdk_version', sdk_version)}")
     if (findProject(':scandit-datacapture-frameworks-core') != null) {

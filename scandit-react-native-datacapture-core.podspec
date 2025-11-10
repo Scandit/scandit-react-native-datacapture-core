@@ -18,30 +18,6 @@ Pod::Spec.new do |s|
   s.module_name             = "ScanditDataCaptureCore"
   s.header_dir              = "ScanditDataCaptureCore"
 
-  s.dependency "scandit-datacapture-frameworks-core", '= 7.6.4'
+  s.dependency "scandit-datacapture-frameworks-core", '= 7.2.6'
   s.dependency "React"
-
-  # Check if new architecture is enabled
-  is_new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] == '1'
-
-  # New Architecture specific dependencies
-  if is_new_arch_enabled
-    s.dependency "React-RCTAppDelegate"
-  end
-
-  # Set compiler flags for architecture detection (informational only)
-  if is_new_arch_enabled
-    s.compiler_flags = '-DRCT_NEW_ARCH_ENABLED=1'
-    s.pod_target_xcconfig = {
-      'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'RCT_NEW_ARCH_ENABLED',
-      'OTHER_CPLUSPLUSFLAGS' => '-DRCT_NEW_ARCH_ENABLED=1',
-      'OTHER_CFLAGS' => '-DRCT_NEW_ARCH_ENABLED=1'
-    }
-  else
-    s.compiler_flags = '-DRCT_NEW_ARCH_ENABLED=0'
-    s.pod_target_xcconfig = {
-      'OTHER_CPLUSPLUSFLAGS' => '-DRCT_NEW_ARCH_ENABLED=0',
-      'OTHER_CFLAGS' => '-DRCT_NEW_ARCH_ENABLED=0'
-    }
-  end
 end

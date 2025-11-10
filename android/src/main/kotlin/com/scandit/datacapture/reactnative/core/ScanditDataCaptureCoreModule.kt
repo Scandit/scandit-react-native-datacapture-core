@@ -10,14 +10,14 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
-import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
+import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
+import com.scandit.datacapture.frameworks.core.utils.MainThread
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 
@@ -25,6 +25,7 @@ class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
     private val serviceLocator: ServiceLocator<FrameworkModule>,
     private val viewManagers: Map<String, ViewGroupManager<*>>,
+    private val mainThread: MainThread = DefaultMainThread.getInstance(),
 ) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
@@ -50,63 +51,54 @@ class ScanditDataCaptureCoreModule(
     )
 
     @ReactMethod
-    fun subscribeContextListener() {
+    fun registerListenerForEvents() {
         coreModule.registerDataCaptureContextListener()
     }
 
     @ReactMethod
-    fun unsubscribeContextListener() {
+    fun unregisterListenerForEvents() {
         coreModule.unregisterDataCaptureContextListener()
     }
 
     @ReactMethod
-    fun registerListenerForCameraEvents(promise: Promise) {
+    fun registerListenerForCameraEvents() {
         coreModule.registerFrameSourceListener()
-        promise.resolve(null)
     }
 
     @ReactMethod
-    fun unregisterListenerForCameraEvents(promise: Promise) {
+    fun unregisterListenerForCameraEvents() {
         coreModule.unregisterFrameSourceListener()
-        promise.resolve(null)
     }
 
     @ReactMethod
-    fun registerListenerForViewEvents(viewId: Int) {
-        coreModule.registerDataCaptureViewListener(viewId)
+    fun registerListenerForViewEvents() {
+        coreModule.registerDataCaptureViewListener()
     }
 
     @ReactMethod
-    fun unregisterListenerForViewEvents(viewId: Int) {
-        coreModule.unregisterDataCaptureViewListener(viewId)
+    fun unregisterListenerForViewEvents() {
+        coreModule.unregisterDataCaptureViewListener()
     }
 
     @ReactMethod
-    fun contextFromJSON(readableMap: ReadableMap, promise: Promise) {
-        val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
-            ParameterNullError("contextJson")
-        )
-        coreModule.createContextFromJson(contextJson, ReactNativeResult(promise))
+    fun contextFromJSON(json: String, promise: Promise) {
+        coreModule.createContextFromJson(json, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun updateContextFromJSON(readableMap: ReadableMap, promise: Promise) {
-        val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
-            ParameterNullError("contextJson")
-        )
-        coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
+    fun updateContextFromJSON(json: String, promise: Promise) {
+        mainThread.runOnMainThread {
+            coreModule.updateContextFromJson(json, ReactNativeResult(promise))
+        }
     }
 
     @ReactMethod
-    fun getFrame(readableMap: ReadableMap, promise: Promise) {
-        val frameId = readableMap.getString("frameId") ?: return promise.reject(
-            ParameterNullError("frameId")
-        )
+    fun getFrame(frameId: String, promise: Promise) {
         coreModule.getLastFrameAsJson(frameId, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun disposeContext() {
+    fun dispose() {
         coreModule.disposeContext()
     }
 
@@ -116,73 +108,42 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun viewPointForFramePoint(readableMap: ReadableMap, promise: Promise) {
-        val pointJson = readableMap.getString("point") ?: return promise.reject(
-            ParameterNullError("point")
-        )
-
-        coreModule.viewPointForFramePoint(
-            readableMap.getInt("viewId"),
-            pointJson,
-            ReactNativeResult(promise)
-        )
+    fun viewPointForFramePoint(json: String, promise: Promise) {
+        coreModule.viewPointForFramePoint(json, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun viewQuadrilateralForFrameQuadrilateral(readableMap: ReadableMap, promise: Promise) {
-        val quadrilateralJson = readableMap.getString("quadrilateral") ?: return promise.reject(
-            ParameterNullError("quadrilateral")
-        )
-
-        coreModule.viewQuadrilateralForFrameQuadrilateral(
-            readableMap.getInt("viewId"),
-            quadrilateralJson,
-            ReactNativeResult(promise)
-        )
+    fun viewQuadrilateralForFrameQuadrilateral(json: String, promise: Promise) {
+        coreModule.viewQuadrilateralForFrameQuadrilateral(json, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun getCurrentCameraState(readableMap: ReadableMap, promise: Promise) {
-        val cameraPosition = readableMap.getString("position") ?: return promise.reject(
-            ParameterNullError("position")
-        )
+    fun getCurrentCameraState(cameraPosition: String, promise: Promise) {
         coreModule.getCameraState(cameraPosition, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun isTorchAvailable(readableMap: ReadableMap, promise: Promise) {
-        val cameraPosition = readableMap.getString("cameraPosition") ?: return promise.reject(
-            ParameterNullError("cameraPosition")
-        )
+    fun isTorchAvailable(cameraPosition: String, promise: Promise) {
         coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun switchCameraToDesiredState(readableMap: ReadableMap, promise: Promise) {
-        val desiredStateJson = readableMap.getString("desiredStateJson") ?: return promise.reject(
-            ParameterNullError("desiredStateJson")
-        )
+    fun switchCameraToDesiredState(desiredStateJson: String, promise: Promise) {
         coreModule.switchCameraToDesiredState(desiredStateJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun addModeToContext(readableMap: ReadableMap, promise: Promise) {
-        val modeJson = readableMap.getString("modeJson") ?: return promise.reject(
-            ParameterNullError("modeJson")
-        )
+    fun addModeToContext(modeJson: String, promise: Promise) {
         coreModule.addModeToContext(modeJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun removeModeFromContext(readableMap: ReadableMap, promise: Promise) {
-        val modeJson = readableMap.getString("modeJson") ?: return promise.reject(
-            ParameterNullError("modeJson")
-        )
+    fun removeModeFromContext(modeJson: String, promise: Promise) {
         coreModule.removeModeFromContext(modeJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
-    fun removeAllModes(promise: Promise) {
+    fun removeAllModesFromContext(promise: Promise) {
         coreModule.removeAllModes(ReactNativeResult(promise))
     }
 
@@ -206,16 +167,6 @@ class ScanditDataCaptureCoreModule(
     @ReactMethod
     fun getOpenSourceSoftwareLicenseInfo(promise: Promise) {
         coreModule.getOpenSourceSoftwareLicenseInfo(ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun addListener(@Suppress("UNUSED_PARAMETER") eventName: String?) {
-        // Keep: Required for RN built in Event Emitter Calls.
-    }
-
-    @ReactMethod
-    fun removeListeners(@Suppress("UNUSED_PARAMETER") count: Int?) {
-        // Keep: Required for RN built in Event Emitter Calls.
     }
 
     private val coreModule: CoreModule

@@ -5,7 +5,7 @@ export { initCoreProxy };
 export { Point, Quadrilateral, NumberWithUnit, PointWithUnit, Rect, RectWithUnit, SizeWithUnit, Size, SizeWithAspect, SizeWithUnitAndAspect, MarginsWithUnit, Color, Brush } from 'scandit-datacapture-frameworks-core';
 export { MeasureUnit, SizingMode, Anchor, Orientation, Direction, ScanIntention } from 'scandit-datacapture-frameworks-core';
 export { Control, ZoomSwitchControl, TorchSwitchControl } from 'scandit-datacapture-frameworks-core';
-export { FrameSourceState, FrameSourceListener, FrameSource, FrameDataSettings, FrameDataSettingsBuilder } from 'scandit-datacapture-frameworks-core';
+export { FrameSourceState, FrameSourceListener, FrameSource } from 'scandit-datacapture-frameworks-core';
 export { DataCaptureContextListener, ContextStatus } from 'scandit-datacapture-frameworks-core';
 export { Camera, TorchState, CameraPosition, VideoResolution, FocusRange, FocusGesture, FocusGestureStrategy, ZoomGesture, SwipeToZoom, CameraSettings, FrameData, ImageBuffer, ImageFrameSource, TapToFocus } from 'scandit-datacapture-frameworks-core';
 export { DataCaptureMode, DataCaptureComponent, DataCaptureContextCreationOptions, DataCaptureContextSettings, DataCaptureContext, DataCaptureOverlay, LogoStyle } from 'scandit-datacapture-frameworks-core';

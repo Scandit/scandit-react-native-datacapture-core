@@ -76,10 +76,6 @@ class ScanditDataCaptureCorePackage : ReactPackage {
     private fun setupSharedModule(reactContext: ReactApplicationContext) {
         lock.lock()
         try {
-            // In React-Native if this function is called again we have to cleanup the existing
-            // instances and re-create them again.
-            serviceLocator.remove(CoreModule::class.java.name)
-
             val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
             val coreModule = CoreModule.create(eventEmitter)
             coreModule.onCreate(reactContext)

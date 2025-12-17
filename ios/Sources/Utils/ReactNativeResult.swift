@@ -11,8 +11,10 @@ public struct ReactNativeResult: FrameworksResult {
     private let resolve: RCTPromiseResolveBlock
     private let rejecter: RCTPromiseRejectBlock
 
-    public init(_ resolve: @escaping RCTPromiseResolveBlock,
-                _ reject: @escaping RCTPromiseRejectBlock) {
+    public init(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        _ reject: @escaping RCTPromiseRejectBlock
+    ) {
         self.resolve = resolve
         self.rejecter = reject
     }
@@ -45,8 +47,10 @@ public struct ReactNativeResult: FrameworksResult {
 }
 
 public extension FrameworksResult where Self == ReactNativeResult {
-    static func create(_ resolve: @escaping RCTPromiseResolveBlock,
-                       _ reject: @escaping RCTPromiseRejectBlock) -> Self {
+    static func create(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        _ reject: @escaping RCTPromiseRejectBlock
+    ) -> Self {
         .init(resolve, reject)
     }
 }

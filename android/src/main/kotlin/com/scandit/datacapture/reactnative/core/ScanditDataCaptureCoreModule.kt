@@ -18,16 +18,14 @@ import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
 import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
-import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
-import com.scandit.datacapture.frameworks.core.utils.MainThread
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
+import com.scandit.datacapture.reactnative.core.utils.viewId
 
 class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
     private val serviceLocator: ServiceLocator<FrameworkModule>,
     private val viewManagers: Map<String, ViewGroupManager<*>>,
-    private val mainThread: MainThread = DefaultMainThread.getInstance(),
 ) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
@@ -63,23 +61,25 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun registerListenerForCameraEvents() {
+    fun registerListenerForCameraEvents(promise: Promise) {
         coreModule.registerFrameSourceListener()
+        promise.resolve(null)
     }
 
     @ReactMethod
-    fun unregisterListenerForCameraEvents() {
+    fun unregisterListenerForCameraEvents(promise: Promise) {
         coreModule.unregisterFrameSourceListener()
+        promise.resolve(null)
     }
 
     @ReactMethod
-    fun registerListenerForViewEvents(viewId: Int) {
-        coreModule.registerDataCaptureViewListener(viewId)
+    fun registerListenerForViewEvents(readableMap: ReadableMap) {
+        coreModule.registerDataCaptureViewListener(readableMap.viewId)
     }
 
     @ReactMethod
-    fun unregisterListenerForViewEvents(viewId: Int) {
-        coreModule.unregisterDataCaptureViewListener(viewId)
+    fun unregisterListenerForViewEvents(readableMap: ReadableMap) {
+        coreModule.unregisterDataCaptureViewListener(readableMap.viewId)
     }
 
     @ReactMethod
@@ -95,9 +95,7 @@ class ScanditDataCaptureCoreModule(
         val contextJson = readableMap.getString("contextJson") ?: return promise.reject(
             ParameterNullError("contextJson")
         )
-        mainThread.runOnMainThread {
-            coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
-        }
+        coreModule.updateContextFromJson(contextJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
@@ -109,23 +107,26 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun dispose() {
+    fun disposeContext() {
         coreModule.disposeContext()
     }
 
     @ReactMethod
-    fun emitFeedback(json: String, promise: Promise) {
-        coreModule.emitFeedback(json, ReactNativeResult(promise))
+    fun emitFeedback(readableMap: ReadableMap, promise: Promise) {
+        val feedbackJson = readableMap.getString("feedbackJson") ?: return promise.reject(
+            ParameterNullError("feedbackJson")
+        )
+        coreModule.emitFeedback(feedbackJson, ReactNativeResult(promise))
     }
 
     @ReactMethod
     fun viewPointForFramePoint(readableMap: ReadableMap, promise: Promise) {
-        val pointJson = readableMap.getString("point") ?: return promise.reject(
-            ParameterNullError("point")
+        val pointJson = readableMap.getString("pointJson") ?: return promise.reject(
+            ParameterNullError("pointJson")
         )
 
         coreModule.viewPointForFramePoint(
-            readableMap.getInt("viewId"),
+            readableMap.viewId,
             pointJson,
             ReactNativeResult(promise)
         )
@@ -133,12 +134,12 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun viewQuadrilateralForFrameQuadrilateral(readableMap: ReadableMap, promise: Promise) {
-        val quadrilateralJson = readableMap.getString("quadrilateral") ?: return promise.reject(
-            ParameterNullError("quadrilateral")
+        val quadrilateralJson = readableMap.getString("quadrilateralJson") ?: return promise.reject(
+            ParameterNullError("quadrilateralJson")
         )
 
         coreModule.viewQuadrilateralForFrameQuadrilateral(
-            readableMap.getInt("viewId"),
+            readableMap.viewId,
             quadrilateralJson,
             ReactNativeResult(promise)
         )
@@ -154,8 +155,8 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun isTorchAvailable(readableMap: ReadableMap, promise: Promise) {
-        val cameraPosition = readableMap.getString("cameraPosition") ?: return promise.reject(
-            ParameterNullError("cameraPosition")
+        val cameraPosition = readableMap.getString("position") ?: return promise.reject(
+            ParameterNullError("position")
         )
         coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
     }
@@ -190,7 +191,10 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun createDataCaptureView(viewJson: String, promise: Promise) {
+    fun createDataCaptureView(readableMap: ReadableMap, promise: Promise) {
+        val viewJson = readableMap.getString("viewJson") ?: return promise.reject(
+            ParameterNullError("viewJson")
+        )
         val viewManager = viewManagers[DataCaptureViewManager::class.java.name] as?
             DataCaptureViewManager
         if (viewManager == null) {
@@ -202,8 +206,20 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun updateDataCaptureView(viewJson: String, promise: Promise) {
+    fun updateDataCaptureView(readableMap: ReadableMap, promise: Promise) {
+        val viewJson = readableMap.getString("viewJson") ?: return promise.reject(
+            ParameterNullError("viewJson")
+        )
         coreModule.updateDataCaptureView(viewJson, ReactNativeResult(promise))
+    }
+
+    @ReactMethod
+    fun removeDataCaptureView(
+        @Suppress("unused") readableMap: ReadableMap,
+        promise: Promise
+    ) {
+        // Handled through the ViewManager
+        promise.resolve(null)
     }
 
     @ReactMethod

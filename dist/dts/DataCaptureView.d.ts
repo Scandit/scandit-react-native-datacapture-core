@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
-import { Control, FocusGesture, LogoStyle, MarginsWithUnit, Point, PointWithUnit, BaseDataCaptureView, Quadrilateral, Size, ZoomGesture, Serializeable } from 'scandit-datacapture-frameworks-core';
+import { Control, FocusGesture, LogoStyle, MarginsWithUnit, Point, PointWithUnit, Quadrilateral, Size, ZoomGesture, Serializeable } from 'scandit-datacapture-frameworks-core';
 import { Anchor, Orientation } from 'scandit-datacapture-frameworks-core';
 import { DataCaptureContext } from 'scandit-datacapture-frameworks-core';
 export interface DataCaptureOverlay extends Serializeable {
@@ -10,11 +9,11 @@ export interface DataCaptureViewListener {
 }
 interface DataCaptureViewProps {
     context: DataCaptureContext;
-    style: StyleProp<ViewStyle>;
+    style: any;
     parentId?: number;
 }
 export declare class DataCaptureView extends React.Component<DataCaptureViewProps> {
-    protected view: BaseDataCaptureView;
+    private view;
     private _isMounted;
     constructor(props: DataCaptureViewProps);
     get scanAreaMargins(): MarginsWithUnit;
@@ -37,13 +36,13 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     removeListener(listener: DataCaptureViewListener): void;
     viewPointForFramePoint(point: Point): Promise<Point>;
     viewQuadrilateralForFrameQuadrilateral(quadrilateral: Quadrilateral): Promise<Quadrilateral>;
-    addControl(control: Control): Promise<void>;
+    addControl(control: Control): void;
     addControlWithAnchorAndOffset(control: Control, anchor: Anchor, offset: PointWithUnit): void;
     removeControl(control: Control): void;
     componentWillUnmount(): void;
     componentDidMount(): void;
     render(): React.JSX.Element;
-    protected removeAllOverlays(): void;
     private createDataCaptureView;
+    private removeAllOverlays;
 }
 export {};

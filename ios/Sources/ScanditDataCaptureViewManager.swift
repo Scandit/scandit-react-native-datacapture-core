@@ -22,11 +22,11 @@ class RNTSDCDataCaptureViewWrapper: UIView {
         }
         super.removeFromSuperview()
     }
-
+    
     public func findFirstSubview<T: UIView>(ofType type: T.Type) -> T? {
-        self.subviews.first { $0 is T } as? T
+        return self.subviews.first { $0 is T } as? T
     }
-
+    
     override func didMoveToSuperview() {
         // When the container is added to the RN stack, we need to check if the container has a DCView or not
         if self.findFirstSubview(ofType: DataCaptureView.self) == nil {

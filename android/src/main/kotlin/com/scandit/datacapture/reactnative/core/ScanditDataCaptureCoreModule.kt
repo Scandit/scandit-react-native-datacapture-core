@@ -20,7 +20,6 @@ import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
-import com.scandit.datacapture.reactnative.core.utils.viewId
 
 class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
@@ -73,13 +72,13 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun registerListenerForViewEvents(readableMap: ReadableMap) {
-        coreModule.registerDataCaptureViewListener(readableMap.viewId)
+    fun registerListenerForViewEvents(viewId: Int) {
+        coreModule.registerDataCaptureViewListener(viewId)
     }
 
     @ReactMethod
-    fun unregisterListenerForViewEvents(readableMap: ReadableMap) {
-        coreModule.unregisterDataCaptureViewListener(readableMap.viewId)
+    fun unregisterListenerForViewEvents(viewId: Int) {
+        coreModule.unregisterDataCaptureViewListener(viewId)
     }
 
     @ReactMethod
@@ -112,21 +111,18 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun emitFeedback(readableMap: ReadableMap, promise: Promise) {
-        val feedbackJson = readableMap.getString("feedbackJson") ?: return promise.reject(
-            ParameterNullError("feedbackJson")
-        )
-        coreModule.emitFeedback(feedbackJson, ReactNativeResult(promise))
+    fun emitFeedback(json: String, promise: Promise) {
+        coreModule.emitFeedback(json, ReactNativeResult(promise))
     }
 
     @ReactMethod
     fun viewPointForFramePoint(readableMap: ReadableMap, promise: Promise) {
-        val pointJson = readableMap.getString("pointJson") ?: return promise.reject(
-            ParameterNullError("pointJson")
+        val pointJson = readableMap.getString("point") ?: return promise.reject(
+            ParameterNullError("point")
         )
 
         coreModule.viewPointForFramePoint(
-            readableMap.viewId,
+            readableMap.getInt("viewId"),
             pointJson,
             ReactNativeResult(promise)
         )
@@ -134,12 +130,12 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun viewQuadrilateralForFrameQuadrilateral(readableMap: ReadableMap, promise: Promise) {
-        val quadrilateralJson = readableMap.getString("quadrilateralJson") ?: return promise.reject(
-            ParameterNullError("quadrilateralJson")
+        val quadrilateralJson = readableMap.getString("quadrilateral") ?: return promise.reject(
+            ParameterNullError("quadrilateral")
         )
 
         coreModule.viewQuadrilateralForFrameQuadrilateral(
-            readableMap.viewId,
+            readableMap.getInt("viewId"),
             quadrilateralJson,
             ReactNativeResult(promise)
         )
@@ -155,8 +151,8 @@ class ScanditDataCaptureCoreModule(
 
     @ReactMethod
     fun isTorchAvailable(readableMap: ReadableMap, promise: Promise) {
-        val cameraPosition = readableMap.getString("position") ?: return promise.reject(
-            ParameterNullError("position")
+        val cameraPosition = readableMap.getString("cameraPosition") ?: return promise.reject(
+            ParameterNullError("cameraPosition")
         )
         coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
     }
@@ -191,10 +187,7 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun createDataCaptureView(readableMap: ReadableMap, promise: Promise) {
-        val viewJson = readableMap.getString("viewJson") ?: return promise.reject(
-            ParameterNullError("viewJson")
-        )
+    fun createDataCaptureView(viewJson: String, promise: Promise) {
         val viewManager = viewManagers[DataCaptureViewManager::class.java.name] as?
             DataCaptureViewManager
         if (viewManager == null) {
@@ -206,20 +199,8 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun updateDataCaptureView(readableMap: ReadableMap, promise: Promise) {
-        val viewJson = readableMap.getString("viewJson") ?: return promise.reject(
-            ParameterNullError("viewJson")
-        )
+    fun updateDataCaptureView(viewJson: String, promise: Promise) {
         coreModule.updateDataCaptureView(viewJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeDataCaptureView(
-        @Suppress("unused") readableMap: ReadableMap,
-        promise: Promise
-    ) {
-        // Handled through the ViewManager
-        promise.resolve(null)
     }
 
     @ReactMethod

@@ -52,7 +52,7 @@ android {
     compileSdkVersion safeExtGet("compileSdkVersion", 33)
 
     defaultConfig {
-        minSdkVersion safeExtGet("minSdkVersion", 24)
+        minSdkVersion safeExtGet("minSdkVersion", 23)
         targetSdkVersion safeExtGet("targetSdkVersion", 33)
         versionCode 1
         versionName "1.0"
@@ -68,7 +68,7 @@ if (file( "${rootProject.projectDir}/build-test.gradle").exists()) {
 }
 
 dependencies {
-    def sdk_version = "8.0.1"
+    def sdk_version = "7.6.6"
 
     println("Version of the native sdk used in this build: ${safeExtGet('global_sdk_version', sdk_version)}")
     if (findProject(':scandit-datacapture-frameworks-core') != null) {

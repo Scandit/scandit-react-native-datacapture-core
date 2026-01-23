@@ -39,8 +39,4 @@ public class ReactNativeEmitter: ReactNativeEmitting {
     public func hasViewSpecificListenersForEvent(_ viewId: Int, for event: String) -> Bool {
         true
     }
-
-    public func hasModeSpecificListenersForEvent(_ modeId: Int, for event: String) -> Bool {
-        true
-    }
 }

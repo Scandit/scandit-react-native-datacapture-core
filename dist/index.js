@@ -1,6 +1,6 @@
 import { BaseNativeProxy, DataCaptureViewEvents, FactoryMaker, createNativeProxy, loadCoreDefaults, BaseDataCaptureView } from './core.js';
 export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, Platform, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
+import { NativeModules, NativeEventEmitter, InteractionManager, findNodeHandle, requireNativeComponent, Platform } from 'react-native';
 import React from 'react';
 
 // tslint:disable-next-line:variable-name
@@ -67,43 +67,6 @@ class NativeDataCaptureViewProxy extends BaseNativeProxy {
     }
 }
 
-class RNNativeCaller {
-    nativeModule;
-    nativeEventEmitter;
-    constructor(nativeModule) {
-        this.nativeModule = nativeModule;
-        this.nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
-    }
-    get framework() {
-        return 'react-native';
-    }
-    get frameworkVersion() {
-        const { major, minor, patch } = Platform.constants?.reactNativeVersion;
-        return `${major}.${minor}.${patch}`;
-    }
-    callFn(fnName, args) {
-        // @ts-ignore
-        if (args === null || args === undefined || (args?.length && args.length > 0)) {
-            return this.nativeModule[fnName]();
-        }
-        return this.nativeModule[fnName](args);
-    }
-    async registerEvent(evName, handler) {
-        return this.nativeEventEmitter.addListener(evName, async (event) => {
-            await handler(event);
-        });
-    }
-    async unregisterEvent(_evName, subscription) {
-        await subscription.remove();
-    }
-    eventHook(args) {
-        return args;
-    }
-}
-function createRNNativeCaller(nativeModule) {
-    return new RNNativeCaller(nativeModule);
-}
-
 function initCoreProxy() {
     FactoryMaker.bindInstance('FeedbackProxy', new NativeFeedbackProxy());
     FactoryMaker.bindInstance('DataCaptureViewProxy', new NativeDataCaptureViewProxy());
@@ -131,7 +94,7 @@ function initCoreDefaults() {
 const NativeModule = NativeModules.ScanditDataCaptureCore;
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '8.0.1';
+        return '7.6.6';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -191,10 +154,10 @@ class DataCaptureView extends React.Component {
         this.view.zoomGesture = newValue;
     }
     addOverlay(overlay) {
-        return this.view.addOverlay(overlay);
+        this.view.addOverlay(overlay);
     }
     removeOverlay(overlay) {
-        return this.view.removeOverlay(overlay);
+        this.view.removeOverlay(overlay);
     }
     addListener(listener) {
         this.view.addListener(listener);
@@ -244,6 +207,43 @@ class DataCaptureView extends React.Component {
 }
 // tslint:disable-next-line:variable-name
 const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView', DataCaptureView);
+
+class RNNativeCaller {
+    nativeModule;
+    nativeEventEmitter;
+    constructor(nativeModule) {
+        this.nativeModule = nativeModule;
+        this.nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
+    }
+    get framework() {
+        return 'react-native';
+    }
+    get frameworkVersion() {
+        const { major, minor, patch } = Platform.constants?.reactNativeVersion;
+        return `${major}.${minor}.${patch}`;
+    }
+    callFn(fnName, args) {
+        // @ts-ignore
+        if (args === null || args === undefined || (args?.length && args.length > 0)) {
+            return this.nativeModule[fnName]();
+        }
+        return this.nativeModule[fnName](args);
+    }
+    async registerEvent(evName, handler) {
+        return this.nativeEventEmitter.addListener(evName, async (event) => {
+            await handler(event);
+        });
+    }
+    async unregisterEvent(_evName, subscription) {
+        await subscription.remove();
+    }
+    eventHook(args) {
+        return args;
+    }
+}
+function createRNNativeCaller(nativeModule) {
+    return new RNNativeCaller(nativeModule);
+}
 
 initCoreDefaults();
 initCoreProxy();

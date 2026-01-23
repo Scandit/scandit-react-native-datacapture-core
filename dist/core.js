@@ -1709,585 +1709,17 @@ var CameraPosition;
     CameraPosition["Unspecified"] = "unspecified";
 })(CameraPosition || (CameraPosition = {}));
 
-var TorchState;
-(function (TorchState) {
-    TorchState["On"] = "on";
-    TorchState["Off"] = "off";
-    TorchState["Auto"] = "auto";
-})(TorchState || (TorchState = {}));
-
-/**
- * Camera lifecycle and operation handling:
- *
- * Phase 1 - Initial State (before native creation starts):
- *   - Camera object exists in TypeScript but not yet being created on native side
- *   - State changes (torch, desired state, settings) only update TypeScript properties
- *   - No native calls are triggered
- *
- * Phase 2 - Native Creation In Progress (after setFrameSource, before context set):
- *   - setFrameSource() called on DataCaptureContext, triggering setNativeFrameSourceIsBeingCreated()
- *   - A promise is created that will resolve when the native camera is ready
- *   - State changes during this phase await the native ready promise before executing
- *   - Native camera is created asynchronously
- *
- * Phase 3 - Active State (after context set):
- *   - Native camera is ready and available
- *   - The native ready promise is resolved
- *   - All state changes execute immediately on native side
- */
-class Camera extends DefaultSerializeable {
-    static get coreDefaults() {
-        return getCoreDefaults();
-    }
-    set context(newContext) {
-        this._context = newContext;
-        if (newContext) {
-            // Phase 3: Native camera is ready, resolve the promise so waiting operations can proceed
-            if (this.nativeReadyTimeout) {
-                clearTimeout(this.nativeReadyTimeout);
-                this.nativeReadyTimeout = null;
-            }
-            if (this.nativeReadyResolver) {
-                this.nativeReadyResolver();
-                this.nativeReadyResolver = null;
-                this.nativeReadyRejecter = null;
-                this.nativeReadyPromise = null;
-            }
-        }
-        else {
-            // When context is removed, reset everything
-            if (this.nativeReadyTimeout) {
-                clearTimeout(this.nativeReadyTimeout);
-                this.nativeReadyTimeout = null;
-            }
-            this.nativeReadyResolver = null;
-            this.nativeReadyRejecter = null;
-            this.nativeReadyPromise = null;
-        }
-    }
-    get context() {
-        return this._context;
-    }
-    setNativeFrameSourceIsBeingCreated() {
-        this.nativeReadyPromise = new Promise((resolve, reject) => {
-            this.nativeReadyResolver = resolve;
-            this.nativeReadyRejecter = reject;
-            this.nativeReadyTimeout = setTimeout(() => {
-                this.nativeReadyTimeout = null;
-                if (this.nativeReadyRejecter) {
-                    this.nativeReadyRejecter(new Error('Camera native initialization timed out after 5 seconds'));
-                    this.nativeReadyResolver = null;
-                    this.nativeReadyRejecter = null;
-                    this.nativeReadyPromise = null;
-                }
-            }, 5000);
-        });
-    }
-    get isActiveCamera() {
-        return this._context !== null;
-    }
-    static get default() {
-        const defaultPosition = Camera.coreDefaults.Camera.defaultPosition;
-        if (!defaultPosition) {
-            return null;
-        }
-        return Camera.atPosition(defaultPosition);
-    }
-    static withSettings(settings) {
-        return Camera.create(undefined, settings);
-    }
-    static asPositionWithSettings(cameraPosition, settings) {
-        return Camera.create(cameraPosition, settings);
-    }
-    static atPosition(cameraPosition) {
-        if (!Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
-            return null;
-        }
-        const existingCamera = Camera._cameraInstances.get(cameraPosition);
-        if (existingCamera) {
-            return existingCamera;
-        }
-        return Camera.create(cameraPosition);
-    }
-    get desiredState() {
-        return this._desiredState;
-    }
-    set desiredTorchState(desiredTorchState) {
-        this._desiredTorchState = desiredTorchState;
-        if (this.nativeReadyPromise) {
-            // Phase 2: Wait for native camera to be ready, then update
-            this.nativeReadyPromise.then(() => this.didChange());
-        }
-        else if (this.isActiveCamera) {
-            // Phase 3: Execute immediately
-            this.didChange();
-        }
-        // Phase 1: Just update the property, no action needed
-    }
-    get desiredTorchState() {
-        return this._desiredTorchState;
-    }
-    constructor(position, settings, desiredTorchState, desiredState) {
-        super();
-        this.type = 'camera';
-        this.settings = null;
-        this._desiredTorchState = TorchState.Off;
-        this._desiredState = FrameSourceState.Off;
-        this.currentCameraState = FrameSourceState.Off;
-        this.listeners = [];
-        this._context = null;
-        this.nativeReadyResolver = null;
-        this.nativeReadyRejecter = null;
-        this.nativeReadyPromise = null;
-        this.nativeReadyTimeout = null;
-        this.position = position || Camera.coreDefaults.Camera.defaultPosition;
-        this.settings = settings || null;
-        this._desiredTorchState = desiredTorchState || TorchState.Off;
-        this._desiredState = desiredState || FrameSourceState.Off;
-        this.controller = new CameraController(this);
-    }
-    static create(position, settings, desiredTorchState, desiredState) {
-        const cameraPosition = position || Camera.coreDefaults.Camera.defaultPosition;
-        if (!cameraPosition) {
-            return null;
-        }
-        const existingCamera = Camera._cameraInstances.get(cameraPosition);
-        if (existingCamera) {
-            existingCamera.resetPhaseState();
-            if (settings !== undefined) {
-                existingCamera.settings = settings;
-            }
-            if (desiredTorchState !== undefined) {
-                existingCamera._desiredTorchState = desiredTorchState;
-                existingCamera.didChange();
-            }
-            if (desiredState !== undefined) {
-                existingCamera._desiredState = desiredState;
-                existingCamera.controller.switchCameraToDesiredState(desiredState);
-            }
-            return existingCamera;
-        }
-        if (!Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
-            return null;
-        }
-        const camera = new Camera(cameraPosition, settings, desiredTorchState, desiredState);
-        Camera._cameraInstances.set(cameraPosition, camera);
-        return camera;
-    }
-    switchToDesiredState(state) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this._desiredState = state;
-            if (this.nativeReadyPromise) {
-                // Phase 2: Wait for native camera to be ready, then switch state
-                yield this.nativeReadyPromise;
-                yield this.controller.switchCameraToDesiredState(state);
-                return;
-            }
-            if (!this.isActiveCamera) {
-                // Phase 1: Not yet added to context
-                console.warn('The current camera is not added to the DataCaptureContext. Add camera to the DataCaptureContext first.');
-                return;
-            }
-            // Phase 3: Execute immediately
-            yield this.controller.switchCameraToDesiredState(state);
-        });
-    }
-    getCurrentState() {
-        return Promise.resolve(this.currentCameraState);
-    }
-    getIsTorchAvailable() {
-        return this.controller.getIsTorchAvailable();
-    }
-    addListener(listener) {
-        if (listener == null) {
-            return;
-        }
-        if (this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.push(listener);
-    }
-    removeListener(listener) {
-        if (listener == null) {
-            return;
-        }
-        if (!this.listeners.includes(listener)) {
-            return;
-        }
-        this.listeners.splice(this.listeners.indexOf(listener), 1);
-    }
-    applySettings(settings) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.settings = settings;
-            if (this.nativeReadyPromise) {
-                // Phase 2: Wait for native camera to be ready, then apply settings
-                yield this.nativeReadyPromise;
-                yield this.didChange();
-            }
-            else if (this.isActiveCamera) {
-                // Phase 3: Execute immediately
-                yield this.didChange();
-            }
-            // Phase 1: Just update the property, no action needed
-        });
-    }
-    didChange() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.context) {
-                yield this.context.update();
-            }
-        });
-    }
-    resetPhaseState() {
-        if (this.nativeReadyTimeout) {
-            clearTimeout(this.nativeReadyTimeout);
-            this.nativeReadyTimeout = null;
-        }
-        this.nativeReadyResolver = null;
-        this.nativeReadyRejecter = null;
-        this.nativeReadyPromise = null;
-    }
-}
-Camera._cameraInstances = new Map();
-__decorate([
-    serializationDefault({})
-], Camera.prototype, "settings", void 0);
-__decorate([
-    nameForSerialization('desiredTorchState')
-], Camera.prototype, "_desiredTorchState", void 0);
-__decorate([
-    nameForSerialization('desiredState')
-], Camera.prototype, "_desiredState", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "currentCameraState", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "_context", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "nativeReadyResolver", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "nativeReadyRejecter", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "nativeReadyPromise", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "nativeReadyTimeout", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera, "_cameraInstances", void 0);
-__decorate([
-    ignoreFromSerialization
-], Camera, "coreDefaults", null);
-
-class CameraOwnershipManager {
-    constructor() {
-        this.owners = new Map();
-        this.waitingQueue = new Map();
-        this.protectedCameras = new Set();
-    }
-    static getInstance() {
-        if (!CameraOwnershipManager.instance) {
-            CameraOwnershipManager.instance = new CameraOwnershipManager();
-        }
-        return CameraOwnershipManager.instance;
-    }
-    requestOwnership(position, owner) {
-        const currentOwner = this.owners.get(position);
-        if (currentOwner && currentOwner.id !== owner.id) {
-            return false; // Already owned by someone else
-        }
-        this.owners.set(position, owner);
-        this.enableProtectionForOwner(position, owner);
-        return true;
-    }
-    requestOwnershipAsync(position, owner, timeoutMs) {
-        return __awaiter(this, void 0, void 0, function* () {
-            // Try immediate acquisition first
-            if (this.requestOwnership(position, owner)) {
-                return true;
-            }
-            // If not available, wait in queue
-            return new Promise((resolve) => {
-                const request = { owner, resolve };
-                if (!this.waitingQueue.has(position)) {
-                    this.waitingQueue.set(position, []);
-                }
-                this.waitingQueue.get(position).push(request);
-                // Optional timeout
-                if (timeoutMs && timeoutMs > 0) {
-                    setTimeout(() => {
-                        this.removeFromQueue(position, request);
-                        resolve(false); // Timeout - ownership not acquired
-                    }, timeoutMs);
-                }
-            });
-        });
-    }
-    releaseOwnership(position, owner) {
-        const currentOwner = this.owners.get(position);
-        if (!currentOwner || currentOwner.id !== owner.id) {
-            return false; // Not the owner
-        }
-        this.owners.delete(position);
-        this.disableProtectionForPosition(position);
-        this.processWaitingQueue(position);
-        return true;
-    }
-    isOwner(position, owner) {
-        const currentOwner = this.owners.get(position);
-        return (currentOwner === null || currentOwner === void 0 ? void 0 : currentOwner.id) === owner.id;
-    }
-    getCurrentOwner(position) {
-        return this.owners.get(position) || null;
-    }
-    checkOwnership(position, owner) {
-        return this.isOwner(position, owner);
-    }
-    getOwnedPosition(owner) {
-        for (const [position, currentOwner] of this.owners.entries()) {
-            if (currentOwner.id === owner.id) {
-                return position;
-            }
-        }
-        return null;
-    }
-    getAllOwnedPositions(owner) {
-        const positions = [];
-        for (const [position, currentOwner] of this.owners.entries()) {
-            if (currentOwner.id === owner.id) {
-                positions.push(position);
-            }
-        }
-        return positions;
-    }
-    enableProtectionForOwner(position, owner) {
-        const camera = Camera.atPosition(position);
-        if (!camera || this.protectedCameras.has(camera)) {
-            return; // Camera not available or already protected
-        }
-        this.protectCameraForOwner(camera, position, owner);
-        this.protectedCameras.add(camera);
-    }
-    disableProtectionForPosition(position) {
-        const camera = Camera.atPosition(position);
-        if (!camera || !this.protectedCameras.has(camera)) {
-            return;
-        }
-        this.unprotectCamera(camera);
-        this.protectedCameras.delete(camera);
-    }
-    processWaitingQueue(position) {
-        const queue = this.waitingQueue.get(position);
-        if (!queue || queue.length === 0) {
-            return;
-        }
-        // Give ownership to the first in queue
-        const nextRequest = queue.shift();
-        this.owners.set(position, nextRequest.owner);
-        this.enableProtectionForOwner(position, nextRequest.owner);
-        nextRequest.resolve(true);
-        // Clean up empty queue
-        if (queue.length === 0) {
-            this.waitingQueue.delete(position);
-        }
-    }
-    removeFromQueue(position, requestToRemove) {
-        const queue = this.waitingQueue.get(position);
-        if (!queue)
-            return;
-        const index = queue.indexOf(requestToRemove);
-        if (index > -1) {
-            queue.splice(index, 1);
-        }
-        if (queue.length === 0) {
-            this.waitingQueue.delete(position);
-        }
-    }
-    protectCameraForOwner(camera, position, _owner) {
-        var _a, _b, _c;
-        const originalSwitchToDesiredState = camera.switchToDesiredState.bind(camera);
-        const originalApplySettings = camera.applySettings.bind(camera);
-        const originalSetDesiredTorchState = (_b = (_a = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(camera), 'desiredTorchState')) === null || _a === void 0 ? void 0 : _a.set) === null || _b === void 0 ? void 0 : _b.bind(camera);
-        // Protect switchToDesiredState - only owner can call it
-        camera.switchToDesiredState = (state) => __awaiter(this, void 0, void 0, function* () {
-            const currentOwner = this.getCurrentOwner(position);
-            if (!currentOwner) {
-                throw new Error(`Camera operation denied: No owner for camera at ${position}`);
-            }
-            // Allow operation - the owner is the only one who should have access to this camera instance
-            return originalSwitchToDesiredState(state);
-        });
-        // Protect applySettings - only owner can call it
-        camera.applySettings = (settings) => __awaiter(this, void 0, void 0, function* () {
-            const currentOwner = this.getCurrentOwner(position);
-            if (!currentOwner) {
-                throw new Error(`Camera operation denied: No owner for camera at ${position}`);
-            }
-            return originalApplySettings(settings);
-        });
-        // Protect desiredTorchState setter - only owner can set it
-        if (originalSetDesiredTorchState) {
-            Object.defineProperty(camera, 'desiredTorchState', {
-                set: (value) => {
-                    const currentOwner = this.getCurrentOwner(position);
-                    if (!currentOwner) {
-                        throw new Error(`Camera operation denied: No owner for camera at ${position}`);
-                    }
-                    originalSetDesiredTorchState(value);
-                },
-                get: (_c = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(camera), 'desiredTorchState')) === null || _c === void 0 ? void 0 : _c.get,
-                configurable: true
-            });
-        }
-        // Store originals for restoration
-        camera.__originalMethods = {
-            switchToDesiredState: originalSwitchToDesiredState,
-            applySettings: originalApplySettings,
-            setDesiredTorchState: originalSetDesiredTorchState
-        };
-    }
-    unprotectCamera(camera) {
-        var _a;
-        const originals = camera.__originalMethods;
-        if (!originals)
-            return;
-        // Restore original methods
-        camera.switchToDesiredState = originals.switchToDesiredState;
-        camera.applySettings = originals.applySettings;
-        if (originals.setDesiredTorchState) {
-            Object.defineProperty(camera, 'desiredTorchState', {
-                set: originals.setDesiredTorchState,
-                get: (_a = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(camera), 'desiredTorchState')) === null || _a === void 0 ? void 0 : _a.get,
-                configurable: true
-            });
-        }
-        delete camera.__originalMethods;
-    }
-}
-
-class CameraOwnershipHelper {
-    /**
-     * Get camera instance for the owner (only works if you own it)
-     */
-    static getCamera(position, owner) {
-        // Check ownership
-        if (!this.ownershipManager.checkOwnership(position, owner)) {
-            console.warn(`Camera access denied: ${owner.id} does not own camera at ${position}`);
-            return null;
-        }
-        return Camera.atPosition(position);
-    }
-    /**
-     * Safely execute camera operations (only works if you own the camera)
-     */
-    static withCamera(position, owner, operation) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const camera = this.getCamera(position, owner);
-            if (!camera) {
-                return null;
-            }
-            try {
-                const result = yield operation(camera);
-                return result;
-            }
-            catch (error) {
-                console.error(`Camera operation failed for ${owner.id}:`, error);
-                throw error;
-            }
-        });
-    }
-    /**
-     * Execute camera operations, waiting for ownership if necessary
-     */
-    static withCameraWhenAvailable(position, owner, operation, timeoutMs) {
-        return __awaiter(this, void 0, void 0, function* () {
-            // Try to get ownership, wait if necessary
-            const acquired = yield this.requestOwnership(position, owner, timeoutMs);
-            if (!acquired) {
-                console.warn(`Could not acquire camera ownership for ${owner.id} within timeout`);
-                return null;
-            }
-            const camera = Camera.atPosition(position);
-            if (!camera) {
-                console.warn(`Camera not available at position ${position}`);
-                return null;
-            }
-            try {
-                const result = yield operation(camera);
-                return result;
-            }
-            catch (error) {
-                console.error(`Camera operation failed for ${owner.id}:`, error);
-                throw error;
-            }
-        });
-    }
-    /**
-     * Request ownership and wait if necessary
-     */
-    static requestOwnership(position, owner, timeoutMs) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.ownershipManager.requestOwnershipAsync(position, owner, timeoutMs);
-        });
-    }
-    /**
-     * Release ownership
-     */
-    static releaseOwnership(position, owner) {
-        return this.ownershipManager.releaseOwnership(position, owner);
-    }
-    /**
-     * Check if owner has ownership
-     */
-    static hasOwnership(position, owner) {
-        return this.ownershipManager.checkOwnership(position, owner);
-    }
-    /**
-     * Get the camera position currently owned by the owner (if any)
-     */
-    static getOwnedPosition(owner) {
-        return this.ownershipManager.getOwnedPosition(owner);
-    }
-    /**
-     * Get all camera positions currently owned by the owner
-     */
-    static getAllOwnedPositions(owner) {
-        return this.ownershipManager.getAllOwnedPositions(owner);
-    }
-    /**
-     * Release ownership of all cameras owned by the owner
-     */
-    static releaseAllOwnerships(owner) {
-        const ownedPositions = this.getAllOwnedPositions(owner);
-        for (const position of ownedPositions) {
-            this.releaseOwnership(position, owner);
-        }
-    }
-}
-CameraOwnershipHelper.ownershipManager = CameraOwnershipManager.getInstance();
-
 class CameraController extends BaseNewController {
     static get _proxy() {
         return FactoryMaker.getInstance('CameraProxy');
     }
-    constructor(camera) {
+    static forCamera(camera) {
+        const controller = new CameraController();
+        controller.camera = camera;
+        return controller;
+    }
+    constructor() {
         super('CameraProxy');
-        // Arrow function wrapper to avoid .bind(this) and always use current class state
-        this.handleDidChangeStateEventWrapper = (ev) => {
-            return this.handleDidChangeStateEvent(ev);
-        };
-        this.camera = camera;
-        this.subscribeListener();
     }
     get privateCamera() {
         return this.camera;
@@ -2337,14 +1769,14 @@ class CameraController extends BaseNewController {
         return __awaiter(this, void 0, void 0, function* () {
             yield this._proxy.$registerListenerForCameraEvents();
             this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
-            this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEventWrapper);
+            this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
         });
     }
     unsubscribeListener() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this._proxy.$unregisterListenerForCameraEvents();
             this._proxy.unsubscribeFromEvents([FrameSourceListenerEvents.didChangeState]);
-            this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEventWrapper);
+            this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEvent.bind(this));
         });
     }
     dispose() {
@@ -2354,17 +1786,163 @@ class CameraController extends BaseNewController {
     handleDidChangeStateEvent(ev) {
         const event = EventDataParser.parse(ev.data);
         if (event) {
-            if (event.cameraPosition !== this.privateCamera.position || !this.privateCamera.isActiveCamera) {
-                return;
-            }
-            this.privateCamera.currentCameraState = event.state;
             this.privateCamera.listeners.forEach(listener => {
                 var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, this.privateCamera._desiredState);
+                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, event.state);
             });
         }
     }
 }
+
+var TorchState;
+(function (TorchState) {
+    TorchState["On"] = "on";
+    TorchState["Off"] = "off";
+    TorchState["Auto"] = "auto";
+})(TorchState || (TorchState = {}));
+
+class Camera extends DefaultSerializeable {
+    static get coreDefaults() {
+        return getCoreDefaults();
+    }
+    set context(newContext) {
+        this._context = newContext;
+    }
+    get context() {
+        return this._context;
+    }
+    static get default() {
+        if (Camera.coreDefaults.Camera.defaultPosition) {
+            const camera = new Camera();
+            camera.position = Camera.coreDefaults.Camera.defaultPosition;
+            return camera;
+        }
+        else {
+            return null;
+        }
+    }
+    static withSettings(settings) {
+        const camera = Camera.default;
+        if (camera) {
+            camera.settings = settings;
+        }
+        return camera;
+    }
+    static asPositionWithSettings(cameraPosition, settings) {
+        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
+            const camera = new Camera();
+            camera.settings = settings;
+            camera.position = cameraPosition;
+            return camera;
+        }
+        else {
+            return null;
+        }
+    }
+    static atPosition(cameraPosition) {
+        if (Camera.coreDefaults.Camera.availablePositions.includes(cameraPosition)) {
+            const camera = new Camera();
+            camera.position = cameraPosition;
+            return camera;
+        }
+        else {
+            return null;
+        }
+    }
+    get desiredState() {
+        return this._desiredState;
+    }
+    set desiredTorchState(desiredTorchState) {
+        this._desiredTorchState = desiredTorchState;
+        this.didChange();
+    }
+    get desiredTorchState() {
+        return this._desiredTorchState;
+    }
+    constructor() {
+        super();
+        this.type = 'camera';
+        this.settings = null;
+        this._desiredTorchState = TorchState.Off;
+        this._desiredState = FrameSourceState.Off;
+        this.listeners = [];
+        this._context = null;
+        this.controller = CameraController.forCamera(this);
+    }
+    switchToDesiredState(state) {
+        this._desiredState = state;
+        return this.controller.switchCameraToDesiredState(state);
+    }
+    getCurrentState() {
+        return this.controller.getCurrentState();
+    }
+    getIsTorchAvailable() {
+        return this.controller.getIsTorchAvailable();
+    }
+    /**
+     * @deprecated
+     */
+    get isTorchAvailable() {
+        console.warn('isTorchAvailable is deprecated. Use getIsTorchAvailable instead.');
+        return false;
+    }
+    addListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (this.listeners.length === 0) {
+            this.controller.subscribeListener();
+        }
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+        if (this.listeners.length === 0) {
+            this.controller.unsubscribeListener();
+        }
+    }
+    applySettings(settings) {
+        this.settings = settings;
+        return this.didChange();
+    }
+    didChange() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.context) {
+                yield this.context.update();
+            }
+        });
+    }
+}
+__decorate([
+    serializationDefault({})
+], Camera.prototype, "settings", void 0);
+__decorate([
+    nameForSerialization('desiredTorchState')
+], Camera.prototype, "_desiredTorchState", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "_desiredState", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "_context", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], Camera, "coreDefaults", null);
 
 class ControlImage extends DefaultSerializeable {
     constructor(type, data, name) {
@@ -2589,6 +2167,13 @@ class DataCaptureContext extends DefaultSerializeable {
     static get deviceID() {
         return DataCaptureContext.coreDefaults.deviceID;
     }
+    /**
+     * @deprecated
+     */
+    get deviceID() {
+        console.log('The instance property "deviceID" on the DataCaptureContext is deprecated, please use the static property DataCaptureContext.deviceID instead.');
+        return DataCaptureContext.deviceID;
+    }
     static forLicenseKey(licenseKey) {
         const instance = DataCaptureContext.create(licenseKey, null, null);
         // Call initialize to ensure the shared instance is updated.
@@ -2641,21 +2226,14 @@ class DataCaptureContext extends DefaultSerializeable {
         }
     }
     setFrameSource(frameSource) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this._frameSource) {
-                this._frameSource.context = null;
-            }
-            this._frameSource = frameSource;
-            if (frameSource) {
-                // Set the flag to indicate that the native frame source is being created
-                frameSource.setNativeFrameSourceIsBeingCreated();
-            }
-            yield this.update();
-            // Make camera active once the set on native side is complete
-            if (frameSource) {
-                frameSource.context = this;
-            }
-        });
+        if (this._frameSource) {
+            this._frameSource.context = null;
+        }
+        this._frameSource = frameSource;
+        if (frameSource) {
+            frameSource.context = this;
+        }
+        return this.update();
     }
     addListener(listener) {
         if (this.listeners.length === 0) {
@@ -2676,79 +2254,62 @@ class DataCaptureContext extends DefaultSerializeable {
         }
     }
     addMode(mode) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.addModeInternal(mode);
-        });
+        this.addModeInternal(mode);
     }
     setMode(mode) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.removeAllModes();
-            yield this.addModeInternal(mode);
-        });
+        this.removeAllModes();
+        this.addModeInternal(mode);
     }
     addModeInternal(mode) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.modes.includes(mode)) {
-                this.modes.push(mode);
-                yield this.controller.addModeToContext(mode);
-                mode._context = this;
-            }
-        });
+        if (!this.modes.includes(mode)) {
+            this.modes.push(mode);
+            this.controller.addModeToContext(mode);
+            mode._context = this;
+        }
     }
     removeCurrentMode() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.modes.length === 0) {
-                return;
-            }
-            if (this.modes.length > 1) {
-                console.warn('removeCurrentMode() called with multiple modes active. Consider using removeMode() for specific mode removal. Only the first mode will be removed.');
-            }
-            yield this.removeModeInternal(this.modes[0]);
-        });
+        if (this.modes.length === 0) {
+            return;
+        }
+        if (this.modes.length > 1) {
+            console.warn('removeCurrentMode() called with multiple modes active. Consider using removeMode() for specific mode removal. Only the first mode will be removed.');
+        }
+        this.removeModeInternal(this.modes[0]);
     }
     removeMode(mode) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.removeModeInternal(mode);
-        });
+        this.removeModeInternal(mode);
     }
     removeModeInternal(mode) {
         return __awaiter(this, void 0, void 0, function* () {
-            const index = this.modes.indexOf(mode);
-            if (index !== -1) {
-                this.modes.splice(index, 1);
+            if (this.modes.includes(mode)) {
+                this.modes.splice(this.modes.indexOf(mode), 1);
+                mode._context = null;
+                this.controller.removeModeFromContext(mode);
             }
-            mode._context = null;
-            yield this.controller.removeModeFromContext(mode);
         });
     }
     removeAllModes() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.modes.length === 0) {
-                return;
-            }
-            this.modes.forEach(mode => {
-                mode._context = null;
-            });
-            this.modes = [];
-            yield this.controller.removeAllModesFromContext();
+        if (this.modes.length === 0) {
+            return;
+        }
+        this.modes.forEach(mode => {
+            mode._context = null;
         });
+        this.modes = [];
+        this.controller.removeAllModesFromContext();
     }
     dispose() {
-        return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            if (!this.controller) {
-                return;
-            }
-            (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
-            yield this.removeAllModes();
-            this.controller.dispose();
-        });
+        var _a;
+        if (!this.controller) {
+            return;
+        }
+        (_a = this.view) === null || _a === void 0 ? void 0 : _a.dispose();
+        this.removeAllModes();
+        this.controller.dispose();
     }
     applySettings(settings) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.settings = settings;
-            yield this.update();
-        });
+        this.settings = settings;
+        return this.update();
     }
     static getOpenSourceSoftwareLicenseInfo() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2756,12 +2317,10 @@ class DataCaptureContext extends DefaultSerializeable {
         });
     }
     update() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.controller) {
-                return;
-            }
-            yield this.controller.updateContextFromJSON();
-        });
+        if (!this.controller) {
+            return Promise.resolve();
+        }
+        return this.controller.updateContextFromJSON();
     }
 }
 __decorate([
@@ -2978,24 +2537,20 @@ class BaseDataCaptureView extends DefaultSerializeable {
         this.controller = new DataCaptureViewController(this);
     }
     addOverlay(overlay) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.overlays.includes(overlay)) {
-                return;
-            }
-            overlay.view = this;
-            this.overlays.push(overlay);
-            yield this.controller.updateView();
-        });
+        if (this.overlays.includes(overlay)) {
+            return;
+        }
+        overlay.view = this;
+        this.overlays.push(overlay);
+        this.controller.updateView();
     }
     removeOverlay(overlay) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.overlays.includes(overlay)) {
-                return;
-            }
-            overlay.view = null;
-            this.overlays.splice(this.overlays.indexOf(overlay), 1);
-            yield this.controller.updateView();
-        });
+        if (!this.overlays.includes(overlay)) {
+            return;
+        }
+        overlay.view = null;
+        this.overlays.splice(this.overlays.indexOf(overlay), 1);
+        this.controller.updateView();
     }
     removeAllOverlays() {
         if (this.overlays.length === 0) {
@@ -3142,6 +2697,27 @@ __decorate([
 __decorate([
     ignoreFromSerialization
 ], BaseDataCaptureView.prototype, "isViewCreated", void 0);
+
+class ScreenStateManager {
+    constructor() {
+        this.activeScreenId = null;
+    }
+    static getInstance() {
+        if (!ScreenStateManager.instance) {
+            ScreenStateManager.instance = new ScreenStateManager();
+        }
+        return ScreenStateManager.instance;
+    }
+    setActiveScreen(screenId) {
+        if (this.activeScreenId === screenId) {
+            return;
+        }
+        this.activeScreenId = screenId;
+    }
+    isScreenActive(screenId) {
+        return (this.activeScreenId === null || this.activeScreenId === screenId);
+    }
+}
 
 class ZoomSwitchControl extends DefaultSerializeable {
     constructor() {
@@ -3323,7 +2899,6 @@ __decorate([
 
 var VideoResolution;
 (function (VideoResolution) {
-    /** @deprecated Auto is deprecated. Please use the capture mode's recommendedCameraSettings for the best results. */
     VideoResolution["Auto"] = "auto";
     VideoResolution["HD"] = "hd";
     VideoResolution["FullHD"] = "fullHd";
@@ -4140,5 +3715,5 @@ function createNativeProxy(nativeCaller) {
 
 createEventEmitter();
 
-export { AdvancedInstanceAwareNativeProxy, AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseInstanceAwareNativeProxy, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraOwnershipHelper, CameraOwnershipManager, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedInstanceAwareNativeProxy, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, createNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
+export { AdvancedInstanceAwareNativeProxy, AdvancedNativeProxy, AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, BaseInstanceAwareNativeProxy, BaseNativeProxy, BaseNewController, Brush, Camera, CameraController, CameraPosition, CameraSettings, Color, ContextStatus, ControlImage, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, ScreenStateManager, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, createAdvancedInstanceAwareNativeProxy, createAdvancedNativeFromCtorProxy, createAdvancedNativeProxy, createNativeProxy, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, serializationDefault };
 //# sourceMappingURL=core.js.map

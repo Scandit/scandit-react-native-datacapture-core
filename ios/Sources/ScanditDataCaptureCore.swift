@@ -317,9 +317,7 @@ class ScanditDataCaptureCore: RCTEventEmitter {
 
         // In case something wrong happens with the creation of the View, the JS part will be notified inside
         // the shared code.
-        self.coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject), viewId: viewId) { dcView in
-            guard let dcView = dcView else { return }
-
+        if let dcView = self.coreModule.createDataCaptureView(viewJson: viewJson, result: ReactNativeResult(resolve, reject), viewId: viewId) {
             // If we already have a container created for this view, we just add the view to the container. If not the
             // ScanditDataCaptureViewManager will take care of adding the created view.
             if let container = RNTSDCDataCaptureViewManager.containers.first(where: { $0.reactTag == NSNumber(value: viewId) }) {

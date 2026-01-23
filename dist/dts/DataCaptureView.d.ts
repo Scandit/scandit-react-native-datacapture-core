@@ -30,8 +30,8 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     set focusGesture(newValue: FocusGesture | null);
     get zoomGesture(): ZoomGesture | null;
     set zoomGesture(newValue: ZoomGesture | null);
-    addOverlay(overlay: DataCaptureOverlay): Promise<void>;
-    removeOverlay(overlay: DataCaptureOverlay): Promise<void>;
+    addOverlay(overlay: DataCaptureOverlay): void;
+    removeOverlay(overlay: DataCaptureOverlay): void;
     addListener(listener: DataCaptureViewListener): void;
     removeListener(listener: DataCaptureViewListener): void;
     viewPointForFramePoint(point: Point): Promise<Point>;

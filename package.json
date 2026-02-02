@@ -1,6 +1,6 @@
 {
   "name": "scandit-react-native-datacapture-core",
-  "version": "7.6.6",
+  "version": "7.6.7",
   "description": "Scandit Data Capture SDK for React Native",
   "homepage": "https://github.com/Scandit/scandit-react-native-datacapture-core",
   "main": "dist/index.js",
@@ -51,6 +51,6 @@
     "typescript": "4.9.5"
   },
   "dependencies": {
-    "scandit-datacapture-frameworks-core": "7.6.6"
+    "scandit-datacapture-frameworks-core": "7.6.7"
   }
 }

@@ -14,16 +14,16 @@ void inline LogWarn(NSString *message) { RCTLogWarn(@"%@", message); }
 @interface RCT_EXTERN_MODULE (ScanditDataCaptureCore, RCTEventEmitter)
 
 RCT_EXTERN_METHOD(contextFromJSON
-                  : (NSDictionary *)data resolve
+                  : (NSString *)JSON resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(updateContextFromJSON
-                  : (NSDictionary *)data resolve
+                  : (NSString *)JSON resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(disposeContext)
+RCT_EXTERN_METHOD(dispose)
 
 RCT_EXTERN_METHOD(emitFeedback
                   : (NSString *)JSON resolve
@@ -41,73 +41,64 @@ RCT_EXTERN_METHOD(viewPointForFramePoint
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(getCurrentCameraState
-                  : (NSDictionary *)data resolve
+                  : (NSString *)cameraPosition resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(isTorchAvailable
-                  : (NSDictionary *)data resolve
+                  : (NSString *)cameraPosition resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(switchCameraToDesiredState
-                  : (NSDictionary *)data resolve
+                  : (NSString *)desiredStateJson resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(getFrame
-                  : (NSDictionary *)data resolve
+                  : (NSString *)frameId resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(registerListenerForCameraEvents
-                  : (RCTPromiseResolveBlock)resolve reject
-                  : (RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(registerListenerForCameraEvents)
 
-RCT_EXTERN_METHOD(unregisterListenerForCameraEvents
-                  : (RCTPromiseResolveBlock)resolve reject
-                  : (RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(unregisterListenerForCameraEvents)
 
-RCT_EXTERN_METHOD(subscribeContextListener)
+RCT_EXTERN_METHOD(registerListenerForEvents)
 
-RCT_EXTERN_METHOD(unsubscribeContextListener)
+RCT_EXTERN_METHOD(unregisterListenerForEvents)
 
 RCT_EXTERN_METHOD(registerListenerForViewEvents
-                  : (NSDictionary *)data resolve
+                  : (NSInteger)viewId resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(unregisterListenerForViewEvents
-                  : (NSDictionary *)data resolve
+                  : (NSInteger)viewId resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(addModeToContext
-                  : (NSDictionary *)data resolve
+                  : (NSString *)modeJson resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(removeModeFromContext
-                  : (NSDictionary *)data resolve
+                  : (NSString *)modeJson resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(removeAllModes
+RCT_EXTERN_METHOD(removeAllModesFromContext
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(createDataCaptureView
-                  : (NSDictionary *)data resolve
+                  : (NSString *)viewJson resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(updateDataCaptureView
-                  : (NSDictionary *)data resolve
-                  : (RCTPromiseResolveBlock)resolve reject
-                  : (RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(removeDataCaptureView
-                  : (NSDictionary *)data resolve
+                  : (NSString *)viewJson resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 

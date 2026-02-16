@@ -11,6 +11,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.core.capture.DataCaptureVersion
 import com.scandit.datacapture.frameworks.core.CoreModule
@@ -18,19 +19,19 @@ import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
 import com.scandit.datacapture.frameworks.core.errors.ParameterNullError
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
-import com.scandit.datacapture.frameworks.core.utils.DefaultMainThread
-import com.scandit.datacapture.frameworks.core.utils.MainThread
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
+import com.scandit.datacapture.reactnative.core.utils.ReactNativeMethodCall
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 
-class ScanditDataCaptureCoreModule(
+@ReactModule(name = ScanditDataCaptureCoreModule.NAME)
+open class ScanditDataCaptureCoreModule(
     reactContext: ReactApplicationContext,
     private val serviceLocator: ServiceLocator<FrameworkModule>,
     private val viewManagers: Map<String, ViewGroupManager<*>>,
-    private val mainThread: MainThread = DefaultMainThread.getInstance(),
 ) : ReactContextBaseJavaModule(reactContext) {
 
     companion object {
+        const val NAME = "ScanditDataCaptureCore"
         private const val VERSION_KEY = "Version"
         private const val DEFAULTS_KEY = "Defaults"
 
@@ -45,129 +46,21 @@ class ScanditDataCaptureCoreModule(
         super.invalidate()
     }
 
-    override fun getName(): String = "ScanditDataCaptureCore"
+    override fun getName(): String = NAME
 
-    override fun getConstants(): MutableMap<String, Any> = mutableMapOf(
-        VERSION_KEY to DataCaptureVersion.VERSION_STRING,
-        DEFAULTS_KEY to coreModule.getDefaults()
-    )
-
-    @ReactMethod
-    fun registerListenerForEvents() {
-        coreModule.registerDataCaptureContextListener()
-    }
-
-    @ReactMethod
-    fun unregisterListenerForEvents() {
-        coreModule.unregisterDataCaptureContextListener()
-    }
-
-    @ReactMethod
-    fun registerListenerForCameraEvents() {
-        coreModule.registerFrameSourceListener()
-    }
-
-    @ReactMethod
-    fun unregisterListenerForCameraEvents() {
-        coreModule.unregisterFrameSourceListener()
-    }
-
-    @ReactMethod
-    fun registerListenerForViewEvents(viewId: Int) {
-        coreModule.registerDataCaptureViewListener(viewId)
-    }
-
-    @ReactMethod
-    fun unregisterListenerForViewEvents(viewId: Int) {
-        coreModule.unregisterDataCaptureViewListener(viewId)
-    }
-
-    @ReactMethod
-    fun contextFromJSON(json: String, promise: Promise) {
-        coreModule.createContextFromJson(json, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun updateContextFromJSON(json: String, promise: Promise) {
-        mainThread.runOnMainThread {
-            coreModule.updateContextFromJson(json, ReactNativeResult(promise))
-        }
-    }
-
-    @ReactMethod
-    fun getFrame(frameId: String, promise: Promise) {
-        coreModule.getLastFrameAsJson(frameId, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun dispose() {
-        coreModule.disposeContext()
-    }
-
-    @ReactMethod
-    fun emitFeedback(json: String, promise: Promise) {
-        coreModule.emitFeedback(json, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun viewPointForFramePoint(readableMap: ReadableMap, promise: Promise) {
-        val pointJson = readableMap.getString("point") ?: return promise.reject(
-            ParameterNullError("point")
-        )
-
-        coreModule.viewPointForFramePoint(
-            readableMap.getInt("viewId"),
-            pointJson,
-            ReactNativeResult(promise)
+    override fun getConstants(): MutableMap<String, Any> {
+        return mutableMapOf(
+            VERSION_KEY to DataCaptureVersion.VERSION_STRING,
+            DEFAULTS_KEY to coreModule.getDefaults()
         )
     }
 
     @ReactMethod
-    fun viewQuadrilateralForFrameQuadrilateral(readableMap: ReadableMap, promise: Promise) {
-        val quadrilateralJson = readableMap.getString("quadrilateral") ?: return promise.reject(
-            ParameterNullError("quadrilateral")
+    fun createDataCaptureView(readableMap: ReadableMap, promise: Promise) {
+        val viewJson = readableMap.getString("viewJson") ?: return promise.reject(
+            ParameterNullError("viewJson")
         )
-
-        coreModule.viewQuadrilateralForFrameQuadrilateral(
-            readableMap.getInt("viewId"),
-            quadrilateralJson,
-            ReactNativeResult(promise)
-        )
-    }
-
-    @ReactMethod
-    fun getCurrentCameraState(cameraPosition: String, promise: Promise) {
-        coreModule.getCameraState(cameraPosition, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun isTorchAvailable(cameraPosition: String, promise: Promise) {
-        coreModule.isTorchAvailable(cameraPosition, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun switchCameraToDesiredState(desiredStateJson: String, promise: Promise) {
-        coreModule.switchCameraToDesiredState(desiredStateJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun addModeToContext(modeJson: String, promise: Promise) {
-        coreModule.addModeToContext(modeJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeModeFromContext(modeJson: String, promise: Promise) {
-        coreModule.removeModeFromContext(modeJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun removeAllModesFromContext(promise: Promise) {
-        coreModule.removeAllModes(ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun createDataCaptureView(viewJson: String, promise: Promise) {
-        val viewManager = viewManagers[DataCaptureViewManager::class.java.name] as?
+        val viewManager = viewManagers[DataCaptureViewManager::class.java.simpleName] as?
             DataCaptureViewManager
         if (viewManager == null) {
             promise.reject(VIEW_MANAGER_NULL_ERROR)
@@ -178,13 +71,12 @@ class ScanditDataCaptureCoreModule(
     }
 
     @ReactMethod
-    fun updateDataCaptureView(viewJson: String, promise: Promise) {
-        coreModule.updateDataCaptureView(viewJson, ReactNativeResult(promise))
-    }
-
-    @ReactMethod
-    fun getOpenSourceSoftwareLicenseInfo(promise: Promise) {
-        coreModule.getOpenSourceSoftwareLicenseInfo(ReactNativeResult(promise))
+    fun removeDataCaptureView(
+        @Suppress("unused") readableMap: ReadableMap,
+        promise: Promise
+    ) {
+        // Handled through the ViewManager
+        promise.resolve(null)
     }
 
     @ReactMethod
@@ -197,9 +89,29 @@ class ScanditDataCaptureCoreModule(
         // Keep: Required for RN built in Event Emitter Calls.
     }
 
+    /**
+     * Single entry point for all Core operations.
+     * Routes method calls to the appropriate command via the shared command factory.
+     */
+    @ReactMethod
+    fun executeCore(data: ReadableMap, promise: Promise) {
+        val handled = coreModule.execute(
+            ReactNativeMethodCall(data),
+            ReactNativeResult(promise),
+            coreModule
+        )
+        if (!handled) {
+            val methodName = data.getString("methodName") ?: "unknown"
+            promise.reject(
+                "METHOD_NOT_FOUND",
+                "Unknown Core method: $methodName"
+            )
+        }
+    }
+
     private val coreModule: CoreModule
         get() {
-            return serviceLocator.resolve(CoreModule::class.java.name) as? CoreModule?
+            return serviceLocator.resolve(CoreModule::class.java.simpleName) as? CoreModule?
                 ?: throw ModuleNotStartedError(ScanditDataCaptureCoreModule::class.java.simpleName)
         }
 }

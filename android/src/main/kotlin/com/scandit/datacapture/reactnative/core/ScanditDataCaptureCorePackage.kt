@@ -5,6 +5,7 @@
  */
 package com.scandit.datacapture.reactnative.core
 
+import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
@@ -14,13 +15,16 @@ import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.events.Emitter
 import com.scandit.datacapture.frameworks.core.lifecycle.ActivityLifecycleDispatcher
 import com.scandit.datacapture.frameworks.core.lifecycle.DefaultActivityLifecycle
+import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureContextListener
+import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureViewListener
+import com.scandit.datacapture.frameworks.core.listeners.FrameworksFrameSourceListener
 import com.scandit.datacapture.frameworks.core.locator.DefaultServiceLocator
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeEventEmitter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 
-class ScanditDataCaptureCorePackage : ScanditReactPackageBase() {
+class ScanditDataCaptureCorePackage : ReactPackage {
     private val serviceLocator = DefaultServiceLocator.getInstance()
 
     private val lifecycleDispatcher: ActivityLifecycleDispatcher =
@@ -49,10 +53,12 @@ class ScanditDataCaptureCorePackage : ScanditReactPackageBase() {
         reactContext.addLifecycleEventListener(lifecycleListener)
 
         setupSharedModule(reactContext)
-
-        // Use legacy module for both architectures (Interop Layer)
         return mutableListOf(
-            ScanditDataCaptureCoreModule(reactContext, serviceLocator, viewManagers)
+            ScanditDataCaptureCoreModule(
+                reactContext,
+                serviceLocator,
+                viewManagers,
+            )
         )
     }
 
@@ -61,24 +67,28 @@ class ScanditDataCaptureCorePackage : ScanditReactPackageBase() {
     ): MutableList<ViewManager<*, *>> {
         // Clear existing instances of previously cached viewMangers
         viewManagers.clear()
-        clearCache()
 
         val dcViewManager = DataCaptureViewManager(serviceLocator)
         // Here we register the ViewManagers and allow the different module to access them by
         // using the name.
-        viewManagers[DataCaptureViewManager::class.java.simpleName] = dcViewManager
+        viewManagers[DataCaptureViewManager::class.java.name] = dcViewManager
 
         return mutableListOf(dcViewManager)
     }
 
-    override fun getModuleClasses(): List<Class<out NativeModule>> =
-        listOf(ScanditDataCaptureCoreModule::class.java)
-
     private fun setupSharedModule(reactContext: ReactApplicationContext) {
         lock.lock()
         try {
+            // In React-Native if this function is called again we have to cleanup the existing
+            // instances and re-create them again.
+            serviceLocator.remove(CoreModule::class.java.name)
+
             val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
-            val coreModule = CoreModule.create(eventEmitter)
+            val coreModule = CoreModule.create(
+                FrameworksFrameSourceListener(eventEmitter),
+                FrameworksDataCaptureContextListener(eventEmitter),
+                FrameworksDataCaptureViewListener(eventEmitter)
+            )
             coreModule.onCreate(reactContext)
             serviceLocator.register(coreModule)
         } finally {

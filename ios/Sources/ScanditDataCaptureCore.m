@@ -55,8 +55,11 @@ RCT_EXTERN_METHOD(switchCameraToDesiredState
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(getFrame
-                  : (NSString *)frameId resolve
+RCT_EXTERN_METHOD(getLastFrame
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(getLastFrameOrNull
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
@@ -93,10 +96,6 @@ RCT_EXTERN_METHOD(createDataCaptureView
 
 RCT_EXTERN_METHOD(updateDataCaptureView
                   : (NSString *)viewJson resolve
-                  : (RCTPromiseResolveBlock)resolve reject
-                  : (RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(getOpenSourceSoftwareLicenseInfo
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 

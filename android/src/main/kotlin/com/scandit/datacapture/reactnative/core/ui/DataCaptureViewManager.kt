@@ -9,42 +9,27 @@ package com.scandit.datacapture.reactnative.core.ui
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
-import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.uimanager.ThemedReactContext
-import com.scandit.datacapture.core.json.JsonValue
 import com.scandit.datacapture.core.ui.DataCaptureView
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.errors.ModuleNotStartedError
+import com.scandit.datacapture.frameworks.core.handlers.DataCaptureViewHandler
+import com.scandit.datacapture.frameworks.core.handlers.DefaultDataCaptureViewHandler
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
-import com.scandit.datacapture.reactnative.core.data.ViewCreationRequest
-import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
+import com.scandit.datacapture.frameworks.core.result.NoopFrameworksResult
 
 class DataCaptureViewManager(
     private val serviceLocator: ServiceLocator<FrameworkModule>,
+    private val dataCaptureViewHandler: DataCaptureViewHandler =
+        DefaultDataCaptureViewHandler.getInstance()
 ) : ScanditViewGroupManager<FrameLayout>() {
-    override fun getName(): String = "RNTDataCaptureView"
 
-    private val cachedCreationRequests = mutableMapOf<Int, ViewCreationRequest>()
+    override fun getName(): String = "RNTDataCaptureView"
 
     override fun createNewInstance(reactContext: ThemedReactContext): FrameLayout =
         FrameLayout(reactContext)
-
-    override fun onAfterUpdateTransaction(view: FrameLayout) {
-        super.onAfterUpdateTransaction(view)
-        // This is the point where the ReactNative Id on JS side (findNodeHandle) matches
-        // the id of the container created on native side. If createDataCaptureView was called
-        // before the creation of the instance of the native container, we add an item to
-        // cachedCreationRequests so that, after the creation the view is added to the just
-        // created container.
-        val item = cachedCreationRequests.remove(view.id)
-
-        if (item != null) {
-            coreModule.createDataCaptureView(item.viewJson, ReactNativeResult(item.promise))?.let {
-                addDataCaptureViewToContainer(it, view)
-            }
-        }
-    }
 
     override fun onDropViewInstance(view: FrameLayout) {
         // remove current DCView from core cache
@@ -56,24 +41,27 @@ class DataCaptureViewManager(
         }
 
         super.onDropViewInstance(view)
+
+        currentContainer?.let { container ->
+            dataCaptureViewHandler.topmostDataCaptureView?.let { view ->
+                addDataCaptureViewToContainer(view, container)
+            }
+        }
     }
 
-    fun createDataCaptureView(viewJson: String, promise: Promise) {
-        val viewId = viewJson.getViewId()
-        if (viewId == -1) {
-            promise.reject(VIEW_ID_NOT_FOUND_IN_JSON_ERROR)
-            return
-        }
+    override fun getCommandsMap(): MutableMap<String, Int> = mutableMapOf(
+        CREATE_FRAGMENT_COMMAND to CREATE_FRAGMENT_COMMAND_INDEX
+    )
 
-        val container = containers.firstOrNull { it.id == viewId }
+    override fun receiveCommand(root: FrameLayout, commandId: String?, args: ReadableArray?) {
+        if (commandId == CREATE_FRAGMENT_COMMAND) {
+            val viewJson = args?.getString(0) ?: return
 
-        if (container == null) {
-            cachedCreationRequests[viewId] = ViewCreationRequest(viewId, viewJson, promise)
-            return
-        }
-
-        coreModule.createDataCaptureView(viewJson, ReactNativeResult(promise))?.let {
-            addDataCaptureViewToContainer(it, container)
+            coreModule.createDataCaptureView(viewJson, NoopFrameworksResult())?.let {
+                currentContainer?.let { container ->
+                    addDataCaptureViewToContainer(it, container)
+                }
+            }
         }
     }
 
@@ -110,12 +98,7 @@ class DataCaptureViewManager(
         }
 
     companion object {
-        private val VIEW_ID_NOT_FOUND_IN_JSON_ERROR = Error(
-            "Unable to add the DataCaptureView with the provided json. " +
-                "The json doesn't contain the viewId field."
-        )
+        private const val CREATE_FRAGMENT_COMMAND_INDEX = 1
+        private const val CREATE_FRAGMENT_COMMAND = "createDataCaptureView"
     }
 }
-
-fun String.getViewId(): Int =
-    JsonValue(this).getByKeyAsInt("viewId", -1)

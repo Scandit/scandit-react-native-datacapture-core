@@ -14,7 +14,7 @@ import com.facebook.react.uimanager.ViewGroupManager
 
 abstract class ScanditViewGroupManager<T> :
     ViewGroupManager<T>() where T : ViewGroup {
-    protected val containers = mutableListOf<T>()
+    private val containers = mutableListOf<T>()
 
     val currentContainer: T?
         get() = if (containers.size > 0) containers[containers.size - 1] else null
@@ -61,7 +61,7 @@ abstract class ScanditViewGroupManager<T> :
     /**
      * XXX RN is not calling measure() and layout() methods on dynamically added native Android
      * Views. That's why we need to call those methods on our container (and it's children)
-     * ourselves - otherwise the views added by the BarcodeBatchAdvancedOverlay won't be visible.
+     * ourselves - otherwise the views added by the BarcodeTrackingAdvancedOverlay won't be visible.
      * The hack has been taken from: https://github.com/facebook/react-native/issues/17968
      */
     private fun scheduleMeasureAndLayout() {

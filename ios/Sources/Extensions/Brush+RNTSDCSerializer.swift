@@ -8,9 +8,11 @@ import Foundation
 import ScanditCaptureCore
 
 extension Brush {
-    public var rntsdc_dictionary: [String: Any] {
-        return ["fillColor": fillColor.sdcHexString,
-                "strokeColor": strokeColor.sdcHexString,
-                "strokeWidth": strokeWidth]
+    public var rntsdcDictionary: [String: Any] {
+        [
+            "fillColor": fillColor.sdcHexString,
+            "strokeColor": strokeColor.sdcHexString,
+            "strokeWidth": strokeWidth,
+        ]
     }
 }

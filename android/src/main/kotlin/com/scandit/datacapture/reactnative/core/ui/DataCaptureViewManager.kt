@@ -99,7 +99,7 @@ class DataCaptureViewManager(
 
     private val coreModule: CoreModule
         get() {
-            return serviceLocator.resolve(CoreModule::class.java.simpleName) as? CoreModule?
+            return serviceLocator.resolve(CoreModule::class.java.name) as? CoreModule?
                 ?: throw ModuleNotStartedError(DataCaptureViewManager::class.java.simpleName)
         }
 

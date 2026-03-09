@@ -73,12 +73,12 @@ RCT_EXTERN_METHOD(subscribeContextListener)
 RCT_EXTERN_METHOD(unsubscribeContextListener)
 
 RCT_EXTERN_METHOD(registerListenerForViewEvents
-                  : (NSInteger)viewId resolve
+                  : (NSDictionary *)data resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(unregisterListenerForViewEvents
-                  : (NSInteger)viewId resolve
+                  : (NSDictionary *)data resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
@@ -97,12 +97,17 @@ RCT_EXTERN_METHOD(removeAllModes
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(createDataCaptureView
-                  : (NSString *)viewJson resolve
+                  : (NSDictionary *)data resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(updateDataCaptureView
-                  : (NSString *)viewJson resolve
+                  : (NSDictionary *)data resolve
+                  : (RCTPromiseResolveBlock)resolve reject
+                  : (RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(removeDataCaptureView
+                  : (NSDictionary *)data resolve
                   : (RCTPromiseResolveBlock)resolve reject
                   : (RCTPromiseRejectBlock)reject)
 

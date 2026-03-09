@@ -1,5 +1,6 @@
 import React from 'react';
-import { Control, FocusGesture, LogoStyle, MarginsWithUnit, Point, PointWithUnit, Quadrilateral, Size, ZoomGesture, Serializeable } from 'scandit-datacapture-frameworks-core';
+import { StyleProp, ViewStyle } from 'react-native';
+import { Control, FocusGesture, LogoStyle, MarginsWithUnit, Point, PointWithUnit, BaseDataCaptureView, Quadrilateral, Size, ZoomGesture, Serializeable } from 'scandit-datacapture-frameworks-core';
 import { Anchor, Orientation } from 'scandit-datacapture-frameworks-core';
 import { DataCaptureContext } from 'scandit-datacapture-frameworks-core';
 export interface DataCaptureOverlay extends Serializeable {
@@ -9,11 +10,11 @@ export interface DataCaptureViewListener {
 }
 interface DataCaptureViewProps {
     context: DataCaptureContext;
-    style: any;
+    style: StyleProp<ViewStyle>;
     parentId?: number;
 }
 export declare class DataCaptureView extends React.Component<DataCaptureViewProps> {
-    private view;
+    protected view: BaseDataCaptureView;
     private _isMounted;
     constructor(props: DataCaptureViewProps);
     get scanAreaMargins(): MarginsWithUnit;
@@ -30,19 +31,19 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     set focusGesture(newValue: FocusGesture | null);
     get zoomGesture(): ZoomGesture | null;
     set zoomGesture(newValue: ZoomGesture | null);
-    addOverlay(overlay: DataCaptureOverlay): void;
-    removeOverlay(overlay: DataCaptureOverlay): void;
+    addOverlay(overlay: DataCaptureOverlay): Promise<void>;
+    removeOverlay(overlay: DataCaptureOverlay): Promise<void>;
     addListener(listener: DataCaptureViewListener): void;
     removeListener(listener: DataCaptureViewListener): void;
     viewPointForFramePoint(point: Point): Promise<Point>;
     viewQuadrilateralForFrameQuadrilateral(quadrilateral: Quadrilateral): Promise<Quadrilateral>;
-    addControl(control: Control): void;
+    addControl(control: Control): Promise<void>;
     addControlWithAnchorAndOffset(control: Control, anchor: Anchor, offset: PointWithUnit): void;
     removeControl(control: Control): void;
     componentWillUnmount(): void;
     componentDidMount(): void;
     render(): React.JSX.Element;
+    protected removeAllOverlays(): void;
     private createDataCaptureView;
-    private removeAllOverlays;
 }
 export {};

@@ -24,7 +24,7 @@ class RNTSDCDataCaptureViewWrapper: UIView {
     }
 
     public func findFirstSubview<T: UIView>(ofType type: T.Type) -> T? {
-        self.subviews.first { $0 is T } as? T
+        return self.subviews.first { $0 is T } as? T
     }
 
     override func didMoveToSuperview() {
@@ -50,7 +50,12 @@ class RNTSDCDataCaptureViewManager: RCTViewManager, DeserializationLifeCycleObse
     static var containers: [RNTSDCDataCaptureViewWrapper] = []
 
     override class func requiresMainQueueSetup() -> Bool {
-        true
+        // Returning false prevents RCTUnsafeExecuteOnMainQueueSync from being called
+        // during LegacyViewManagerInteropComponentDescriptor initialization in Fabric,
+        // which can cause a deadlock when the main thread tries to acquire the
+        // ComponentDescriptorRegistry mutex while the JS thread holds it.
+        // See: https://github.com/facebook/react-native/issues/53128
+        false
     }
 
     override func view() -> UIView! {

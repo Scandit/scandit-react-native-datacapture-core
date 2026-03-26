@@ -1,14 +1,25 @@
-import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeEventEmitter, Platform, NativeModules, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
+import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView } from './core.js';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, ClusteringMode, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
+import { NativeEventEmitter, Platform, NativeModules, TurboModuleRegistry, InteractionManager, findNodeHandle, requireNativeComponent } from 'react-native';
 import React from 'react';
 
 class RNNativeCaller {
     nativeModule;
-    nativeEventEmitter;
+    _nativeEventEmitter = null;
     constructor(nativeModule) {
         this.nativeModule = nativeModule;
-        this.nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
+    }
+    /**
+     * Lazily creates the NativeEventEmitter only when needed (old architecture fallback).
+     * Avoids the "NativeEventEmitter was called with a non-null argument without the
+     * required addListener method" warning that fires when eagerly constructing the
+     * emitter for TurboModule-based native modules.
+     */
+    get nativeEventEmitter() {
+        if (!this._nativeEventEmitter) {
+            this._nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
+        }
+        return this._nativeEventEmitter;
     }
     get framework() {
         return 'react-native';
@@ -28,6 +39,18 @@ class RNNativeCaller {
         return fn(args);
     }
     registerEvent(evName, handler) {
+        const newArchModule = this.nativeModule;
+        // New architecture: use CodegenTypes.EventEmitter (onScanditEvent)
+        // Each subscription filters by event name
+        if (newArchModule.onScanditEvent) {
+            const subscription = newArchModule.onScanditEvent((event) => {
+                if (event.name === evName) {
+                    void handler(event);
+                }
+            });
+            return Promise.resolve(subscription);
+        }
+        // Old architecture fallback: one listener per event name via NativeEventEmitter
         return Promise.resolve(this.nativeEventEmitter.addListener(evName, (event) => {
             // Fire-and-forget: intentionally not awaiting to match NativeEventEmitter's sync signature
             void handler(event);
@@ -63,22 +86,59 @@ function initCoreProxy() {
 }
 
 function getNativeModule(name) {
-    const mod = NativeModules[name];
-    if (!mod) {
-        throw new Error(`Module ${name} not found`);
+    let mod = null;
+    // Try TurboModuleRegistry first (new architecture)
+    // Available in RN 0.70+
+    if (typeof TurboModuleRegistry !== 'undefined' && TurboModuleRegistry.get) {
+        // Try the module name directly first
+        mod = TurboModuleRegistry.get(name);
+        if (mod) {
+            return mod;
+        }
+        // Try with "Native" prefix (TurboModules naming convention)
+        const nativeName = `Native${name}`;
+        mod = TurboModuleRegistry.get(nativeName);
+        if (mod) {
+            return mod;
+        }
     }
-    return mod;
+    // Fallback to NativeModules (legacy architecture)
+    mod = NativeModules[name];
+    if (mod) {
+        return mod;
+    }
+    throw new Error(`Module ${name} not found. Ensure the native module is properly linked.`);
+}
+function getModuleDefaults(name) {
+    const mod = getNativeModule(name);
+    // Constants are automatically merged by React Native
+    const defaults = mod.Defaults;
+    if (defaults) {
+        // Our modules will always be returned by Defaults property, the legacy
+        // code is there just to ensure compatibility with older versions of React Native.
+        return defaults;
+    }
+    // Fallback: Try getConstants() directly
+    if (typeof mod.getConstants === 'function') {
+        const constants = mod.getConstants();
+        if (constants?.Defaults) {
+            return constants.Defaults;
+        }
+    }
+    throw new Error(`Could not load Defaults from module ${name}`);
 }
 
-const NativeModule$1 = getNativeModule('ScanditDataCaptureCore');
 function initCoreDefaults() {
-    loadCoreDefaults(NativeModule$1.Defaults);
+    // Use helper to get defaults with fallback logic
+    const defaults = getModuleDefaults('ScanditDataCaptureCore');
+    loadCoreDefaults(defaults);
 }
+setCoreDefaultsLoader(initCoreDefaults);
 
 const NativeModule = getNativeModule('ScanditDataCaptureCore');
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '8.1.3';
+        return '8.3.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -137,6 +197,15 @@ class DataCaptureView extends React.Component {
     set zoomGesture(newValue) {
         this.view.zoomGesture = newValue;
     }
+    get shouldShowZoomNotification() {
+        return this.view.shouldShowZoomNotification;
+    }
+    set shouldShowZoomNotification(newValue) {
+        this.view.shouldShowZoomNotification = newValue;
+    }
+    setProperty(name, value) {
+        this.view.setProperty(name, value);
+    }
     addOverlay(overlay) {
         return this.view.addOverlay(overlay);
     }
@@ -194,5 +263,5 @@ const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView');
 initCoreDefaults();
 initCoreProxy();
 
-export { DataCaptureVersion, DataCaptureView, RNNativeCaller, createRNNativeCaller, getNativeModule, initCoreDefaults, initCoreProxy };
+export { DataCaptureVersion, DataCaptureView, RNNativeCaller, createRNNativeCaller, getModuleDefaults, getNativeModule, initCoreDefaults, initCoreProxy };
 //# sourceMappingURL=index.js.map

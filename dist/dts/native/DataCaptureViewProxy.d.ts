@@ -1,4 +1,4 @@
-import { DataCaptureViewProxy, BaseNativeProxy, NativeCallResult } from 'scandit-datacapture-frameworks-core';
+import { DataCaptureViewProxy, BaseNativeProxy } from 'scandit-datacapture-frameworks-core';
 export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implements DataCaptureViewProxy {
     private nativeListeners;
     constructor();
@@ -6,17 +6,11 @@ export declare class NativeDataCaptureViewProxy extends BaseNativeProxy implemen
     removeOverlay(overlayJson: string): Promise<void>;
     createView(viewJson: string): Promise<void>;
     updateView(viewJson: string): Promise<void>;
-    removeView(viewId: number): Promise<void>;
-    viewPointForFramePoint({ viewId, pointJson }: {
-        viewId: number;
-        pointJson: string;
-    }): Promise<NativeCallResult>;
-    viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateralJson }: {
-        viewId: number;
-        quadrilateralJson: string;
-    }): Promise<NativeCallResult>;
-    registerListenerForViewEvents(viewId: number): void;
-    unregisterListenerForViewEvents(viewId: number): void;
+    removeView(): Promise<void>;
+    viewPointForFramePoint(pointJson: string): Promise<string>;
+    viewQuadrilateralForFrameQuadrilateral(quadrilateralJson: string): Promise<string>;
+    registerListenerForViewEvents(): void;
+    unregisterListenerForViewEvents(): void;
     subscribeDidChangeSize(): void;
     setPositionAndSize(top: number, left: number, width: number, height: number, shouldBeUnderWebView: boolean): Promise<void>;
     show(): Promise<void>;

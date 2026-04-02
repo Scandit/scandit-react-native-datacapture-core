@@ -10,11 +10,9 @@ export interface DataCaptureViewListener {
 interface DataCaptureViewProps {
     context: DataCaptureContext;
     style: any;
-    parentId?: number;
 }
 export declare class DataCaptureView extends React.Component<DataCaptureViewProps> {
     private view;
-    private _isMounted;
     constructor(props: DataCaptureViewProps);
     get scanAreaMargins(): MarginsWithUnit;
     set scanAreaMargins(newValue: MarginsWithUnit);
@@ -43,6 +41,5 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     componentDidMount(): void;
     render(): React.JSX.Element;
     private createDataCaptureView;
-    private removeAllOverlays;
 }
 export {};

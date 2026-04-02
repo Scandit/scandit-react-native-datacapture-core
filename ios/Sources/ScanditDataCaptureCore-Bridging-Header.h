@@ -4,9 +4,6 @@
  * Copyright (C) 2020- Scandit AG. All rights reserved.
  */
 
-#import "SDCLogger.h"
-#import "ScanditDataCaptureCore.h"
-#import "SDCTurboModuleEventBridge.h"
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
 #import <React/RCTViewManager.h>

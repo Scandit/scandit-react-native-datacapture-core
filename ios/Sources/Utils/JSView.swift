@@ -21,8 +21,9 @@ public struct JSView {
 
     public init(with dictionary: [String: Any]) throws {
         guard
-            let moduleName = dictionary[CodingKeys.moduleName.rawValue] as? String else {
-                throw DeserializationError.keyNotFound(CodingKeys.moduleName.rawValue)
+            let moduleName = dictionary[CodingKeys.moduleName.rawValue] as? String
+        else {
+            throw DeserializationError.keyNotFound(CodingKeys.moduleName.rawValue)
         }
         self.moduleName = moduleName
         initialProperties = (dictionary[CodingKeys.initialProperties.rawValue] as? [String: Any]) ?? [:]

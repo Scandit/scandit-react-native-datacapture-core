@@ -8,12 +8,14 @@ import Foundation
 import ScanditCaptureCore
 
 extension CameraSettings {
-    public var rntsdc_dictionary: [String: Any] {
-        return ["preferredResolution": preferredResolution.jsonString,
-                "zoomFactor": zoomFactor,
-                "focusRange": focusRange.jsonString,
-                "shouldPreferSmoothAutoFocus": shouldPreferSmoothAutoFocus,
-                "zoomGestureZoomFactor": zoomGestureZoomFactor,
-                "focusGestureStrategy": focusGestureStrategy.jsonString]
+    public var rntsdcDictionary: [String: Any] {
+        [
+            "preferredResolution": preferredResolution.jsonString,
+            "zoomFactor": zoomFactor,
+            "focusRange": focusRange.jsonString,
+            "shouldPreferSmoothAutoFocus": shouldPreferSmoothAutoFocus,
+            "zoomGestureZoomFactor": zoomGestureZoomFactor,
+            "focusGestureStrategy": focusGestureStrategy.jsonString,
+        ]
     }
 }

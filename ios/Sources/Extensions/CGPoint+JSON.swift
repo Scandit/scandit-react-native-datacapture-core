@@ -8,13 +8,13 @@ import Foundation
 
 extension CGPoint {
     var jsonString: String {
-        """
+        return """
         {"x": \(x), "y":\(y)}
         """
     }
 
     init?(json: String) {
-        guard let data = json.data(using: .utf8) else { return nil }
+        guard let data = json.data(using: .utf8) else { return nil}
         guard let object = try? JSONSerialization.jsonObject(with: data, options: []) else { return nil }
         let point = RCTConvert.cgPoint(object)
 

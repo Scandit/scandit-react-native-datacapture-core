@@ -24,7 +24,7 @@ class RNTSDCDataCaptureViewWrapper: UIView {
     }
 
     public func findFirstSubview<T: UIView>(ofType type: T.Type) -> T? {
-        self.subviews.first { $0 is T } as? T
+        return self.subviews.first { $0 is T } as? T
     }
 
     override func didMoveToSuperview() {

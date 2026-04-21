@@ -20,4 +20,3 @@ export { FontFamily } from 'scandit-datacapture-frameworks-core';
 export { TextAlignment } from 'scandit-datacapture-frameworks-core';
 export { ScanditIcon, ScanditIconShape, ScanditIconType, ScanditIconBuilder } from 'scandit-datacapture-frameworks-core';
 export * from './native/RNNativeCaller';
-export * from './native/ScanditNativeModule';

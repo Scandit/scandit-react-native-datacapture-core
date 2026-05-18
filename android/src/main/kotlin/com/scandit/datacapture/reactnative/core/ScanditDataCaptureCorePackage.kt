@@ -5,56 +5,66 @@
  */
 package com.scandit.datacapture.reactnative.core
 
-import com.facebook.react.ReactPackage
+import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.uimanager.ViewGroupManager
 import com.facebook.react.uimanager.ViewManager
-import com.scandit.datacapture.frameworks.core.CoreModule
-import com.scandit.datacapture.frameworks.core.events.Emitter
-import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureContextListener
-import com.scandit.datacapture.frameworks.core.listeners.FrameworksDataCaptureViewListener
-import com.scandit.datacapture.frameworks.core.listeners.FrameworksFrameSourceListener
+import com.scandit.datacapture.frameworks.core.lifecycle.ActivityLifecycleDispatcher
+import com.scandit.datacapture.frameworks.core.lifecycle.DefaultActivityLifecycle
 import com.scandit.datacapture.frameworks.core.locator.DefaultServiceLocator
 import com.scandit.datacapture.reactnative.core.ui.DataCaptureViewManager
-import com.scandit.datacapture.reactnative.core.utils.ReactNativeEventEmitter
-import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.ConcurrentHashMap
 
-class ScanditDataCaptureCorePackage : ReactPackage {
+class ScanditDataCaptureCorePackage : ScanditReactPackageBase() {
     private val serviceLocator = DefaultServiceLocator.getInstance()
+
+    private val lifecycleDispatcher: ActivityLifecycleDispatcher =
+        DefaultActivityLifecycle.getInstance()
+
+    private val viewManagers: MutableMap<String, ViewGroupManager<*>> = ConcurrentHashMap()
+
+    private val lifecycleListener = object : LifecycleEventListener {
+        override fun onHostResume() {
+            lifecycleDispatcher.dispatchOnResume()
+        }
+
+        override fun onHostPause() {
+            lifecycleDispatcher.dispatchOnPause()
+        }
+
+        override fun onHostDestroy() {
+            lifecycleDispatcher.dispatchOnDestroy()
+        }
+    }
 
     override fun createNativeModules(
         reactContext: ReactApplicationContext
     ): MutableList<NativeModule> {
-        setupSharedModule(reactContext)
+        // Register to receive lifecycle events
+        reactContext.addLifecycleEventListener(lifecycleListener)
+
+        // Module sets up its own shared CoreModule in init
         return mutableListOf(
-            ScanditDataCaptureCoreModule(
-                reactContext,
-                serviceLocator,
-            )
+            ScanditDataCaptureCoreModule(reactContext, serviceLocator, viewManagers)
         )
     }
 
     override fun createViewManagers(
         reactContext: ReactApplicationContext
-    ): MutableList<ViewManager<*, *>> = mutableListOf(DataCaptureViewManager(serviceLocator))
+    ): MutableList<ViewManager<*, *>> {
+        // Clear existing instances of previously cached viewMangers
+        viewManagers.clear()
+        clearCache()
 
-    private fun setupSharedModule(reactContext: ReactApplicationContext) {
-        lock.lock()
-        try {
-            val eventEmitter: Emitter = ReactNativeEventEmitter(reactContext)
-            val coreModule = CoreModule.create(
-                FrameworksFrameSourceListener(eventEmitter),
-                FrameworksDataCaptureContextListener(eventEmitter),
-                FrameworksDataCaptureViewListener(eventEmitter)
-            )
-            coreModule.onCreate(reactContext)
-            serviceLocator.register(coreModule)
-        } finally {
-            lock.unlock()
-        }
+        val dcViewManager = DataCaptureViewManager(serviceLocator)
+        // Here we register the ViewManagers and allow the different module to access them by
+        // using the name.
+        viewManagers[DataCaptureViewManager::class.java.simpleName] = dcViewManager
+
+        return mutableListOf(dcViewManager)
     }
 
-    companion object {
-        private val lock: ReentrantLock = ReentrantLock()
-    }
+    override fun getModuleClasses(): List<Class<out NativeModule>> =
+        listOf(ScanditDataCaptureCoreModule::class.java)
 }

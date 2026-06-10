@@ -29,15 +29,8 @@ export declare class DataCaptureView extends React.Component<DataCaptureViewProp
     set logoOffset(newValue: PointWithUnit);
     get focusGesture(): FocusGesture | null;
     set focusGesture(newValue: FocusGesture | null);
-    get zoomGestures(): ZoomGesture[];
-    set zoomGestures(newValue: ZoomGesture[]);
-    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
     get zoomGesture(): ZoomGesture | null;
-    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
     set zoomGesture(newValue: ZoomGesture | null);
-    get shouldShowZoomNotification(): boolean;
-    set shouldShowZoomNotification(newValue: boolean);
-    setProperty<T>(name: string, value: T): void;
     addOverlay(overlay: DataCaptureOverlay): Promise<void>;
     removeOverlay(overlay: DataCaptureOverlay): Promise<void>;
     addListener(listener: DataCaptureViewListener): void;

@@ -12,7 +12,10 @@ import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEm
 import com.scandit.datacapture.frameworks.core.events.Emitter
 import org.json.JSONObject
 
-// To DI the event emitter, but avoid calling getJSModule before a module's initialize()
+/**
+ * Old architecture event emitter that uses RCTDeviceEventEmitter.
+ * Events are emitted via the React Native bridge.
+ */
 class ReactNativeEventEmitter(private val reactContext: ReactApplicationContext) : Emitter {
     private val delegate by lazy { reactContext.getJSModule<RCTDeviceEventEmitter>() }
 

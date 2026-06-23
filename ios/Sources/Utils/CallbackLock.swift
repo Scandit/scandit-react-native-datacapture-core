@@ -39,7 +39,7 @@ public class CallbackLock<ResultType> {
         condition.lock()
         while !isCallbackFinished {
             if !condition.wait(until: timeoutDate) {
-                LogWarn("Waited for \(name) to finish for \(timeout) seconds")
+                SDCLogger.warn("Waited for \(name) to finish for \(timeout) seconds")
                 isCallbackFinished = true
             }
         }

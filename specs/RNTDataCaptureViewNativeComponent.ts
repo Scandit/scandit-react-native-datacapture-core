@@ -6,9 +6,6 @@
 
 import { codegenNativeComponent, type HostComponent, type ViewProps } from 'react-native';
 
-
 export interface NativeProps extends ViewProps {}
 
-export default codegenNativeComponent<NativeProps>(
-  'RNTDataCaptureView'
-) as HostComponent<NativeProps>;
+export default codegenNativeComponent<NativeProps>('RNTDataCaptureView') as HostComponent<NativeProps>;

@@ -1,4 +1,4 @@
-import { NativeModule } from "react-native";
+import { NativeModule } from 'react-native';
 export interface ScanditNativeModule extends NativeModule {
     [key: string]: any;
 }

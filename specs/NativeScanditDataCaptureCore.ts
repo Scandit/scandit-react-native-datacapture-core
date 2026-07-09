@@ -1,5 +1,5 @@
-import {TurboModule, TurboModuleRegistry} from 'react-native';
-import type {EventEmitter} from 'react-native/Libraries/Types/CodegenTypes';
+import { TurboModule, TurboModuleRegistry } from 'react-native';
+import type { EventEmitter } from 'react-native/Libraries/Types/CodegenTypes';
 
 /**
  * Unified event payload for all Scandit events.
@@ -33,4 +33,3 @@ export interface Spec extends TurboModule {
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('ScanditDataCaptureCore');
-

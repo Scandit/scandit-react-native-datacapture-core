@@ -1,7 +1,7 @@
-import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, ClusteringMode, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
-import { NativeEventEmitter, Platform, NativeModules, TurboModuleRegistry, findNodeHandle, requireNativeComponent } from 'react-native';
-import React from 'react';
+import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView, DataCaptureContext, TorchState, CameraPosition, FrameSourceState, Camera } from './core.js';
+export { AimerViewfinder, Anchor, Brush, CameraSettings, ClusteringMode, Color, ContextStatus, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, SelectionMode, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
+import { NativeEventEmitter, Platform, NativeModules, TurboModuleRegistry, findNodeHandle, requireNativeComponent, AppState, PermissionsAndroid } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, createContext, useContext, useRef } from 'react';
 
 class RNNativeCaller {
     nativeModule;
@@ -138,7 +138,7 @@ setCoreDefaultsLoader(initCoreDefaults);
 const NativeModule = getNativeModule('ScanditDataCaptureCore');
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '8.4.1';
+        return '8.5.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -279,8 +279,739 @@ class DataCaptureView extends React.Component {
 }
 const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView');
 
+/**
+ * Returns whether the app is currently in the foreground.
+ * Useful for composing the `isActive` prop on scanning views:
+ *
+ * ```tsx
+ * const isForeground = useIsForeground();
+ * const isFocused = useIsFocused(); // from @react-navigation/native
+ * <BarcodeCaptureView isActive={isFocused && isForeground} ... />
+ * ```
+ */
+function useIsForeground() {
+    const [isForeground, setIsForeground] = useState(() => AppState.currentState === 'active');
+    useEffect(() => {
+        const onChange = (state) => {
+            setIsForeground(state === 'active');
+        };
+        const subscription = AppState.addEventListener('change', onChange);
+        return () => subscription.remove();
+    }, []);
+    return isForeground;
+}
+
+function mapAndroidResult(result) {
+    switch (result) {
+        case PermissionsAndroid.RESULTS.GRANTED:
+            return 'granted';
+        case PermissionsAndroid.RESULTS.DENIED:
+            return 'denied';
+        case PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN:
+            return 'restricted';
+        default:
+            return 'not-determined';
+    }
+}
+async function checkAndroidPermission() {
+    const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
+    return granted ? 'granted' : 'not-determined';
+}
+async function requestAndroidPermission() {
+    const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+    return mapAndroidResult(result);
+}
+/**
+ * Manages camera permission status.
+ *
+ * **Android**: real status via `PermissionsAndroid`; `requestPermission()` shows the native
+ * prompt; status re-checked when the app returns to the foreground (e.g. user flipped it
+ * in Settings).
+ *
+ * **iOS**: limited. Without a platform-specific native module we can't query
+ * `AVCaptureDevice.authorizationStatus` or drive the system prompt directly — iOS
+ * handles the permission dialog automatically the first time the camera is accessed.
+ * On iOS this hook returns `permissionStatus: 'not-determined'` initially and
+ * optimistically flips to `'granted'` after `requestPermission()` is called.
+ * It cannot detect denials after-the-fact; consumers should treat the iOS camera-start
+ * flow as the authoritative signal (surfaced via `<BarcodeCaptureView onError={...} />`).
+ *
+ * ```tsx
+ * const { hasPermission, requestPermission } = useCameraPermission();
+ * if (!hasPermission) return <Button onPress={requestPermission} title="Grant Camera Access" />;
+ * ```
+ */
+function useCameraPermission() {
+    const [status, setStatus] = useState(Platform.OS === 'android' ? 'not-determined' : 'not-determined');
+    const refresh = useCallback(async () => {
+        if (Platform.OS !== 'android')
+            return;
+        setStatus(await checkAndroidPermission());
+    }, []);
+    useEffect(() => {
+        void refresh();
+    }, [refresh]);
+    // Re-check when returning from Settings (Android only — iOS can't be introspected).
+    useEffect(() => {
+        if (Platform.OS !== 'android')
+            return;
+        const onChange = (state) => {
+            if (state === 'active') {
+                void refresh();
+            }
+        };
+        const subscription = AppState.addEventListener('change', onChange);
+        return () => subscription.remove();
+    }, [refresh]);
+    const requestPermission = useCallback(async () => {
+        if (Platform.OS === 'android') {
+            const result = await requestAndroidPermission();
+            setStatus(result);
+            return result === 'granted';
+        }
+        // iOS: we can't drive the prompt from JS. Flip optimistically to 'granted';
+        // the native camera access triggers the iOS dialog automatically, and denial
+        // surfaces as a camera-start failure (hook into `BarcodeCaptureView.onError`).
+        setStatus('granted');
+        return true;
+    }, []);
+    return {
+        hasPermission: status === 'granted',
+        permissionStatus: status,
+        requestPermission,
+    };
+}
+
+/**
+ * Initializes (or retrieves) the DataCaptureContext singleton.
+ *
+ * ```tsx
+ * const settings = useMemo(() => new DataCaptureContextSettings(), []);
+ * const context = useScanditContext('YOUR_LICENSE_KEY', { settings });
+ * ```
+ */
+function useScanditContext(licenseKey, options) {
+    const context = useMemo(() => DataCaptureContext.initialize(licenseKey, options?.creationOptions ?? null, options?.settings ?? null), 
+    // The context is a singleton; init runs once per license key. `settings`
+    // and `creationOptions` are intentionally excluded — settings are pushed
+    // by the effect below, creationOptions are init-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [licenseKey]);
+    // Re-apply settings whenever the consumer hands us a new instance. The
+    // first call here is redundant with the init above (same instance) — it's
+    // a no-op in native. Subsequent changes propagate to the running context.
+    useEffect(() => {
+        if (options?.settings)
+            void context.applySettings(options.settings);
+    }, [context, options?.settings]);
+    return context;
+}
+
+const DEFAULT_TORCH = TorchState.Off;
+const DEFAULT_POSITION = CameraPosition.WorldFacing;
+const DEFAULT_FRAME_SOURCE_STATE = FrameSourceState.On;
+function createCameraOwner(context) {
+    let camera = null;
+    let position = null;
+    let desiredTorch = DEFAULT_TORCH;
+    let desiredState = DEFAULT_FRAME_SOURCE_STATE;
+    let queue = Promise.resolve();
+    const enqueue = (op) => {
+        queue = queue.then(op).catch(err => console.warn('ScanditProvider: camera operation failed', err));
+        return queue;
+    };
+    // `Camera.atPosition` is a process-wide singleton, so any other
+    // DataCaptureContext can grab it via `setFrameSource(...)` while we're idle.
+    // Rebind only when the camera isn't ours anymore — otherwise a no-op.
+    const isOurs = (cam) => cam.context === context;
+    // Bind `camera` to our context and push our cached desired state.
+    // Used after a fresh `Camera.atPosition(...)` and to reclaim a stolen camera.
+    const bind = async () => {
+        if (camera === null)
+            return;
+        camera.desiredTorchState = desiredTorch;
+        await context.setFrameSource(camera);
+        await camera.switchToDesiredState(desiredState);
+    };
+    const reclaimIfNeeded = async () => {
+        if (camera !== null && !isOurs(camera))
+            await bind();
+    };
+    return {
+        setPosition(next) {
+            void enqueue(async () => {
+                if (camera !== null && position === next) {
+                    await reclaimIfNeeded();
+                    return;
+                }
+                if (camera !== null)
+                    await camera.switchToDesiredState(FrameSourceState.Off);
+                camera = Camera.atPosition(next);
+                position = next;
+                await bind();
+            });
+        },
+        setTorch(next) {
+            void enqueue(async () => {
+                desiredTorch = next;
+                await reclaimIfNeeded();
+                if (camera !== null)
+                    camera.desiredTorchState = next;
+            });
+        },
+        setFrameSourceState(next) {
+            void enqueue(async () => {
+                desiredState = next;
+                await reclaimIfNeeded();
+                if (camera !== null)
+                    await camera.switchToDesiredState(next);
+            });
+        },
+        reclaimIfNeeded() {
+            void enqueue(reclaimIfNeeded);
+        },
+        dispose() {
+            return enqueue(async () => {
+                const cam = camera;
+                camera = null;
+                // Skip `setFrameSource(null)` if we don't own the camera — it would
+                // yank it away from whichever context holds it now.
+                if (cam !== null && isOurs(cam)) {
+                    await cam.switchToDesiredState(FrameSourceState.Off);
+                    await context.setFrameSource(null);
+                }
+                await context.dispose();
+            });
+        },
+    };
+}
+const ScanditInternalContext = createContext(null);
+/** Reflects a provider's camera-related props onto the singleton camera. */
+function useApplyCameraProps(owner, props) {
+    const { frameSourceState, torchState, cameraPosition } = props;
+    useEffect(() => {
+        if (cameraPosition !== undefined)
+            owner.setPosition(cameraPosition);
+    }, [owner, cameraPosition]);
+    useEffect(() => {
+        if (torchState !== undefined)
+            owner.setTorch(torchState);
+    }, [owner, torchState]);
+    useEffect(() => {
+        if (frameSourceState !== undefined)
+            owner.setFrameSourceState(frameSourceState);
+    }, [owner, frameSourceState]);
+}
+/**
+ * Provides a `DataCaptureContext` and a singleton `Camera` to descendant AIO views.
+ *
+ * - **Root** (no parent `<ScanditProvider>` above): creates the context + camera,
+ *   disposes them on unmount.
+ * - **Nested**: applies its own `frameSourceState` / `torchState` / `cameraPosition`
+ *   props to the same singleton camera. Last writer wins; values are not reverted
+ *   when a nested provider unmounts.
+ *
+ * The camera is recreated only when `cameraPosition` flips; torch and
+ * `frameSourceState` are applied directly to the live camera.
+ *
+ * ```tsx
+ * <ScanditProvider licenseKey={KEY}>
+ *   <NavigationContainer> ... </NavigationContainer>
+ * </ScanditProvider>
+ *
+ * // Screen-local control:
+ * <ScanditProvider
+ *   frameSourceState={isFocused ? FrameSourceState.On : FrameSourceState.Off}
+ *   torchState={torch}
+ *   cameraPosition={position}>
+ *   <BarcodeCaptureView state="enabled" ... />
+ * </ScanditProvider>
+ * ```
+ */
+function ScanditProvider(props) {
+    const parent = useContext(ScanditInternalContext);
+    if (parent !== null) {
+        return React.createElement(NestedScanditProvider, { ...props, parent: parent });
+    }
+    if (!props.licenseKey) {
+        throw new Error('<ScanditProvider> requires a `licenseKey` prop when used as the root provider.');
+    }
+    return React.createElement(RootScanditProvider, { ...props, licenseKey: props.licenseKey });
+}
+function NestedScanditProvider({ parent, frameSourceState, torchState, cameraPosition, licenseKey, settings, options, children, }) {
+    if (licenseKey || settings || options) {
+        console.warn('ScanditProvider: licenseKey/settings/options are ignored on nested providers.');
+    }
+    useApplyCameraProps(parent.owner, { frameSourceState, torchState, cameraPosition });
+    return React.createElement(ScanditInternalContext.Provider, { value: parent }, children);
+}
+function RootScanditProvider({ licenseKey, options, settings, frameSourceState, torchState, cameraPosition, children, }) {
+    const context = useMemo(() => DataCaptureContext.initialize(licenseKey, options ?? null, settings ?? null), 
+    // The context is a singleton keyed on licenseKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [licenseKey]);
+    const owner = useMemo(() => createCameraOwner(context), [context]);
+    // Apply our own props to the singleton, falling back to defaults so the
+    // camera is always created and in a known state.
+    useApplyCameraProps(owner, {
+        frameSourceState: frameSourceState ?? DEFAULT_FRAME_SOURCE_STATE,
+        torchState: torchState ?? DEFAULT_TORCH,
+        cameraPosition: cameraPosition ?? DEFAULT_POSITION,
+    });
+    // Dispose context + camera on unmount. Chained onto the owner's queue so
+    // any in-flight mutation finishes first.
+    useEffect(() => {
+        return () => {
+            void owner.dispose();
+        };
+    }, [owner]);
+    const internal = useMemo(() => ({ context, owner }), [context, owner]);
+    return React.createElement(ScanditInternalContext.Provider, { value: internal }, children);
+}
+// ─── Internal hook consumed by AIO view packages ─────────────────────────────
+/** Internal — used by AIO views to attach modes to the shared context. */
+function useDataCaptureContextInternal() {
+    const internal = useContext(ScanditInternalContext);
+    if (!internal) {
+        throw new Error('This component must be rendered inside a <ScanditProvider>.');
+    }
+    // Reclaim the singleton camera on (re)mount: anything else in the app that
+    // touched `Camera.atPosition` while we were unmounted may have stolen it.
+    useEffect(() => internal.owner.reclaimIfNeeded(), [internal]);
+    return internal.context;
+}
+
+function isSerializable(v) {
+    return typeof v === 'object' && v !== null && typeof v.toJson === 'function';
+}
+function signature(v) {
+    try {
+        return JSON.stringify(isSerializable(v) ? v.toJson() : v) ?? '';
+    }
+    catch {
+        // Cyclic / un-serializable values fall through to `''` so the caller sees
+        // a "changed" signature and uses the new value. Better safe than wrong.
+        return '';
+    }
+}
+/**
+ * Returns a referentially-stable copy of `value` as long as the structural
+ * content stays the same. Lets consumers pass inline SDK class instances
+ * (`new Brush(...)`, `new TorchSwitchControl()`) or plain options objects
+ * without memoizing — the effect deps array sees the same reference until
+ * the underlying content actually changes.
+ *
+ * SDK classes that extend `DefaultSerializeable` are compared via their
+ * `toJson()` output (which respects `@ignoreFromSerialization`), so private
+ * back-refs like `view` don't cause spurious diffs. Plain objects and arrays
+ * are compared via direct `JSON.stringify`.
+ *
+ * ```tsx
+ * function MyView({ brush }: { brush?: Brush | null }) {
+ *   const stableBrush = useStableProp(brush);
+ *   useEffect(() => {
+ *     if (stableBrush) overlay.brush = stableBrush;
+ *   }, [stableBrush]);
+ * }
+ * ```
+ */
+function useStableProp(value) {
+    const ref = useRef(null);
+    const sig = signature(value);
+    if (ref.current && ref.current.sig === sig)
+        return ref.current.value;
+    ref.current = { value, sig };
+    return value;
+}
+
+/**
+ * Registers a listener on a Scandit mode or view and keeps it up to date.
+ *
+ * Pass `listenerFns` with the callbacks you care about and leave the rest
+ * `undefined`. The hook only registers when `mode` is non-null and at least
+ * one callback is set; it unregisters automatically on unmount or when those
+ * conditions stop being true.
+ *
+ * The proxy installed on the target contains methods **only for keys whose
+ * values are currently defined**. This matters because some shared
+ * controllers do `if (listener.foo)` truthy checks (e.g.
+ * `BarcodeBatchBasicOverlayController.handleBrushForTrackedBarcode`) and a
+ * proxy method that returns `undefined` is interpreted as a real `null`
+ * response by the bridge — which wipes the configured default brush. When
+ * the set of defined keys changes (a callback flips between defined and
+ * undefined across renders), the proxy is rebuilt and the listener is
+ * unregistered + re-registered.
+ *
+ * Inline functions are fine — within the "defined" set, the registered
+ * listener is a stable proxy that always dispatches to the latest version of
+ * each callback without re-registering.
+ *
+ * ```tsx
+ * useModeListener<BarcodeCapture, BarcodeCaptureListener>({
+ *   mode,
+ *   listenerFns: {
+ *     didScan: onScan ? async (_c, session, getFD) => onScan(session, getFD) : undefined,
+ *   },
+ *   addListener: (m, l) => m.addListener(l),
+ *   removeListener: (m, l) => m.removeListener(l),
+ * });
+ * ```
+ */
+function useModeListener({ mode, listenerFns, addListener, removeListener, }) {
+    const definedKeysSig = currentDefinedKeysSig(listenerFns);
+    const isActive = mode != null && definedKeysSig !== '';
+    const listenerRef = useRef(listenerFns);
+    listenerRef.current = listenerFns;
+    const addRef = useRef(addListener);
+    addRef.current = addListener;
+    const removeRef = useRef(removeListener);
+    removeRef.current = removeListener;
+    // Rebuild the proxy whenever the set of defined keys changes. Within the
+    // same set, callback-identity changes are absorbed via `listenerRef`.
+    const stableListenerRef = useRef(null);
+    const stableListenerSigRef = useRef('');
+    if (definedKeysSig !== stableListenerSigRef.current) {
+        stableListenerSigRef.current = definedKeysSig;
+        if (definedKeysSig === '') {
+            stableListenerRef.current = null;
+        }
+        else {
+            const proxy = {};
+            for (const key of definedKeysSig.split(',')) {
+                proxy[key] = (...args) => listenerRef.current[key]?.(...args);
+            }
+            stableListenerRef.current = proxy;
+        }
+    }
+    useEffect(() => {
+        if (!isActive)
+            return;
+        const proxy = stableListenerRef.current;
+        if (!proxy)
+            return;
+        addRef.current(mode, proxy);
+        return () => removeRef.current(mode, proxy);
+        // The proxy identity changes only when `definedKeysSig` changes, which is
+        // already in the deps.
+    }, [mode, isActive, definedKeysSig]);
+}
+function currentDefinedKeysSig(listenerFns) {
+    const keys = [];
+    for (const k of Object.keys(listenerFns)) {
+        if (listenerFns[k] != null)
+            keys.push(k);
+    }
+    keys.sort();
+    return keys.join(',');
+}
+
+/**
+ * Bundles the `ref + viewState + viewId` pattern that AIO views share.
+ *
+ * - The returned `ref` is stable across renders.
+ * - `current` is a reactive snapshot — effects keyed on it re-run when the
+ *   view mounts/unmounts. `mutableRef` exposes the same value for imperative
+ *   reads that must not trigger re-renders.
+ * - `id` is generated once per hook instance and stays stable for the lifetime
+ *   of the component, suitable for `parentId` serialization.
+ */
+function useViewHandle() {
+    const mutableRef = useRef(null);
+    const [current, setCurrent] = useState(null);
+    const ref = useCallback((v) => {
+        mutableRef.current = v;
+        setCurrent(v);
+    }, []);
+    const id = useRef(Math.floor(Math.random() * 1_000_000)).current;
+    // Readiness promise resolved on the first `onLayout`. Created lazily once per
+    // hook instance so `whenReady()` returns a stable promise across renders.
+    const readyRef = useRef(undefined);
+    const resolveReadyRef = useRef(undefined);
+    if (!readyRef.current) {
+        readyRef.current = new Promise(resolve => {
+            resolveReadyRef.current = resolve;
+        });
+    }
+    const onLayout = useCallback(() => {
+        resolveReadyRef.current?.();
+    }, []);
+    const whenReady = useCallback(() => readyRef.current, []);
+    return { ref, current, mutableRef, id, onLayout, whenReady };
+}
+
+/**
+ * Adds `control` to `view` while both are present and the control reference is
+ * stable. Removes the control on unmount or when either reference changes.
+ *
+ * The view is typically a `DataCaptureView` and the control is a Scandit
+ * `Control` (e.g. `TorchSwitchControl`, `ZoomSwitchControl`). Pair this with
+ * `useStableProp(control)` at the call site so inline `new XControl()`
+ * instantiation doesn't churn add/remove.
+ */
+function useNativeControl(view, control) {
+    useEffect(() => {
+        if (!view || !control)
+            return;
+        void view.addControl(control);
+        return () => void view.removeControl(control);
+    }, [view, control]);
+}
+
+/**
+ * Mode-lifetime state machine shared by SDK view components.
+ *
+ * Owns: lazy mode creation, attach/detach transitions driven by `state`,
+ * `isEnabled` flips on `enabled`↔`disabled`, settings reapply on dep change,
+ * and detach-on-unmount.
+ *
+ * Side-effecting callbacks (`attach`, `detach`, `applySettings`, `setEnabled`,
+ * `createMode`) are read through a ref, so callers can pass closures without
+ * memoizing — only `state`, `canAttach`, and `settingsDeps` drive effects.
+ */
+function useMode(options) {
+    const { state, canAttach = true, settingsDeps } = options;
+    const optsRef = useRef(options);
+    optsRef.current = options;
+    const modeRef = useRef(null);
+    const attachedRef = useRef(false);
+    const prevStateRef = useRef('detached');
+    const getMode = useCallback(() => {
+        if (modeRef.current)
+            return modeRef.current;
+        console.debug('[useMode] create mode');
+        modeRef.current = optsRef.current.createMode();
+        return modeRef.current;
+    }, []);
+    const isAttached = useCallback(() => attachedRef.current, []);
+    // State machine: attach/detach + enabled flip.
+    useEffect(() => {
+        const prev = prevStateRef.current;
+        if (state === 'detached') {
+            prevStateRef.current = state;
+            if (!attachedRef.current) {
+                console.debug(`[useMode] state ${prev} -> detached (no-op, not attached)`);
+                return;
+            }
+            const mode = modeRef.current;
+            attachedRef.current = false;
+            console.debug(`[useMode] state ${prev} -> detached: detaching`);
+            if (mode) {
+                void detachAttachablesThen(optsRef.current.attachables, () => optsRef.current.detach(mode)).then(() => {
+                    console.debug('[useMode] detach complete');
+                    if (modeRef.current === mode)
+                        modeRef.current = null;
+                });
+            }
+            return;
+        }
+        const enabled = state === 'enabled';
+        if (attachedRef.current) {
+            prevStateRef.current = state;
+            console.debug(`[useMode] state ${prev} -> ${state}: flip isEnabled=${enabled}`);
+            if (modeRef.current)
+                optsRef.current.setEnabled(modeRef.current, enabled);
+            return;
+        }
+        if (!canAttach) {
+            console.debug(`[useMode] state ${prev} -> ${state}: parked (canAttach=false)`);
+            return;
+        }
+        prevStateRef.current = state;
+        const mode = getMode();
+        let cancelled = false;
+        console.debug(`[useMode] state ${prev} -> ${state}: attaching`);
+        void attachThenAttachables(() => optsRef.current.attach(mode), optsRef.current.attachables).then(() => {
+            if (cancelled) {
+                console.debug('[useMode] attach resolved but cancelled');
+                return;
+            }
+            attachedRef.current = true;
+            console.debug(`[useMode] attach complete, isEnabled=${enabled}`);
+            if (modeRef.current)
+                optsRef.current.setEnabled(modeRef.current, enabled);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [state, canAttach, getMode]);
+    // Settings reapply. Only meaningful when a mode exists.
+    useEffect(() => {
+        if (state === 'detached')
+            return;
+        if (!modeRef.current)
+            return;
+        console.debug('[useMode] reapply settings');
+        void Promise.resolve(optsRef.current.applySettings(modeRef.current));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state, ...settingsDeps]);
+    // Detach on unmount.
+    useEffect(() => {
+        return () => {
+            if (!attachedRef.current) {
+                console.debug('[useMode] unmount (not attached)');
+                modeRef.current = null;
+                return;
+            }
+            const mode = modeRef.current;
+            attachedRef.current = false;
+            console.debug('[useMode] unmount: detaching');
+            if (mode)
+                void detachAttachablesThen(optsRef.current.attachables, () => optsRef.current.detach(mode));
+            modeRef.current = null;
+        };
+    }, []);
+    return { getMode, modeRef, isAttached };
+}
+async function attachThenAttachables(attachMode, attachables) {
+    await attachMode();
+    if (!attachables)
+        return;
+    for (const a of attachables)
+        await a.attach();
+}
+async function detachAttachablesThen(attachables, detachMode) {
+    if (attachables) {
+        for (let i = attachables.length - 1; i >= 0; i--)
+            await attachables[i].detach();
+    }
+    await detachMode();
+}
+
+/**
+ * Wait until the underlying `BaseDataCaptureView` has finished
+ * `createNativeView` (which sets `viewId` to a non-negative value). Calling
+ * `addOverlay` before this is a silent no-op — the controller's `updateView`
+ * bails out when `!isViewCreated()`, so the overlay JSON never reaches native.
+ *
+ * The native-view creation is itself driven by `DataCaptureView`'s `onLayout`
+ * (see SDC-32208), so we just poll `viewId` until it flips to a non-negative
+ * value. This avoids the previous dependency on
+ * `InteractionManager.runAfterInteractions`, whose queue can be starved
+ * indefinitely by a looping JS animation, leaving the overlay never attached.
+ */
+async function waitForDataCaptureViewReady(view) {
+    const baseView = view.view;
+    for (let i = 0; baseView && baseView.viewId === -1 && i < 100; i++) {
+        await new Promise(r => setTimeout(r, 10));
+    }
+}
+/**
+ * Lifecycle helper for `DataCaptureView` overlays. Pass the returned value into
+ * `useMode({ attachables: [...] })` — `useMode` orders `attach()` after the
+ * mode is added to the context and `detach()` before it's removed.
+ *
+ * Listener registration is not handled here; pair with `useModeListener`
+ * keyed on the reactive `overlay` snapshot:
+ *
+ * ```tsx
+ * const basicOverlay = useOverlay<BarcodeBatchBasicOverlay>({ ... });
+ *
+ * useModeListener<BarcodeBatchBasicOverlay, BarcodeBatchBasicOverlayListener>({
+ *   mode: basicOverlay.overlay,
+ *   listenerFns: { brushForTrackedBarcode, didTapTrackedBarcode },
+ *   addListener: (o, l) => { o.listener = l; },
+ *   removeListener: o => { o.listener = null; },
+ * });
+ * ```
+ */
+function useOverlay(opts) {
+    const { view, enabled = true, factoryDeps = [], updateDeps = [] } = opts;
+    const optsRef = useRef(opts);
+    optsRef.current = opts;
+    const overlayRef = useRef(null);
+    const [overlay, setOverlay] = useState(null);
+    // Tracks whether `useMode` currently considers us "mode-attached" — set by
+    // the `attach`/`detach` callbacks it invokes via `attachables`. Used by the
+    // `enabled`-flip effect to gate self-driven attach/detach.
+    const modeAttachedRef = useRef(false);
+    const doAttach = useCallback(async () => {
+        if (overlayRef.current)
+            return;
+        const v = view.current;
+        if (!v)
+            return;
+        // The native view is created asynchronously when `DataCaptureView` lays out
+        // (see SDC-32208). Calling `addOverlay` before it's ready is a silent no-op
+        // (the view controller's `updateView` bails out on `!isViewCreated()`), so
+        // wait for the view to report a valid `viewId` first.
+        await waitForDataCaptureViewReady(v);
+        const created = optsRef.current.factory();
+        optsRef.current.update?.(created);
+        overlayRef.current = created;
+        await v.addOverlay(created);
+        setOverlay(created);
+    }, [view]);
+    const doDetach = useCallback(async () => {
+        const o = overlayRef.current;
+        overlayRef.current = null;
+        setOverlay(null);
+        if (!o)
+            return;
+        const v = view.current;
+        if (v)
+            await v.removeOverlay(o);
+    }, [view]);
+    const attach = useCallback(async () => {
+        modeAttachedRef.current = true;
+        if (optsRef.current.enabled === false)
+            return;
+        await doAttach();
+    }, [doAttach]);
+    const detach = useCallback(async () => {
+        modeAttachedRef.current = false;
+        await doDetach();
+    }, [doDetach]);
+    const getOverlay = useCallback(() => overlayRef.current, []);
+    // Enabled toggle handling while the mode is attached.
+    useEffect(() => {
+        if (!modeAttachedRef.current)
+            return;
+        if (enabled && !overlayRef.current) {
+            void doAttach();
+        }
+        else if (!enabled && overlayRef.current) {
+            void doDetach();
+        }
+    }, [enabled, doAttach, doDetach]);
+    // Recreate on factoryDeps change while attached. Skips the initial render
+    // (first attach is driven by useMode's attachables, not this effect).
+    const isFirstFactoryEffect = useRef(true);
+    useEffect(() => {
+        if (isFirstFactoryEffect.current) {
+            isFirstFactoryEffect.current = false;
+            return;
+        }
+        if (!overlayRef.current)
+            return;
+        void (async () => {
+            await doDetach();
+            await doAttach();
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, factoryDeps);
+    // Re-run `update` on updateDeps change while attached.
+    useEffect(() => {
+        if (!overlay)
+            return;
+        optsRef.current.update?.(overlay);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [overlay, ...updateDeps]);
+    return { overlay, getOverlay, attach, detach };
+}
+
+var index = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    useDataCaptureContextInternal: useDataCaptureContextInternal,
+    useMode: useMode,
+    useModeListener: useModeListener,
+    useNativeControl: useNativeControl,
+    useOverlay: useOverlay,
+    useStableProp: useStableProp,
+    useViewHandle: useViewHandle
+});
+
 initCoreDefaults();
 initCoreProxy();
 
-export { DataCaptureVersion, DataCaptureView, RNNativeCaller, createRNNativeCaller, getModuleDefaults, getNativeModule, initCoreDefaults, initCoreProxy };
+export { Camera, CameraPosition, DataCaptureContext, DataCaptureVersion, DataCaptureView, FrameSourceState, RNNativeCaller, ScanditProvider, TorchState, index as _internal, createRNNativeCaller, getModuleDefaults, getNativeModule, initCoreDefaults, initCoreProxy, useCameraPermission, useIsForeground, useScanditContext };
 //# sourceMappingURL=index.js.map

@@ -20,14 +20,9 @@ import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
 import com.scandit.datacapture.reactnative.core.data.ViewCreationRequest
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeResult
 
-/**
- * Base class containing shared logic for DataCaptureView management.
- * Used by both legacy (Paper) and new (Fabric) architecture implementations.
- */
-abstract class DataCaptureViewManagerBase(
-    protected val serviceLocator: ServiceLocator<FrameworkModule>,
+class DataCaptureViewManager(
+    private val serviceLocator: ServiceLocator<FrameworkModule>,
 ) : ScanditViewGroupManager<FrameLayout>() {
-
     override fun getName(): String = "RNTDataCaptureView"
 
     private val cachedCreationRequests = mutableMapOf<Int, ViewCreationRequest>()
@@ -102,10 +97,10 @@ abstract class DataCaptureViewManagerBase(
         }
     }
 
-    protected val coreModule: CoreModule
+    private val coreModule: CoreModule
         get() {
-            return serviceLocator.resolve(CoreModule::class.java.simpleName) as? CoreModule?
-                ?: throw ModuleNotStartedError(DataCaptureViewManagerBase::class.java.simpleName)
+            return serviceLocator.resolve(CoreModule::class.java.name) as? CoreModule?
+                ?: throw ModuleNotStartedError(DataCaptureViewManager::class.java.simpleName)
         }
 
     companion object {

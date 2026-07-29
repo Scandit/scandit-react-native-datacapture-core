@@ -37,10 +37,6 @@ public struct ReactNativeResult: FrameworksResult {
         }
     }
 
-    public func successAndKeepCallback(result: Any?) {
-        success(result: result)
-    }
-
     public func reject(code: String, message: String?, details: Any?) {
         self.rejecter(code, message, nil)
     }

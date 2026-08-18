@@ -138,7 +138,7 @@ setCoreDefaultsLoader(initCoreDefaults);
 const NativeModule = getNativeModule('ScanditDataCaptureCore');
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '8.5.2';
+        return '8.5.3';
     }
     static get sdkVersion() {
         return NativeModule.Version;

@@ -1,7 +1,7 @@
-import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView, DataCaptureContext, TorchState, CameraPosition, FrameSourceState, Camera } from './core.js';
-export { AimerViewfinder, Anchor, Brush, CameraSettings, ClusteringMode, Color, ContextStatus, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, SelectionMode, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
+import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView, DataCaptureContext, TorchState, CameraPosition, Camera, FrameSourceState } from './core.js';
+export { AimerViewfinder, Anchor, Brush, CameraSettings, CameraSwitchControl, ClusteringMode, Color, ContextStatus, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, SelectionMode, SequenceFrameSource, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
 import { NativeEventEmitter, Platform, NativeModules, TurboModuleRegistry, findNodeHandle, requireNativeComponent, AppState, PermissionsAndroid } from 'react-native';
-import React, { useState, useEffect, useCallback, useMemo, createContext, useContext, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, createContext, useContext, useRef, useLayoutEffect } from 'react';
 
 class RNNativeCaller {
     nativeModule;
@@ -138,7 +138,7 @@ setCoreDefaultsLoader(initCoreDefaults);
 const NativeModule = getNativeModule('ScanditDataCaptureCore');
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '8.5.3';
+        return '8.6.0';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -250,7 +250,8 @@ class DataCaptureView extends React.Component {
             cancelAnimationFrame(this._createViewRafHandle);
             this._createViewRafHandle = null;
         }
-        this.view.dispose();
+        const teardown = Promise.resolve(this.view.dispose());
+        this.props.onNativeDispose?.(teardown);
     }
     componentDidMount() {
         this._isMounted = true;
@@ -381,7 +382,7 @@ async function requestAndroidPermission() {
  * ```
  */
 function useCameraPermission() {
-    const [status, setStatus] = useState(Platform.OS === 'android' ? 'not-determined' : 'not-determined');
+    const [status, setStatus] = useState('not-determined');
     const refresh = useCallback(async () => {
         if (Platform.OS !== 'android')
             return;
@@ -448,80 +449,221 @@ function useScanditContext(licenseKey, options) {
 
 const DEFAULT_TORCH = TorchState.Off;
 const DEFAULT_POSITION = CameraPosition.WorldFacing;
-const DEFAULT_FRAME_SOURCE_STATE = FrameSourceState.On;
-function createCameraOwner(context) {
+function createCameraOwner(context, cameraFactory = position => Camera.atPosition(position), onError) {
     let camera = null;
-    let position = null;
+    // The position the live `camera` was created for; recreate only when it flips.
+    let createdPosition = null;
+    let position = DEFAULT_POSITION;
     let desiredTorch = DEFAULT_TORCH;
-    let desiredState = DEFAULT_FRAME_SOURCE_STATE;
-    let queue = Promise.resolve();
+    let applied = 'off';
+    // True only after a FULLY successful acquire (both native calls confirmed).
+    // Lets the apply pass skip re-issuing setFrameSource/switchOn when nothing
+    // changed - every claim burst re-applies, and redundant re-acquires showed
+    // up on device as 2-3 pointless native calls per navigation.
+    let acquireSucceeded = false;
+    let disposed = false;
+    // The single owner slot. Last claim wins; superseded owners' operations
+    // no-op because every queued op re-checks this slot when it runs.
+    let owner = null;
+    let chain = Promise.resolve();
     const enqueue = (op) => {
-        queue = queue.then(op).catch(err => console.warn('ScanditProvider: camera operation failed', err));
-        return queue;
+        chain = chain.then(op).catch(err => {
+            console.warn('ScanditProvider: camera operation failed', err);
+            onError?.(err);
+        });
+        return chain;
     };
-    // `Camera.atPosition` is a process-wide singleton, so any other
-    // DataCaptureContext can grab it via `setFrameSource(...)` while we're idle.
-    // Rebind only when the camera isn't ours anymore — otherwise a no-op.
-    const isOurs = (cam) => cam.context === context;
-    // Bind `camera` to our context and push our cached desired state.
-    // Used after a fresh `Camera.atPosition(...)` and to reclaim a stolen camera.
-    const bind = async () => {
-        if (camera === null)
+    /** Turn the provider camera on for a shared owner. Retries once: switching
+     * on can fail transiently when it races an exclusive owner's async native
+     * teardown (iOS nulls/steals the context frame source after our resume —
+     * SDC-32484). The chain is serialized, so the retry only buys the native
+     * side time to settle. */
+    const acquireSharedCamera = async (retriesLeft = 1) => {
+        if (acquireSucceeded && applied === 'on' && camera !== null && createdPosition === position) {
+            // Already on for this camera/position - just keep the torch in sync.
+            camera.desiredTorchState = desiredTorch;
             return;
+        }
+        if (camera === null || createdPosition !== position) {
+            // `Camera.atPosition` returns null when the position is unavailable on
+            // the device. Don't crash the chain — warn and leave the camera off; a
+            // later position change can retry.
+            camera = cameraFactory(position);
+            if (camera === null) {
+                console.warn('ScanditProvider: no camera available at position', position);
+                return;
+            }
+            createdPosition = position;
+        }
         camera.desiredTorchState = desiredTorch;
-        await context.setFrameSource(camera);
-        await camera.switchToDesiredState(desiredState);
+        // Mark before the awaits: a partial failure leaves applied='on' so a
+        // later release fully unwinds the half-attached camera.
+        applied = 'on';
+        acquireSucceeded = false;
+        try {
+            await context.setFrameSource(camera);
+            await camera.switchToDesiredState(FrameSourceState.On);
+            acquireSucceeded = true;
+        }
+        catch (err) {
+            if (retriesLeft > 0) {
+                console.warn('ScanditProvider: switching the camera on failed, retrying once', err);
+                await acquireSharedCamera(retriesLeft - 1);
+                return;
+            }
+            throw err;
+        }
     };
-    const reclaimIfNeeded = async () => {
-        if (camera !== null && !isOurs(camera))
-            await bind();
+    /** Between-screens release: put the camera in native Standby. Capture input
+     * is disabled immediately (sensor released, no frames) and the NATIVE staged
+     * standby completes the full shutdown after ~30s if no screen resumes -
+     * we never run a JS timer. Resuming from standby is near-instant, so
+     * navigation hand-offs don't blink. The frame source stays attached; only a
+     * hard release (exclusive hand-over / dispose) detaches it. */
+    const standbySharedCamera = async () => {
+        if (camera === null || applied !== 'on')
+            return;
+        applied = 'standby';
+        acquireSucceeded = false;
+        await camera.switchToDesiredState(FrameSourceState.Standby);
+    };
+    /** Hard release: full Off + frame source detached. Required when the device
+     * must be free immediately - an exclusive (own-camera) owner taking camera 0,
+     * or provider dispose. Standby is not enough there: it keeps the capture
+     * session (and the context's frame source) alive. */
+    const releaseSharedCamera = async () => {
+        if (camera === null || applied === 'off')
+            return;
+        applied = 'off';
+        acquireSucceeded = false;
+        await camera.switchToDesiredState(FrameSourceState.Off);
+        await context.setFrameSource(null);
+    };
+    const releaseManagedCamera = releaseSharedCamera;
+    /** Apply the state the CURRENT owner implies. Called at op-run time so a
+     * superseded claim's op naturally applies the latest truth. */
+    const applyOwnerState = async () => {
+        if (disposed)
+            return;
+        if (owner === null) {
+            await standbySharedCamera();
+        }
+        else if (owner.mode === 'shared') {
+            await acquireSharedCamera();
+        }
+        else {
+            await releaseManagedCamera();
+        }
+    };
+    /** Timeout-raced await of a dying view's native teardown: it must settle
+     * before ANY later camera op, or the dispose can stop camera 0 underneath
+     * the next owner's freshly-started camera (SDC-32484). Safety valve: a hung
+     * dispose must not wedge the chain forever. */
+    const awaitTeardown = async (teardown) => {
+        let timer;
+        const timeout = new Promise(resolve => (timer = setTimeout(resolve, 10000)));
+        const settled = teardown.then(() => undefined, () => undefined);
+        void settled.then(() => clearTimeout(timer));
+        await Promise.race([settled, timeout]);
+    };
+    const pendingSteps = [];
+    let applyScheduled = false;
+    const scheduleApply = () => {
+        if (applyScheduled)
+            return;
+        applyScheduled = true;
+        void enqueue(async () => {
+            // Reset FIRST: a step pushed while this op is mid-drain is picked up by
+            // the loop below AND may schedule a follow-up apply-op — which then
+            // finds an empty list and runs one harmless no-op apply. The
+            // alternative (reset after the drain) can drop a step entirely.
+            applyScheduled = false;
+            while (pendingSteps.length > 0) {
+                const step = pendingSteps.shift();
+                if (step)
+                    await step();
+            }
+            await applyOwnerState();
+        });
+    };
+    const mutate = (step) => {
+        if (disposed)
+            return;
+        pendingSteps.push(step);
+        scheduleApply();
+    };
+    const addClaim = (claim) => {
+        mutate(() => {
+            console.debug(`[cameraOwner] claim add: mode=${claim.mode} active=${claim.active}`);
+            if (claim.active)
+                owner = claim;
+        });
+    };
+    const updateClaim = (claim, patch) => {
+        mutate(() => {
+            Object.assign(claim, patch);
+            console.debug(`[cameraOwner] claim update: mode=${claim.mode} active=${claim.active}`);
+            if (claim.active) {
+                // Claim ownership: last writer wins, the previous owner is superseded.
+                owner = claim;
+            }
+            else if (owner === claim) {
+                // Deactivating while owner: release. Deactivations from superseded
+                // owners are ignored.
+                owner = null;
+            }
+        });
+    };
+    const removeClaim = (claim, teardown) => {
+        mutate(async () => {
+            // The teardown barrier holds even for a superseded owner: its native
+            // dispose still touches camera 0, so later ops must wait for it.
+            if (teardown)
+                await awaitTeardown(teardown);
+            console.debug(`[cameraOwner] claim remove: mode=${claim.mode} owner=${owner === claim}`);
+            if (owner === claim)
+                owner = null;
+        });
+    };
+    const whenGranted = (claim) => {
+        return enqueue(() => Promise.resolve());
     };
     return {
-        setPosition(next) {
-            void enqueue(async () => {
-                if (camera !== null && position === next) {
-                    await reclaimIfNeeded();
-                    return;
-                }
-                if (camera !== null)
-                    await camera.switchToDesiredState(FrameSourceState.Off);
-                camera = Camera.atPosition(next);
-                position = next;
-                await bind();
-            });
-        },
         setTorch(next) {
-            void enqueue(async () => {
+            return enqueue(() => {
                 desiredTorch = next;
-                await reclaimIfNeeded();
                 if (camera !== null)
                     camera.desiredTorchState = next;
+                return Promise.resolve();
             });
         },
-        setFrameSourceState(next) {
-            void enqueue(async () => {
-                desiredState = next;
-                await reclaimIfNeeded();
-                if (camera !== null)
-                    await camera.switchToDesiredState(next);
+        setPosition(next) {
+            return enqueue(async () => {
+                position = next;
+                await applyOwnerState();
             });
         },
-        reclaimIfNeeded() {
-            void enqueue(reclaimIfNeeded);
+        idle() {
+            return chain.then(() => undefined, () => undefined);
         },
         dispose() {
             return enqueue(async () => {
-                const cam = camera;
-                camera = null;
-                // Skip `setFrameSource(null)` if we don't own the camera — it would
-                // yank it away from whichever context holds it now.
-                if (cam !== null && isOurs(cam)) {
-                    await cam.switchToDesiredState(FrameSourceState.Off);
+                if (disposed)
+                    return;
+                disposed = true;
+                owner = null;
+                if (camera !== null) {
+                    await camera.switchToDesiredState(FrameSourceState.Off);
                     await context.setFrameSource(null);
                 }
                 await context.dispose();
             });
         },
+        // ─── Ownership surface (backs `useCameraClaim`) ─────────────────────────
+        addClaim,
+        updateClaim,
+        removeClaim,
+        whenGranted,
     };
 }
 const ScanditInternalContext = createContext(null);
@@ -530,15 +672,24 @@ function useApplyCameraProps(owner, props) {
     const { frameSourceState, torchState, cameraPosition } = props;
     useEffect(() => {
         if (cameraPosition !== undefined)
-            owner.setPosition(cameraPosition);
+            void owner.setPosition(cameraPosition);
     }, [owner, cameraPosition]);
     useEffect(() => {
         if (torchState !== undefined)
-            owner.setTorch(torchState);
+            void owner.setTorch(torchState);
     }, [owner, torchState]);
+    // The camera is ownership-driven: it is only turned on when a view (or an
+    // explicit `frameSourceState={On}`) claims it.
+    //   - undefined → do nothing (let views drive the camera).
+    //   - Off       → do nothing (no claim).
+    //   - On        → claim ownership for as long as this prop stays On. A view
+    //                 claiming later supersedes this (last writer wins).
     useEffect(() => {
-        if (frameSourceState !== undefined)
-            owner.setFrameSourceState(frameSourceState);
+        if (frameSourceState !== FrameSourceState.On)
+            return;
+        const claim = { mode: 'shared', active: true };
+        owner.addClaim(claim);
+        return () => owner.removeClaim(claim);
     }, [owner, frameSourceState]);
 }
 /**
@@ -550,8 +701,11 @@ function useApplyCameraProps(owner, props) {
  *   props to the same singleton camera. Last writer wins; values are not reverted
  *   when a nested provider unmounts.
  *
- * The camera is recreated only when `cameraPosition` flips; torch and
- * `frameSourceState` are applied directly to the live camera.
+ * The camera is ownership-driven: exactly one view owns it at a time (last
+ * claim wins), and it is only on while the owner is a provider-camera view (or
+ * `frameSourceState={On}` is set). Torch and position are applied to the
+ * coordinator; the camera instance is recreated only when `cameraPosition`
+ * flips.
  *
  * ```tsx
  * <ScanditProvider licenseKey={KEY}>
@@ -584,21 +738,28 @@ function NestedScanditProvider({ parent, frameSourceState, torchState, cameraPos
     useApplyCameraProps(parent.owner, { frameSourceState, torchState, cameraPosition });
     return React.createElement(ScanditInternalContext.Provider, { value: parent }, children);
 }
-function RootScanditProvider({ licenseKey, options, settings, frameSourceState, torchState, cameraPosition, children, }) {
+function RootScanditProvider({ licenseKey, options, settings, frameSourceState, torchState, cameraPosition, onError, children, }) {
     const context = useMemo(() => DataCaptureContext.initialize(licenseKey, options ?? null, settings ?? null), 
     // The context is a singleton keyed on licenseKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [licenseKey]);
-    const owner = useMemo(() => createCameraOwner(context), [context]);
-    // Apply our own props to the singleton, falling back to defaults so the
-    // camera is always created and in a known state.
+    // Keep the latest `onError` in a ref so the owner — memoized on `[context]`,
+    // and intentionally NOT recreated when `onError` changes — always calls the
+    // current callback through a stable wrapper.
+    const onErrorRef = useRef(onError);
+    onErrorRef.current = onError;
+    const owner = useMemo(() => createCameraOwner(context, undefined, e => onErrorRef.current?.(e)), [context]);
+    // Apply our own props to the singleton. The provider must NOT claim the
+    // camera on its own — only an explicit `frameSourceState={On}` from a
+    // consumer does. Position/torch defaults are still applied so the camera has
+    // a known configuration once something claims it.
     useApplyCameraProps(owner, {
-        frameSourceState: frameSourceState ?? DEFAULT_FRAME_SOURCE_STATE,
+        frameSourceState,
         torchState: torchState ?? DEFAULT_TORCH,
         cameraPosition: cameraPosition ?? DEFAULT_POSITION,
     });
-    // Dispose context + camera on unmount. Chained onto the owner's queue so
-    // any in-flight mutation finishes first.
+    // Dispose context + camera on unmount. Chained onto the owner's chain so
+    // any in-flight operation finishes first.
     useEffect(() => {
         return () => {
             void owner.dispose();
@@ -607,17 +768,18 @@ function RootScanditProvider({ licenseKey, options, settings, frameSourceState, 
     const internal = useMemo(() => ({ context, owner }), [context, owner]);
     return React.createElement(ScanditInternalContext.Provider, { value: internal }, children);
 }
-// ─── Internal hook consumed by AIO view packages ─────────────────────────────
-/** Internal — used by AIO views to attach modes to the shared context. */
-function useDataCaptureContextInternal() {
+// ─── Internal hooks consumed by AIO view packages ────────────────────────────
+/** Internal — exposes the shared context + camera coordinator to AIO views. */
+function useScanditInternal() {
     const internal = useContext(ScanditInternalContext);
     if (!internal) {
         throw new Error('This component must be rendered inside a <ScanditProvider>.');
     }
-    // Reclaim the singleton camera on (re)mount: anything else in the app that
-    // touched `Camera.atPosition` while we were unmounted may have stolen it.
-    useEffect(() => internal.owner.reclaimIfNeeded(), [internal]);
-    return internal.context;
+    return internal;
+}
+/** Internal — used by AIO views to attach modes to the shared context. */
+function useDataCaptureContextInternal() {
+    return useScanditInternal().context;
 }
 
 function isSerializable(v) {
@@ -661,6 +823,46 @@ function useStableProp(value) {
         return ref.current.value;
     ref.current = { value, sig };
     return value;
+}
+
+/**
+ * Mirrors a fixed set of prop values onto a live native-view instance via
+ * direct property assignment.
+ *
+ * `keys` is constrained to `keyof Props & keyof Target` and combined with an
+ * `as const satisfies ReadonlyArray<...>` at the call site, so a rename on
+ * either side — prop interface or native view — is a compile error.
+ *
+ * `undefined` values are skipped to preserve SDK defaults. The effect is
+ * gated on `target` so setter RPCs only fire after the native view is
+ * attached.
+ *
+ * For batched-update layers that expose an `updateWithProps(prev, next)`
+ * method, keep their own diff effect rather than using this hook — it would
+ * fire one RPC per key instead of one per render.
+ *
+ * ```ts
+ * const KEYS = ['shouldShowTorchControl', 'torchControlPosition'] as const
+ *   satisfies ReadonlyArray<keyof MyProps & keyof BaseView>;
+ *
+ * usePassThroughProps(baseView, props, KEYS);
+ * ```
+ */
+function usePassThroughProps(target, props, keys) {
+    useEffect(() => {
+        if (!target)
+            return;
+        for (const key of keys) {
+            const value = props[key];
+            if (value === undefined)
+                continue;
+            target[key] = value;
+        }
+        // `keys` is `as const` at the call site — its identity and length are
+        // stable across renders, so the spread produces a same-length,
+        // positionally-stable dep array, which is what useEffect requires.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [target, ...keys.map(k => props[k])]);
 }
 
 /**
@@ -830,23 +1032,48 @@ function useNativeControl(view, control) {
 }
 
 /**
- * Mode-lifetime state machine shared by SDK view components.
+ * Mode-lifetime helper shared by SDK view components.
  *
- * Owns: lazy mode creation, attach/detach transitions driven by `state`,
- * `isEnabled` flips on `enabled`↔`disabled`, settings reapply on dep change,
- * and detach-on-unmount.
+ * Owns: lazy mode creation, attach-on-mount / detach-on-unmount, settings
+ * reapply on dep change, and the mode's `isEnabled` via the returned
+ * `enable()` / `disable()`. The first `setEnabled` after attach honors the
+ * `disabled` veto, so a view declared `disabled` comes up off.
+ *
+ * Enable/disable intent is tracked in a ref (not React state) and applied as
+ * soon as the mode is attached — calling `enable()`/`disable()` before attach
+ * completes is fine; the pending value is flushed on attach.
  *
  * Side-effecting callbacks (`attach`, `detach`, `applySettings`, `setEnabled`,
  * `createMode`) are read through a ref, so callers can pass closures without
- * memoizing — only `state`, `canAttach`, and `settingsDeps` drive effects.
+ * memoizing — only `canAttach` and `settingsDeps` drive effects.
  */
 function useMode(options) {
-    const { state, canAttach = true, settingsDeps } = options;
+    const { canAttach = true, settingsDeps } = options;
     const optsRef = useRef(options);
     optsRef.current = options;
     const modeRef = useRef(null);
     const attachedRef = useRef(false);
-    const prevStateRef = useRef('detached');
+    // Desired enabled state, seeded from `disabled` at first render. Updated by
+    // enable()/disable() and flushed to the mode once attached.
+    const desiredEnabledRef = useRef(!options.disabled);
+    // Serializes attach()/detach() so focus toggling can't interleave add/remove
+    // on the shared context (which is single-active-mode).
+    const opChainRef = useRef(Promise.resolve());
+    // Bumped *synchronously* by detach(). An in-flight attach op captures the
+    // value when it starts and re-checks after its awaits: a detach() issued
+    // mid-attach makes the attach roll itself back instead of completing on a
+    // dead screen (SDC-32484 — the device trace `attaching → detaching →
+    // attach complete, setEnabled=true` re-enabled a mode after teardown).
+    const detachEpochRef = useRef(0);
+    // Chain an op onto the serialized queue. The `.catch` keeps the chain alive:
+    // a failed attach/detach must not poison the queue and silently drop every
+    // later lifecycle op.
+    const enqueue = useCallback((op) => {
+        opChainRef.current = opChainRef.current.then(op).catch(err => {
+            console.warn('[useMode] lifecycle operation failed', err);
+        });
+        return opChainRef.current;
+    }, []);
     const getMode = useCallback(() => {
         if (modeRef.current)
             return modeRef.current;
@@ -855,84 +1082,90 @@ function useMode(options) {
         return modeRef.current;
     }, []);
     const isAttached = useCallback(() => attachedRef.current, []);
-    // State machine: attach/detach + enabled flip.
-    useEffect(() => {
-        const prev = prevStateRef.current;
-        if (state === 'detached') {
-            prevStateRef.current = state;
-            if (!attachedRef.current) {
-                console.debug(`[useMode] state ${prev} -> detached (no-op, not attached)`);
+    // Debug tag: identifies WHICH mode instance logs (SDC-32484 interim instrumentation).
+    const tag = () => (modeRef.current ? modeRef.current.constructor.name : 'unattached');
+    // Attach (add to context) + attachables, then flush desired enabled state.
+    // Idempotent (no-op while already attached). Reuses the same mode instance so
+    // its listener survives across detach→attach.
+    const attach = useCallback(() => enqueue(async () => {
+        if (attachedRef.current)
+            return;
+        // Respect the readiness gate (e.g. BarcodeCount waits for its native view).
+        // A focus-driven attach() before the gate opens is skipped; the mount
+        // effect re-runs attach() once `canAttach` flips true.
+        if (optsRef.current.canAttach === false) {
+            console.debug('[useMode] attach parked (canAttach=false)');
+            return;
+        }
+        const epoch = detachEpochRef.current;
+        const mode = getMode();
+        console.debug(`[useMode:${tag()}] attaching`);
+        await attachThenAttachables(() => optsRef.current.attach(mode), optsRef.current.attachables);
+        attachedRef.current = true;
+        // detach() may have been requested while the async attach was in
+        // flight (unmount / blur / `disabled` mid-attach). The attach still
+        // completes — the queued detach op right behind us needs a symmetric
+        // attached state to tear down — but it must NOT enable the mode: the
+        // screen is dead or vetoed, and enabling here re-opens the camera on
+        // it (SDC-32484 — device trace `attaching → detaching → attach
+        // complete, setEnabled=true`).
+        const detachPending = detachEpochRef.current !== epoch;
+        const enabled = detachPending ? false : desiredEnabledRef.current;
+        if (detachPending)
+            console.debug('[useMode] detach requested mid-attach — forcing disabled');
+        console.debug(`[useMode:${tag()}] attach complete, setEnabled=${enabled}`);
+        await optsRef.current.setEnabled(mode, enabled);
+    }), [enqueue, getMode]);
+    // Detach attachables + the mode (remove from context). Idempotent. Keeps the
+    // instance so a later attach() re-adds the same object.
+    const detach = useCallback(() => {
+        // Synchronous bump so an attach op already past its idempotency check
+        // observes the detach request and cancels itself (see attach()).
+        detachEpochRef.current++;
+        return enqueue(async () => {
+            if (!attachedRef.current)
                 return;
-            }
             const mode = modeRef.current;
             attachedRef.current = false;
-            console.debug(`[useMode] state ${prev} -> detached: detaching`);
-            if (mode) {
-                void detachAttachablesThen(optsRef.current.attachables, () => optsRef.current.detach(mode)).then(() => {
-                    console.debug('[useMode] detach complete');
-                    if (modeRef.current === mode)
-                        modeRef.current = null;
-                });
-            }
-            return;
-        }
-        const enabled = state === 'enabled';
-        if (attachedRef.current) {
-            prevStateRef.current = state;
-            console.debug(`[useMode] state ${prev} -> ${state}: flip isEnabled=${enabled}`);
-            if (modeRef.current)
-                optsRef.current.setEnabled(modeRef.current, enabled);
-            return;
-        }
-        if (!canAttach) {
-            console.debug(`[useMode] state ${prev} -> ${state}: parked (canAttach=false)`);
-            return;
-        }
-        prevStateRef.current = state;
-        const mode = getMode();
-        let cancelled = false;
-        console.debug(`[useMode] state ${prev} -> ${state}: attaching`);
-        void attachThenAttachables(() => optsRef.current.attach(mode), optsRef.current.attachables).then(() => {
-            if (cancelled) {
-                console.debug('[useMode] attach resolved but cancelled');
-                return;
-            }
-            attachedRef.current = true;
-            console.debug(`[useMode] attach complete, isEnabled=${enabled}`);
-            if (modeRef.current)
-                optsRef.current.setEnabled(modeRef.current, enabled);
+            console.debug(`[useMode:${tag()}] detaching`);
+            if (mode)
+                await detachAttachablesThen(optsRef.current.attachables, () => optsRef.current.detach(mode));
         });
-        return () => {
-            cancelled = true;
-        };
-    }, [state, canAttach, getMode]);
+    }, [enqueue]);
+    const applyEnabled = useCallback(async (enabled) => {
+        desiredEnabledRef.current = enabled;
+        if (modeRef.current && attachedRef.current) {
+            console.debug(`[useMode:${tag()}] setEnabled=${enabled}`);
+            await optsRef.current.setEnabled(modeRef.current, enabled);
+        }
+        else {
+            console.debug(`[useMode] enable=${enabled} deferred (not attached)`);
+        }
+    }, []);
+    const enable = useCallback(() => applyEnabled(true), [applyEnabled]);
+    const disable = useCallback(() => applyEnabled(false), [applyEnabled]);
+    // Attach on mount once `canAttach`. attach() honors the desired enabled state
+    // (seeded from `!disabled`), so a disabled view never auto-enables.
+    useEffect(() => {
+        if (!canAttach)
+            return;
+        void attach();
+    }, [canAttach, attach]);
     // Settings reapply. Only meaningful when a mode exists.
     useEffect(() => {
-        if (state === 'detached')
-            return;
         if (!modeRef.current)
             return;
         console.debug('[useMode] reapply settings');
         void Promise.resolve(optsRef.current.applySettings(modeRef.current));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [state, ...settingsDeps]);
+    }, settingsDeps);
     // Detach on unmount.
     useEffect(() => {
         return () => {
-            if (!attachedRef.current) {
-                console.debug('[useMode] unmount (not attached)');
-                modeRef.current = null;
-                return;
-            }
-            const mode = modeRef.current;
-            attachedRef.current = false;
-            console.debug('[useMode] unmount: detaching');
-            if (mode)
-                void detachAttachablesThen(optsRef.current.attachables, () => optsRef.current.detach(mode));
-            modeRef.current = null;
+            void detach();
         };
-    }, []);
-    return { getMode, modeRef, isAttached };
+    }, [detach]);
+    return { getMode, modeRef, isAttached, enable, disable, attach, detach };
 }
 async function attachThenAttachables(attachMode, attachables) {
     await attachMode();
@@ -1071,13 +1304,220 @@ function useOverlay(opts) {
     return { overlay, getOverlay, attach, detach };
 }
 
+/**
+ * Handle modes lifetime by calling `onEnable` / `onDisable` when the navigation focus or blur event happens or AppState changes to not active.
+ */
+function useLifecycleHook({ navigation, disabled = false, appStateHandlingDisabled = false, onEnable, onDisable, }) {
+    // Latest-ref so effects/listeners read current callbacks and `disabled`
+    // without depending on them (which would re-run / re-subscribe).
+    const latest = useRef({ onEnable, onDisable, disabled, appStateHandlingDisabled });
+    latest.current = { onEnable, onDisable, disabled, appStateHandlingDisabled };
+    // We track focus so the AppState listener won't enable a blurred screen.
+    const focusedRef = useRef(true);
+    useEffect(() => {
+        if (navigation === undefined || navigation.addListener === undefined) {
+            return;
+        }
+        console.debug('[useLifecycleHook] subscribing to focus/blur');
+        const offFocus = navigation.addListener('focus', () => {
+            focusedRef.current = true;
+            if (!latest.current.disabled && AppState.currentState === 'active') {
+                console.debug('[useLifecycleHook] enable');
+                void latest.current.onEnable();
+            }
+        });
+        const offBlur = navigation.addListener('blur', () => {
+            focusedRef.current = false;
+            console.debug('[useLifecycleHook] disable');
+            void latest.current.onDisable();
+        });
+        return () => {
+            console.debug('[useLifecycleHook] unsubscribing from focus/blur');
+            offFocus();
+            offBlur();
+        };
+    }, [navigation]);
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', next => {
+            if (latest.current.appStateHandlingDisabled) {
+                return;
+            }
+            console.debug(`[useLifecycleHook] app state -> ${next}`);
+            if (next === 'active') {
+                if (!latest.current.disabled && focusedRef.current) {
+                    void latest.current.onEnable();
+                }
+            }
+            else {
+                void latest.current.onDisable();
+            }
+        });
+        return () => subscription.remove();
+    }, []);
+    // React to `disabled` flips.
+    useEffect(() => {
+        if (disabled) {
+            void latest.current.onDisable();
+        }
+        else if (focusedRef.current && AppState.currentState === 'active') {
+            void latest.current.onEnable();
+        }
+    }, [disabled]);
+}
+
+// Native per-view window lifecycle events (emitted by the view containers on
+// both platforms — see ViewWindowEventsRelay / ViewWindowEvents). They drive
+// the single-owner camera model without any navigation-library coupling:
+// attach → claim, detach → release.
+const WINDOW_ATTACHED_EVENT = 'NativeView.onWindowAttached';
+const WINDOW_DETACHED_EVENT = 'NativeView.onWindowDetached';
+let windowEventsCaller = null;
+function getWindowEventsCaller() {
+    if (windowEventsCaller === null) {
+        windowEventsCaller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
+    }
+    return windowEventsCaller;
+}
+function eventViewId(event) {
+    const ev = event;
+    if (typeof ev.viewId === 'number')
+        return ev.viewId;
+    if (typeof ev.data === 'string') {
+        try {
+            const parsed = JSON.parse(ev.data);
+            if (typeof parsed.viewId === 'number')
+                return parsed.viewId;
+        }
+        catch {
+            return null;
+        }
+    }
+    return null;
+}
+/**
+ * The entire camera-ownership contract a view wrapper needs to learn. Register
+ * a claim and drive it declaratively via `active`; the coordinator in
+ * `ScanditProvider.tsx` derives the actual camera state from the full set of
+ * currently-registered claims (see its module doc for the derivation rules)
+ * and coalesces rapid changes into a single native transition.
+ */
+function useCameraClaim({ mode, active, nativeViewRef }) {
+    const { owner } = useScanditInternal();
+    // Stable identity for the lifetime of this hook instance — the coordinator
+    // keys its claim Set (and `granted()` waiters) on object identity, not
+    // value equality.
+    const claimRef = useRef(null);
+    if (claimRef.current === null) {
+        claimRef.current = { mode, active };
+    }
+    const registeredRef = useRef(false);
+    const releasedRef = useRef(false);
+    // `useLayoutEffect`, not `useEffect`: a caller that flips `active` via
+    // `setState` and then immediately calls `granted()` relies on the claim
+    // being synced to the coordinator within the SAME commit that applied the
+    // state change, before `granted()`'s (microtask-deferred) check runs —
+    // `useEffect`'s passive-effect scheduling can lag a tick behind that.
+    useLayoutEffect(() => {
+        const claim = claimRef.current;
+        if (!registeredRef.current) {
+            registeredRef.current = true;
+            releasedRef.current = false;
+            owner.addClaim(claim);
+            return;
+        }
+        if (claim.mode !== mode || claim.active !== active) {
+            owner.updateClaim(claim, { mode, active });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [owner, mode, active]);
+    // Native window lifecycle → ownership (SDC-32484 single-owner model):
+    // attach → (re-)claim if the wrapper currently wants the camera, detach →
+    // release. Superseded/stale flips are harmless: the coordinator ignores
+    // deactivations from non-owners and claims are idempotent.
+    const desiredActiveRef = useRef(active);
+    desiredActiveRef.current = active;
+    useEffect(() => {
+        if (!nativeViewRef)
+            return;
+        const caller = getWindowEventsCaller();
+        let disposed = false;
+        const subscriptions = [];
+        const matchesOwnView = (event) => {
+            const id = eventViewId(event);
+            if (id === null || nativeViewRef.current == null)
+                return false;
+            // Resolved lazily at event time: the ref is typically still null when
+            // this effect first runs (the child component mounts later).
+            const tag = findNodeHandle(nativeViewRef.current);
+            return tag !== null && id === tag;
+        };
+        const subscribe = (eventName, onEvent) => {
+            void caller
+                .registerEvent(eventName, event => {
+                if (!disposed && matchesOwnView(event))
+                    onEvent();
+                return Promise.resolve();
+            })
+                .then(subscription => {
+                if (disposed)
+                    void caller.unregisterEvent(eventName, subscription);
+                else
+                    subscriptions.push([eventName, subscription]);
+            });
+        };
+        subscribe(WINDOW_ATTACHED_EVENT, () => {
+            if (desiredActiveRef.current && !releasedRef.current) {
+                owner.updateClaim(claimRef.current, { active: true });
+            }
+        });
+        subscribe(WINDOW_DETACHED_EVENT, () => {
+            if (!releasedRef.current) {
+                owner.updateClaim(claimRef.current, { active: false });
+            }
+        });
+        return () => {
+            disposed = true;
+            for (const [eventName, subscription] of subscriptions) {
+                void caller.unregisterEvent(eventName, subscription);
+            }
+        };
+    }, [owner, nativeViewRef]);
+    // Safety-net release on unmount for a caller that never explicitly calls
+    // `release()` — mirrors the old `useApplyCameraProps` cleanup pattern.
+    useEffect(() => {
+        return () => {
+            if (!releasedRef.current) {
+                releasedRef.current = true;
+                owner.removeClaim(claimRef.current);
+            }
+        };
+    }, [owner]);
+    return useMemo(() => ({
+        granted: () => 
+        // Deferred by one microtask: lets a same-turn `setState` (that a
+        // caller just issued right before calling `granted()`) reach the
+        // layout effect above first, so this doesn't read a stale `active`.
+        Promise.resolve().then(() => owner.whenGranted(claimRef.current)),
+        release: teardown => {
+            if (releasedRef.current)
+                return;
+            releasedRef.current = true;
+            owner.removeClaim(claimRef.current, teardown);
+        },
+    }), [owner]);
+}
+
 var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
+    useCameraClaim: useCameraClaim,
     useDataCaptureContextInternal: useDataCaptureContextInternal,
+    useLifecycleHook: useLifecycleHook,
     useMode: useMode,
     useModeListener: useModeListener,
     useNativeControl: useNativeControl,
     useOverlay: useOverlay,
+    usePassThroughProps: usePassThroughProps,
+    useScanditInternal: useScanditInternal,
     useStableProp: useStableProp,
     useViewHandle: useViewHandle
 });

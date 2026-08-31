@@ -16,6 +16,7 @@ import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeEventEmitter
+import com.scandit.datacapture.reactnative.core.utils.ViewWindowEvents
 
 @ReactModule(name = ScanditDataCaptureCoreModuleBase.NAME)
 class ScanditDataCaptureCoreModule(
@@ -55,6 +56,9 @@ class ScanditDataCaptureCoreModule(
         val emitter = ReactNativeEventEmitter { payload ->
             emitOnScanditEvent(payload)
         }
+        // Per-view window attach/detach events for the JS camera-ownership
+        // model (SDC-32484); view containers emit through this relay.
+        ViewWindowEvents.emitter = emitter
 
         val coreModule = CoreModule.create(emitter)
         coreModule.onCreate(reactContext)

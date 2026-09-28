@@ -7,7 +7,7 @@
 import UIKit
 
 extension UIInterfaceOrientation {
-    public var rntsdc_description: String {
+    public var rntsdcDescription: String {
         switch self {
         case .unknown: return "unknown"
         case .portrait: return "portrait"

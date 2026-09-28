@@ -1,100 +1,144 @@
-import { BaseNativeProxy, DataCaptureViewEvents, FactoryMaker, createNativeProxy, loadCoreDefaults, BaseDataCaptureView } from './core.js';
-export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl } from './core.js';
-import { NativeModules, NativeEventEmitter, InteractionManager, findNodeHandle, requireNativeComponent, Platform } from 'react-native';
+import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView } from './core.js';
+export { AimerViewfinder, Anchor, Brush, Camera, CameraPosition, CameraSettings, ClusteringMode, Color, ContextStatus, DataCaptureContext, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceState, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchState, TorchSwitchControl, Vibration, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
+import { NativeEventEmitter, Platform, NativeModules, TurboModuleRegistry, findNodeHandle, requireNativeComponent } from 'react-native';
 import React from 'react';
 
-// tslint:disable-next-line:variable-name
-const NativeModule$3 = NativeModules.ScanditDataCaptureCore;
-class NativeFeedbackProxy {
-    emitFeedback(feedback) {
-        return NativeModule$3.emitFeedback(JSON.stringify(feedback.toJSON()));
+class RNNativeCaller {
+    nativeModule;
+    _nativeEventEmitter = null;
+    constructor(nativeModule) {
+        this.nativeModule = nativeModule;
+    }
+    /**
+     * Lazily creates the NativeEventEmitter only when needed (old architecture fallback).
+     * Avoids the "NativeEventEmitter was called with a non-null argument without the
+     * required addListener method" warning that fires when eagerly constructing the
+     * emitter for TurboModule-based native modules.
+     */
+    get nativeEventEmitter() {
+        if (!this._nativeEventEmitter) {
+            this._nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
+        }
+        return this._nativeEventEmitter;
+    }
+    get framework() {
+        return 'react-native';
+    }
+    get frameworkVersion() {
+        const { major, minor, patch } = Platform.constants.reactNativeVersion;
+        return `${major}.${minor}.${patch}`;
+    }
+    callFn(fnName, args, _meta) {
+        // meta parameter ignored - React Native handles events automatically through NativeEventEmitter
+        const fn = this.nativeModule[fnName];
+        // Some frameworks pass array-like objects with length property
+        const hasLength = args && typeof args === 'object' && 'length' in args;
+        if (args === null || args === undefined || (hasLength && args.length > 0)) {
+            return fn();
+        }
+        return fn(args);
+    }
+    registerEvent(evName, handler) {
+        const newArchModule = this.nativeModule;
+        // New architecture: use CodegenTypes.EventEmitter (onScanditEvent)
+        // Each subscription filters by event name
+        if (newArchModule.onScanditEvent) {
+            const subscription = newArchModule.onScanditEvent((event) => {
+                if (event.name === evName) {
+                    void handler(event);
+                }
+            });
+            return Promise.resolve(subscription);
+        }
+        // Old architecture fallback: one listener per event name via NativeEventEmitter
+        return Promise.resolve(this.nativeEventEmitter.addListener(evName, (event) => {
+            // Fire-and-forget: intentionally not awaiting to match NativeEventEmitter's sync signature
+            void handler(event);
+        }));
+    }
+    async unregisterEvent(evName, subscription) {
+        try {
+            await subscription.remove();
+        }
+        catch (error) {
+            console.warn(`Failed to unregister event '${evName}':`, error);
+        }
+    }
+    eventHook(args) {
+        return args;
     }
 }
+function createRNNativeCaller(nativeModule) {
+    return new RNNativeCaller(nativeModule);
+}
 
-// tslint:disable:variable-name
-const NativeModule$2 = NativeModules.ScanditDataCaptureCore;
-const RNEventEmitter = new NativeEventEmitter(NativeModule$2);
-// tslint:enable:variable-name
-class NativeDataCaptureViewProxy extends BaseNativeProxy {
-    nativeListeners = [];
-    constructor() {
-        super();
-    }
-    addOverlay(overlayJson) {
-        return NativeModule$2.addOverlay(overlayJson);
-    }
-    removeOverlay(overlayJson) {
-        return NativeModule$2.removeOverlay(overlayJson);
-    }
-    createView(viewJson) {
-        return NativeModule$2.createDataCaptureView(viewJson);
-    }
-    updateView(viewJson) {
-        return NativeModule$2.updateDataCaptureView(viewJson);
-    }
-    removeView(viewId) {
-        return Promise.resolve();
-    }
-    viewPointForFramePoint({ viewId, pointJson }) {
-        return NativeModule$2.viewPointForFramePoint({ viewId, point: pointJson });
-    }
-    viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateralJson }) {
-        return NativeModule$2.viewQuadrilateralForFrameQuadrilateral({ viewId, quadrilateral: quadrilateralJson });
-    }
-    registerListenerForViewEvents(viewId) {
-        NativeModule$2.registerListenerForViewEvents(viewId);
-    }
-    unregisterListenerForViewEvents(viewId) {
-        NativeModule$2.unregisterListenerForViewEvents(viewId);
-        this.nativeListeners.forEach(listener => listener.remove());
-        this.nativeListeners = [];
-    }
-    subscribeDidChangeSize() {
-        const didChangeSize = RNEventEmitter.addListener(DataCaptureViewEvents.didChangeSize, (event) => {
-            this.eventEmitter.emit(DataCaptureViewEvents.didChangeSize, event.data);
-        });
-        this.nativeListeners.push(didChangeSize);
-    }
-    // Only for HTML Based views
-    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
-        return Promise.resolve();
-    }
-    show() {
-        return Promise.resolve();
-    }
-    hide() {
-        return Promise.resolve();
+class RNCoreNativeCallerProvider {
+    getNativeCaller(proxyType) {
+        if (!CORE_PROXY_TYPE_NAMES.includes(proxyType)) {
+            throw new Error(`No native module mapped for proxy type: ${proxyType}`);
+        }
+        return createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
     }
 }
 
 function initCoreProxy() {
-    FactoryMaker.bindInstance('FeedbackProxy', new NativeFeedbackProxy());
-    FactoryMaker.bindInstance('DataCaptureViewProxy', new NativeDataCaptureViewProxy());
-    FactoryMaker.bindLazyInstance('DataCaptureContextProxy', () => {
-        const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
-        return createNativeProxy(caller);
-    });
-    FactoryMaker.bindLazyInstance('CameraProxy', () => {
-        const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
-        return createNativeProxy(caller);
-    });
-    FactoryMaker.bindLazyInstance('ImageFrameSourceProxy', () => {
-        const caller = createRNNativeCaller(NativeModules.ScanditDataCaptureCore);
-        return createNativeProxy(caller);
-    });
+    registerCoreProxies(new RNCoreNativeCallerProvider());
 }
 
-// tslint:disable-next-line:variable-name
-const NativeModule$1 = NativeModules.ScanditDataCaptureCore;
+function getNativeModule(name) {
+    let mod = null;
+    // Try TurboModuleRegistry first (new architecture)
+    // Available in RN 0.70+
+    if (typeof TurboModuleRegistry !== 'undefined' && TurboModuleRegistry.get) {
+        // Try the module name directly first
+        mod = TurboModuleRegistry.get(name);
+        if (mod) {
+            return mod;
+        }
+        // Try with "Native" prefix (TurboModules naming convention)
+        const nativeName = `Native${name}`;
+        mod = TurboModuleRegistry.get(nativeName);
+        if (mod) {
+            return mod;
+        }
+    }
+    // Fallback to NativeModules (legacy architecture)
+    mod = NativeModules[name];
+    if (mod) {
+        return mod;
+    }
+    throw new Error(`Module ${name} not found. Ensure the native module is properly linked.`);
+}
+function getModuleDefaults(name) {
+    const mod = getNativeModule(name);
+    // Constants are automatically merged by React Native
+    const defaults = mod.Defaults;
+    if (defaults) {
+        // Our modules will always be returned by Defaults property, the legacy
+        // code is there just to ensure compatibility with older versions of React Native.
+        return defaults;
+    }
+    // Fallback: Try getConstants() directly
+    if (typeof mod.getConstants === 'function') {
+        const constants = mod.getConstants();
+        if (constants?.Defaults) {
+            return constants.Defaults;
+        }
+    }
+    throw new Error(`Could not load Defaults from module ${name}`);
+}
+
 function initCoreDefaults() {
-    loadCoreDefaults(NativeModule$1.Defaults);
+    // Use helper to get defaults with fallback logic
+    const defaults = getModuleDefaults('ScanditDataCaptureCore');
+    loadCoreDefaults(defaults);
 }
+setCoreDefaultsLoader(initCoreDefaults);
 
-// tslint:disable-next-line:variable-name
-const NativeModule = NativeModules.ScanditDataCaptureCore;
+const NativeModule = getNativeModule('ScanditDataCaptureCore');
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '7.6.15';
+        return '8.4.2';
     }
     static get sdkVersion() {
         return NativeModule.Version;
@@ -104,6 +148,8 @@ class DataCaptureVersion {
 class DataCaptureView extends React.Component {
     view;
     _isMounted = false;
+    _viewCreated = false;
+    _createViewRafHandle = null;
     constructor(props) {
         super(props);
         // Do not create the view automatically. Do that only when componentDidMount is called.
@@ -147,17 +193,34 @@ class DataCaptureView extends React.Component {
     set focusGesture(newValue) {
         this.view.focusGesture = newValue;
     }
+    get zoomGestures() {
+        return this.view.zoomGestures;
+    }
+    set zoomGestures(newValue) {
+        this.view.zoomGestures = newValue;
+    }
+    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
     get zoomGesture() {
         return this.view.zoomGesture;
     }
+    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
     set zoomGesture(newValue) {
         this.view.zoomGesture = newValue;
     }
+    get shouldShowZoomNotification() {
+        return this.view.shouldShowZoomNotification;
+    }
+    set shouldShowZoomNotification(newValue) {
+        this.view.shouldShowZoomNotification = newValue;
+    }
+    setProperty(name, value) {
+        this.view.setProperty(name, value);
+    }
     addOverlay(overlay) {
-        this.view.addOverlay(overlay);
+        return this.view.addOverlay(overlay);
     }
     removeOverlay(overlay) {
-        this.view.removeOverlay(overlay);
+        return this.view.removeOverlay(overlay);
     }
     addListener(listener) {
         this.view.addListener(listener);
@@ -182,71 +245,81 @@ class DataCaptureView extends React.Component {
     }
     componentWillUnmount() {
         this._isMounted = false;
+        this._viewCreated = false;
+        if (this._createViewRafHandle !== null) {
+            cancelAnimationFrame(this._createViewRafHandle);
+            this._createViewRafHandle = null;
+        }
         this.view.dispose();
     }
     componentDidMount() {
         this._isMounted = true;
-        // This is required to ensure that findNodeHandle returns a valid handle
-        InteractionManager.runAfterInteractions(() => {
-            // Check if component is still mounted before creating view
-            if (this._isMounted) {
-                this.createDataCaptureView();
-            }
-        });
+        // Dual trigger (SDC-32583): `onLayout` is the primary trigger, but on some
+        // setups (RN 0.78 New Architecture, Android release builds) `onLayout` is
+        // not reliably emitted on the Fabric view, so relying on it alone can leave
+        // the native view uncreated. Also attempt creation from a
+        // `requestAnimationFrame` loop, which is frame-aligned (fires once the view
+        // is committed so `findNodeHandle` is valid) and, unlike `InteractionManager`,
+        // cannot be starved. `_viewCreated` is set synchronously, so whichever
+        // trigger fires first wins exactly once.
+        this.scheduleCreateDataCaptureView();
     }
     render() {
-        return React.createElement(RNTDataCaptureView, { ...this.props });
-    }
-    createDataCaptureView() {
-        const viewId = findNodeHandle(this);
-        this.view.createNativeView(viewId);
+        return React.createElement(RNTDataCaptureView, { ...this.props, onLayout: this.onNativeViewLayout });
     }
     removeAllOverlays() {
         this.view.removeAllOverlays();
     }
-}
-// tslint:disable-next-line:variable-name
-const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView', DataCaptureView);
-
-class RNNativeCaller {
-    nativeModule;
-    nativeEventEmitter;
-    constructor(nativeModule) {
-        this.nativeModule = nativeModule;
-        this.nativeEventEmitter = new NativeEventEmitter(this.nativeModule);
-    }
-    get framework() {
-        return 'react-native';
-    }
-    get frameworkVersion() {
-        const { major, minor, patch } = Platform.constants?.reactNativeVersion;
-        return `${major}.${minor}.${patch}`;
-    }
-    callFn(fnName, args) {
-        // @ts-ignore
-        if (args === null || args === undefined || (args?.length && args.length > 0)) {
-            return this.nativeModule[fnName]();
+    // Create the native view on layout rather than via
+    // `InteractionManager.runAfterInteractions`: layout fires when the view is
+    // committed to the native tree (so `findNodeHandle` is valid) and is not
+    // starvable by a blocked JS interaction queue (e.g. a looping animation with
+    // `useNativeDriver: false`), which previously left the preview never created.
+    // See SDC-32208. `onLayout` can fire repeatedly, so create exactly once.
+    onNativeViewLayout = (event) => {
+        // Forward to a caller-supplied onLayout so our internal handler doesn't
+        // swallow it (render() overrides the spread `onLayout` with this one).
+        this.props.onLayout?.(event);
+        this.tryCreateDataCaptureView();
+    };
+    // Attempt to create the native view exactly once. Returns true once creation
+    // has been kicked off, false if the native tag is not available yet (so a
+    // caller can retry). Callable from both `onLayout` and the rAF loop; the
+    // `_viewCreated` flag is flipped synchronously to keep it single-shot.
+    tryCreateDataCaptureView() {
+        if (this._viewCreated || !this._isMounted) {
+            return true;
         }
-        return this.nativeModule[fnName](args);
+        const viewId = findNodeHandle(this);
+        if (viewId === null) {
+            return false;
+        }
+        this._viewCreated = true;
+        // Whichever trigger wins tears down a pending rAF retry so the loop does
+        // not fire a redundant (no-op) frame afterwards.
+        if (this._createViewRafHandle !== null) {
+            cancelAnimationFrame(this._createViewRafHandle);
+            this._createViewRafHandle = null;
+        }
+        void this.view.createNativeView(viewId);
+        return true;
     }
-    async registerEvent(evName, handler) {
-        return this.nativeEventEmitter.addListener(evName, async (event) => {
-            await handler(event);
-        });
-    }
-    async unregisterEvent(_evName, subscription) {
-        await subscription.remove();
-    }
-    eventHook(args) {
-        return args;
-    }
+    // rAF fallback loop (see componentDidMount): retry until the native tag is
+    // available, then create. Stops as soon as creation succeeds by either trigger.
+    scheduleCreateDataCaptureView = () => {
+        if (this._viewCreated || !this._isMounted) {
+            return;
+        }
+        if (this.tryCreateDataCaptureView()) {
+            return;
+        }
+        this._createViewRafHandle = requestAnimationFrame(this.scheduleCreateDataCaptureView);
+    };
 }
-function createRNNativeCaller(nativeModule) {
-    return new RNNativeCaller(nativeModule);
-}
+const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView');
 
 initCoreDefaults();
 initCoreProxy();
 
-export { DataCaptureVersion, DataCaptureView, RNNativeCaller, createRNNativeCaller, initCoreDefaults, initCoreProxy };
+export { DataCaptureVersion, DataCaptureView, RNNativeCaller, createRNNativeCaller, getModuleDefaults, getNativeModule, initCoreDefaults, initCoreProxy };
 //# sourceMappingURL=index.js.map

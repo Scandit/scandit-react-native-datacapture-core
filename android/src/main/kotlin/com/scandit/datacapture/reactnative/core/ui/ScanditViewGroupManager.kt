@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
+import com.scandit.datacapture.reactnative.core.utils.ViewWindowEvents
 
 abstract class ScanditViewGroupManager<T> :
     ViewGroupManager<T>() where T : ViewGroup {
@@ -30,6 +31,20 @@ abstract class ScanditViewGroupManager<T> :
         val container = createNewInstance(reactContext).also {
             containers.add(it)
         }
+
+        // Drives the JS single-owner camera model (SDC-32484): attach -> the
+        // hosting wrapper claims camera ownership, detach -> it releases.
+        container.addOnAttachStateChangeListener(
+            object : android.view.View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: android.view.View) {
+                    ViewWindowEvents.notifyWindowChanged(v.id, attached = true)
+                }
+
+                override fun onViewDetachedFromWindow(v: android.view.View) {
+                    ViewWindowEvents.notifyWindowChanged(v.id, attached = false)
+                }
+            }
+        )
 
         if (containers.size == 1) {
             scheduleMeasureAndLayout()

@@ -5,7 +5,7 @@
  */
 
 declare export {
-  CameraOwnershipManager,
-  CameraOwnershipHelper,
   CameraOwner,
-} from "scandit-datacapture-frameworks-core";
+  CameraOwnershipHelper,
+  CameraOwnershipManager,
+} from "./core";

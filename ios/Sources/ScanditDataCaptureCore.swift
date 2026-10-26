@@ -133,6 +133,9 @@ public class ScanditDataCaptureCoreImpl: NSObject {
         coreModule = CoreModule.create(emitter: reactEmitter)
         coreModule.didStart()
         DefaultServiceLocator.shared.register(module: coreModule)
+        // Per-view window attach/detach events for the JS camera-ownership
+        // model (SDC-32484); view containers emit through this relay.
+        ViewWindowEventsRelay.setEmitter(reactEmitter)
 
         // Eagerly initialize defaults on main thread.
         // This prevents Main Thread Checker errors when getConstants() is called later
@@ -153,6 +156,9 @@ public class ScanditDataCaptureCoreImpl: NSObject {
         coreModule = CoreModule.create(emitter: reactEmitter)
         coreModule.didStart()
         DefaultServiceLocator.shared.register(module: coreModule)
+        // Per-view window attach/detach events for the JS camera-ownership
+        // model (SDC-32484); view containers emit through this relay.
+        ViewWindowEventsRelay.setEmitter(reactEmitter)
 
         // Eagerly initialize defaults on main thread.
         // This prevents Main Thread Checker errors when getConstants() is called later
@@ -180,7 +186,10 @@ public class ScanditDataCaptureCoreImpl: NSObject {
 
     /// Returns the list of supported events.
     public func supportedEvents() -> [String] {
-        ScanditFrameworksCoreEvent.allCases.map { $0.rawValue }
+        ScanditFrameworksCoreEvent.allCases.map { $0.rawValue } + [
+            ViewWindowEventsRelay.windowAttachedEvent,
+            ViewWindowEventsRelay.windowDetachedEvent,
+        ]
     }
 
     public func invalidate() {

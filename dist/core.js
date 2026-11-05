@@ -391,6 +391,27 @@ class FactoryMaker {
 }
 FactoryMaker.instances = new Map();
 
+let coreDefaultsLoader;
+function setCoreDefaultsLoader(loader) {
+    coreDefaultsLoader = loader;
+}
+function ensureCoreDefaults() {
+    var _a, _b;
+    const existing = (_a = FactoryMaker.instances.get('CoreDefaults')) === null || _a === void 0 ? void 0 : _a.instance;
+    if (existing) {
+        return existing;
+    }
+    coreDefaultsLoader === null || coreDefaultsLoader === void 0 ? void 0 : coreDefaultsLoader();
+    const reloaded = (_b = FactoryMaker.instances.get('CoreDefaults')) === null || _b === void 0 ? void 0 : _b.instance;
+    if (reloaded) {
+        return reloaded;
+    }
+    throw new Error('CoreDefaults missing and re-init failed');
+}
+function getCoreDefaults() {
+    return ensureCoreDefaults();
+}
+
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
 
@@ -407,6 +428,18 @@ PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
 /* global Reflect, Promise, SuppressedError, Symbol, Iterator */
 
+
+function __rest(s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+}
 
 function __decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -485,6 +518,10 @@ class DefaultSerializeable {
             // Serialize if serializeable
             if (value != null && value.toJSON) {
                 value = value.toJSON();
+            }
+            // JSON.stringify turns a Set into {}; the wire format for a set is an array.
+            if (value instanceof Set) {
+                value = Array.from(value);
             }
             // Serialize the array if the elements are serializeable
             if (Array.isArray(value)) {
@@ -840,13 +877,110 @@ __decorate([
     nameForSerialization('size')
 ], RectWithUnit.prototype, "_size", void 0);
 
+class Color {
+    get redComponent() {
+        return this.hexadecimalString.slice(0, 2);
+    }
+    get greenComponent() {
+        return this.hexadecimalString.slice(2, 4);
+    }
+    get blueComponent() {
+        return this.hexadecimalString.slice(4, 6);
+    }
+    get alphaComponent() {
+        return this.hexadecimalString.slice(6, 8);
+    }
+    get red() {
+        return Color.hexToNumber(this.redComponent);
+    }
+    get green() {
+        return Color.hexToNumber(this.greenComponent);
+    }
+    get blue() {
+        return Color.hexToNumber(this.blueComponent);
+    }
+    get alpha() {
+        return Color.hexToNumber(this.alphaComponent);
+    }
+    static fromHex(hex) {
+        return new Color(Color.normalizeHex(hex));
+    }
+    static fromRGBA(red, green, blue, alpha = 1) {
+        const hexString = [red, green, blue, this.normalizeAlpha(alpha)].reduce((hex, colorComponent) => hex + this.numberToHex(colorComponent), '');
+        return new Color(hexString);
+    }
+    static hexToNumber(hex) {
+        return parseInt(hex, 16);
+    }
+    static fromJSON(json) {
+        return Color.fromHex(json);
+    }
+    static numberToHex(x) {
+        x = Math.round(x);
+        let hex = x.toString(16);
+        if (hex.length === 1) {
+            hex = '0' + hex;
+        }
+        return hex.toUpperCase();
+    }
+    static normalizeHex(hex) {
+        // remove leading #
+        if (hex[0] === '#') {
+            hex = hex.slice(1);
+        }
+        // double digits if single digit
+        if (hex.length < 6) {
+            hex = hex
+                .split('')
+                .map(s => s + s)
+                .join('');
+        }
+        // add alpha if missing
+        if (hex.length === 6) {
+            hex = hex + 'FF';
+        }
+        return hex.toUpperCase();
+    }
+    static normalizeAlpha(alpha) {
+        if (alpha > 0 && alpha <= 1) {
+            return 255 * alpha;
+        }
+        return alpha;
+    }
+    constructor(hex) {
+        this.hexadecimalString = hex;
+    }
+    withAlpha(alpha) {
+        const newHex = this.hexadecimalString.slice(0, 6) + Color.numberToHex(Color.normalizeAlpha(alpha));
+        return Color.fromHex(newHex);
+    }
+    toJSON() {
+        return '#' + this.hexadecimalString;
+    }
+}
+
 class ScanditIcon extends DefaultSerializeable {
     static fromJSON(json) {
         if (!json) {
             return null;
         }
-        const scanditIcon = new ScanditIcon(json.iconColor || null, json.backgroundColor || null, json.backgroundShape || null, json.icon || null, json.backgroundStrokeColor || null, json.backgroundStrokeWidth);
+        // SDC-33589: native sends the three colors as hex strings ('#FFFFFFFF'), so assigning them
+        // through left a raw string sitting in a Color-typed field -- `.redComponent` was undefined
+        // on it. Convert, as every other defaults parser in the module does. The round trip is
+        // lossless: Color.fromJSON is fromHex and toJSON re-emits '#' + hexadecimalString.
+        const scanditIcon = new ScanditIcon(ScanditIcon.colorFromJSON(json.iconColor), ScanditIcon.colorFromJSON(json.backgroundColor), json.backgroundShape || null, json.icon || null, ScanditIcon.colorFromJSON(json.backgroundStrokeColor), json.backgroundStrokeWidth);
         return scanditIcon;
+    }
+    // The wire value is a hex string despite ScanditIconJSON typing it as Color; tolerate an
+    // already-converted Color so a caller passing a real instance is not mangled.
+    static colorFromJSON(value) {
+        if (value == null) {
+            return null;
+        }
+        if (typeof value === 'string') {
+            return Color['fromJSON'](value);
+        }
+        return value;
     }
     constructor(iconColor, backgroundColor, backgroundShape, icon, backgroundStrokeColor, backgroundStrokeWidth) {
         super();
@@ -1192,88 +1326,6 @@ __decorate([
     nameForSerialization('bottom')
 ], MarginsWithUnit.prototype, "_bottom", void 0);
 
-class Color {
-    get redComponent() {
-        return this.hexadecimalString.slice(0, 2);
-    }
-    get greenComponent() {
-        return this.hexadecimalString.slice(2, 4);
-    }
-    get blueComponent() {
-        return this.hexadecimalString.slice(4, 6);
-    }
-    get alphaComponent() {
-        return this.hexadecimalString.slice(6, 8);
-    }
-    get red() {
-        return Color.hexToNumber(this.redComponent);
-    }
-    get green() {
-        return Color.hexToNumber(this.greenComponent);
-    }
-    get blue() {
-        return Color.hexToNumber(this.blueComponent);
-    }
-    get alpha() {
-        return Color.hexToNumber(this.alphaComponent);
-    }
-    static fromHex(hex) {
-        return new Color(Color.normalizeHex(hex));
-    }
-    static fromRGBA(red, green, blue, alpha = 1) {
-        const hexString = [red, green, blue, this.normalizeAlpha(alpha)].reduce((hex, colorComponent) => hex + this.numberToHex(colorComponent), '');
-        return new Color(hexString);
-    }
-    static hexToNumber(hex) {
-        return parseInt(hex, 16);
-    }
-    static fromJSON(json) {
-        return Color.fromHex(json);
-    }
-    static numberToHex(x) {
-        x = Math.round(x);
-        let hex = x.toString(16);
-        if (hex.length === 1) {
-            hex = '0' + hex;
-        }
-        return hex.toUpperCase();
-    }
-    static normalizeHex(hex) {
-        // remove leading #
-        if (hex[0] === '#') {
-            hex = hex.slice(1);
-        }
-        // double digits if single digit
-        if (hex.length < 6) {
-            hex = hex
-                .split('')
-                .map(s => s + s)
-                .join('');
-        }
-        // add alpha if missing
-        if (hex.length === 6) {
-            hex = hex + 'FF';
-        }
-        return hex.toUpperCase();
-    }
-    static normalizeAlpha(alpha) {
-        if (alpha > 0 && alpha <= 1) {
-            return 255 * alpha;
-        }
-        return alpha;
-    }
-    constructor(hex) {
-        this.hexadecimalString = hex;
-    }
-    withAlpha(alpha) {
-        const newHex = this.hexadecimalString.slice(0, 6) + Color.numberToHex(Color.normalizeAlpha(alpha));
-        return Color.fromHex(newHex);
-    }
-    toJSON() {
-        return '#' + this.hexadecimalString;
-    }
-}
-
 class Brush extends DefaultSerializeable {
     static get transparent() {
         const transparentBlack = Color.fromRGBA(255, 255, 255, 0);
@@ -1514,7 +1566,7 @@ function parseOrUse(value) {
     return typeof value === 'string' ? JSON.parse(value) : value;
 }
 function parseDefaults(jsonDefaults) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
     const coreDefaults = {
         Camera: {
             Settings: {
@@ -1582,159 +1634,698 @@ function parseDefaults(jsonDefaults) {
             disabledColor: Color['fromJSON'](jsonDefaults.LaserlineViewfinder.disabledColor),
         },
         deviceID: jsonDefaults.deviceID,
+        Version: (_s = jsonDefaults.Version) !== null && _s !== void 0 ? _s : null,
     };
     // Inject defaults to avoid a circular dependency between these classes and the defaults
     Brush['defaults'] = coreDefaults.Brush;
     return coreDefaults;
-}
-
-let coreDefaultsLoader;
-function setCoreDefaultsLoader(loader) {
-    coreDefaultsLoader = loader;
-}
-function ensureCoreDefaults() {
-    var _a, _b;
-    const existing = (_a = FactoryMaker.instances.get('CoreDefaults')) === null || _a === void 0 ? void 0 : _a.instance;
-    if (existing) {
-        return existing;
-    }
-    coreDefaultsLoader === null || coreDefaultsLoader === void 0 ? void 0 : coreDefaultsLoader();
-    const reloaded = (_b = FactoryMaker.instances.get('CoreDefaults')) === null || _b === void 0 ? void 0 : _b.instance;
-    if (reloaded) {
-        return reloaded;
-    }
-    throw new Error('CoreDefaults missing and re-init failed');
 }
 function loadCoreDefaults(jsonDefaults) {
     const coreDefaults = parseDefaults(jsonDefaults);
     FactoryMaker.bindInstanceIfNotExists('CoreDefaults', coreDefaults);
 }
 
-function getCoreDefaults() {
-    return ensureCoreDefaults();
+/*
+ * This file is part of the Scandit Data Capture SDK
+ *
+ * Copyright (C) 2026- Scandit AG. All rights reserved.
+ */
+// THIS FILE IS GENERATED by scripts/defaults_generator/generate.py from
+// scripts/defaults_generator/defaults/core.json. Do not edit by hand.
+const CameraSettingsGeneratedDefaults = {
+    preferredResolution: 'fullHd',
+    zoomFactor: 1.0,
+    focusRangeAndroid: 'full',
+    focusRangeIos: 'near',
+    focusGestureStrategy: 'manualUntilCapture',
+    zoomGestureZoomFactor: 2.0,
+    shouldPreferSmoothAutoFocus: false,
+    torchLevel: 1.0,
+    macroMode: 'auto',
+    adaptiveExposure: false,
+    zoomLevels: [1.0, 2.0],
+    propertiesMinFrameRate: 15.0,
+    propertiesColorCorrection: true,
+    propertiesEdgeEnhancementMode: 'off',
+    propertiesToneMappingCurve: 'none',
+    propertiesNoiseReductionMode: 'off',
+    propertiesPreferredAspectRatio: 'auto',
+    propertiesExposureTargetBias: 0.0,
+    propertiesApi: 0,
+    propertiesRegionStrategy: 'default',
+    propertiesFocusStrategy: 'auto',
+    propertiesOverwriteWithHighestResolution: false,
+};
+const DataCaptureViewGeneratedDefaults = {
+    scanAreaMargins: { "left": { "value": 0, "unit": 'fraction' }, "top": { "value": 0, "unit": 'fraction' }, "right": { "value": 0, "unit": 'fraction' }, "bottom": { "value": 0, "unit": 'fraction' } },
+    pointOfInterest: { "x": { "value": 0.5, "unit": 'fraction' }, "y": { "value": 0.5, "unit": 'fraction' } },
+    logoAnchor: 'bottomRight',
+    logoOffset: { "x": { "value": 0, "unit": 'fraction' }, "y": { "value": 0, "unit": 'fraction' } },
+    focusGesture: { "type": 'tapToFocus', "showUIIndicator": true },
+    zoomGesture: { "type": 'swipeToZoom' },
+    zoomGestures: [{ "type": 'swipeToZoom' }, { "type": 'pinchToZoom' }],
+    logoStyle: 'extended',
+    shouldShowZoomNotification: true,
+};
+const RectangularViewfinderGeneratedDefaults = {
+    defaultStyle: 'rounded',
+    stylesRoundedSize: { "shorterDimension": { "unit": 'fraction', "value": 0.75 }, "aspect": 1.0 },
+    stylesRoundedColor: '#FFFFFFFF',
+    stylesRoundedStyle: 'rounded',
+    stylesRoundedLineStyle: 'light',
+    stylesRoundedDimming: 0.0,
+    stylesRoundedAnimation: { "looping": true },
+    stylesRoundedDisabledDimming: 0.0,
+    stylesRoundedDisabledColor: '#00000000',
+    stylesSquareSize: { "shorterDimension": { "unit": 'fraction', "value": 0.75 }, "aspect": 1.0 },
+    stylesSquareColor: '#FFFFFFFF',
+    stylesSquareStyle: 'square',
+    stylesSquareLineStyle: 'light',
+    stylesSquareDimming: 0.0,
+    stylesSquareAnimation: { "looping": true },
+    stylesSquareDisabledDimming: 0.0,
+    stylesSquareDisabledColor: '#00000000',
+};
+const BrushGeneratedDefaults = {
+    fillColor: '#00000000',
+    strokeColor: '#00000000',
+    strokeWidth: 0.0,
+};
+const AimerViewfinderGeneratedDefaults = {
+    frameColor: '#FFFFFFFF',
+    dotColor: '#FFFFFFCC',
+};
+const ZoomSwitchControlGeneratedDefaults = {
+    orientation: 'default',
+    isAlwaysExpanded: false,
+    isExpanded: false,
+    accessibilityHint: 'Adjusts the camera zoom level',
+};
+const LaserlineViewfinderGeneratedDefaults = {
+    width: { "unit": 'fraction', "value": 0.8 },
+    enabledColor: '#FFFFFFFF',
+    disabledColor: '#00000000',
+};
+
+// Not exported from generated/index.ts's public surface, but used directly here to assemble the
+// nested JSON shape expected by parseDefaults.
+function platformDefault(android, ios, platform) {
+    return platform === 'ios' ? ios : android;
+}
+/**
+ * Assembles the nested JSON shape that parseDefaults (loadCoreDefaults.ts) expects, out of the flat
+ * generated defaults, restricted to the keys that are knowable statically at build time.
+ *
+ * Excluded (genuinely dynamic, native-only) keys, mirroring CoreDefaults.getDynamic() on
+ * Android:
+ * - Version
+ * - deviceID
+ * - Camera.defaultPosition
+ * - Camera.availablePositions
+ * - ZoomSwitchControl.accessibilityLabel
+ */
+function buildStaticCoreDefaultsJson(platform) {
+    return {
+        Camera: {
+            Settings: {
+                preferredResolution: CameraSettingsGeneratedDefaults.preferredResolution,
+                zoomFactor: CameraSettingsGeneratedDefaults.zoomFactor,
+                focusRange: platformDefault(CameraSettingsGeneratedDefaults.focusRangeAndroid, CameraSettingsGeneratedDefaults.focusRangeIos, platform),
+                zoomGestureZoomFactor: CameraSettingsGeneratedDefaults.zoomGestureZoomFactor,
+                focusGestureStrategy: CameraSettingsGeneratedDefaults.focusGestureStrategy,
+                shouldPreferSmoothAutoFocus: CameraSettingsGeneratedDefaults.shouldPreferSmoothAutoFocus,
+                torchLevel: CameraSettingsGeneratedDefaults.torchLevel,
+                macroMode: CameraSettingsGeneratedDefaults.macroMode,
+                adaptiveExposure: CameraSettingsGeneratedDefaults.adaptiveExposure,
+                zoomLevels: CameraSettingsGeneratedDefaults.zoomLevels,
+                properties: {
+                    minFrameRate: CameraSettingsGeneratedDefaults.propertiesMinFrameRate,
+                    colorCorrection: CameraSettingsGeneratedDefaults.propertiesColorCorrection,
+                    edgeEnhancementMode: CameraSettingsGeneratedDefaults.propertiesEdgeEnhancementMode,
+                    toneMappingCurve: CameraSettingsGeneratedDefaults.propertiesToneMappingCurve,
+                    noiseReductionMode: CameraSettingsGeneratedDefaults.propertiesNoiseReductionMode,
+                    preferredAspectRatio: CameraSettingsGeneratedDefaults.propertiesPreferredAspectRatio,
+                    overwriteWithHighestResolution: CameraSettingsGeneratedDefaults.propertiesOverwriteWithHighestResolution,
+                    exposureTargetBias: CameraSettingsGeneratedDefaults.propertiesExposureTargetBias,
+                    regionStrategy: CameraSettingsGeneratedDefaults.propertiesRegionStrategy,
+                    focusStrategy: CameraSettingsGeneratedDefaults.propertiesFocusStrategy,
+                    api: CameraSettingsGeneratedDefaults.propertiesApi,
+                },
+            },
+            // defaultPosition / availablePositions are dynamic (device-probed); not staticized.
+        },
+        ZoomSwitchControl: {
+            orientation: ZoomSwitchControlGeneratedDefaults.orientation,
+            isAlwaysExpanded: ZoomSwitchControlGeneratedDefaults.isAlwaysExpanded,
+            isExpanded: ZoomSwitchControlGeneratedDefaults.isExpanded,
+            accessibilityHint: ZoomSwitchControlGeneratedDefaults.accessibilityHint,
+            // accessibilityLabel is dynamic (localized); not staticized.
+        },
+        DataCaptureView: {
+            scanAreaMargins: DataCaptureViewGeneratedDefaults.scanAreaMargins,
+            pointOfInterest: DataCaptureViewGeneratedDefaults.pointOfInterest,
+            logoAnchor: DataCaptureViewGeneratedDefaults.logoAnchor,
+            logoOffset: DataCaptureViewGeneratedDefaults.logoOffset,
+            focusGesture: DataCaptureViewGeneratedDefaults.focusGesture,
+            zoomGesture: DataCaptureViewGeneratedDefaults.zoomGesture,
+            zoomGestures: DataCaptureViewGeneratedDefaults.zoomGestures,
+            logoStyle: DataCaptureViewGeneratedDefaults.logoStyle,
+            shouldShowZoomNotification: DataCaptureViewGeneratedDefaults.shouldShowZoomNotification,
+        },
+        RectangularViewfinder: {
+            defaultStyle: RectangularViewfinderGeneratedDefaults.defaultStyle,
+            styles: {
+                rounded: {
+                    size: RectangularViewfinderGeneratedDefaults.stylesRoundedSize,
+                    color: RectangularViewfinderGeneratedDefaults.stylesRoundedColor,
+                    style: RectangularViewfinderGeneratedDefaults.stylesRoundedStyle,
+                    lineStyle: RectangularViewfinderGeneratedDefaults.stylesRoundedLineStyle,
+                    dimming: RectangularViewfinderGeneratedDefaults.stylesRoundedDimming,
+                    animation: RectangularViewfinderGeneratedDefaults.stylesRoundedAnimation,
+                    disabledDimming: RectangularViewfinderGeneratedDefaults.stylesRoundedDisabledDimming,
+                    disabledColor: RectangularViewfinderGeneratedDefaults.stylesRoundedDisabledColor,
+                },
+                square: {
+                    size: RectangularViewfinderGeneratedDefaults.stylesSquareSize,
+                    color: RectangularViewfinderGeneratedDefaults.stylesSquareColor,
+                    style: RectangularViewfinderGeneratedDefaults.stylesSquareStyle,
+                    lineStyle: RectangularViewfinderGeneratedDefaults.stylesSquareLineStyle,
+                    dimming: RectangularViewfinderGeneratedDefaults.stylesSquareDimming,
+                    animation: RectangularViewfinderGeneratedDefaults.stylesSquareAnimation,
+                    disabledDimming: RectangularViewfinderGeneratedDefaults.stylesSquareDisabledDimming,
+                    disabledColor: RectangularViewfinderGeneratedDefaults.stylesSquareDisabledColor,
+                },
+            },
+        },
+        AimerViewfinder: {
+            frameColor: AimerViewfinderGeneratedDefaults.frameColor,
+            dotColor: AimerViewfinderGeneratedDefaults.dotColor,
+        },
+        LaserlineViewfinder: {
+            width: LaserlineViewfinderGeneratedDefaults.width,
+            enabledColor: LaserlineViewfinderGeneratedDefaults.enabledColor,
+            disabledColor: LaserlineViewfinderGeneratedDefaults.disabledColor,
+        },
+        Brush: {
+            fillColor: BrushGeneratedDefaults.fillColor,
+            strokeColor: BrushGeneratedDefaults.strokeColor,
+            strokeWidth: BrushGeneratedDefaults.strokeWidth,
+        },
+        // Version, deviceID are dynamic (native-only); not staticized.
+    };
 }
 
-class ContextStatus {
-    static fromJSON(json) {
-        const status = new ContextStatus();
-        status._code = json.code;
-        status._message = json.message;
-        status._isValid = json.isValid;
-        return status;
-    }
-    get message() {
-        return this._message;
-    }
-    get code() {
-        return this._code;
-    }
-    get isValid() {
-        return this._isValid;
-    }
+var LogCategory;
+(function (LogCategory) {
+    LogCategory[LogCategory["Bridge"] = 1] = "Bridge";
+    LogCategory[LogCategory["Lifecycle"] = 2] = "Lifecycle";
+    LogCategory[LogCategory["Listener"] = 4] = "Listener";
+    LogCategory[LogCategory["Events"] = 8] = "Events";
+})(LogCategory || (LogCategory = {}));
+const NAMES$1 = {
+    [LogCategory.Bridge]: 'Bridge',
+    [LogCategory.Lifecycle]: 'Lifecycle',
+    [LogCategory.Listener]: 'Listener',
+    [LogCategory.Events]: 'Events',
+};
+function logCategoryName(category) {
+    var _a;
+    return (_a = NAMES$1[category]) !== null && _a !== void 0 ? _a : 'Unknown';
 }
 
-class FrameDataSettings extends DefaultSerializeable {
-    constructor() {
-        super();
-        // Enables the file system cache for the frame.
-        this._isFileSystemCacheEnabled = false;
-        // The quality of the image. 0-100.
-        this._imageQuality = 100;
-        // Enables the auto-rotation of the frame.
-        this._isAutoRotateEnabled = false;
+var LogLevel;
+(function (LogLevel) {
+    LogLevel[LogLevel["Off"] = 0] = "Off";
+    LogLevel[LogLevel["Error"] = 1] = "Error";
+    LogLevel[LogLevel["Warn"] = 2] = "Warn";
+    LogLevel[LogLevel["Info"] = 3] = "Info";
+    LogLevel[LogLevel["Debug"] = 4] = "Debug";
+    LogLevel[LogLevel["Trace"] = 5] = "Trace";
+})(LogLevel || (LogLevel = {}));
+const NAMES = {
+    [LogLevel.Off]: 'OFF  ',
+    [LogLevel.Error]: 'ERROR',
+    [LogLevel.Warn]: 'WARN ',
+    [LogLevel.Info]: 'INFO ',
+    [LogLevel.Debug]: 'DEBUG',
+    [LogLevel.Trace]: 'TRACE',
+};
+function logLevelName(level) {
+    var _a;
+    return (_a = NAMES[level]) !== null && _a !== void 0 ? _a : 'UNK  ';
+}
+
+/**
+ * Issue a raw `executeCore` bridge call from inside the logging module.
+ *
+ * `BaseProxy` does not declare `_call` — it is implementation detail of the
+ * concrete `NativeProxy` — but the logging module has to reach it directly:
+ * its methods are deliberately kept out of the generated command schema, so
+ * there are no generated proxy wrappers to call instead. This centralises the
+ * one cast that fact requires, rather than repeating it per call site.
+ */
+function callCore(proxy, args) {
+    return proxy._call('executeCore', args);
+}
+
+// FactoryMaker throws until the framework has bound its proxies.
+function coreProxy() {
+    try {
+        return FactoryMaker.getInstance('CoreProxy');
     }
-    get isFileSystemCacheEnabled() {
-        return this._isFileSystemCacheEnabled;
+    catch (_a) {
+        return undefined;
     }
-    set isFileSystemCacheEnabled(enabled) {
-        this._isFileSystemCacheEnabled = enabled;
+}
+// getCoreDefaults() throws until a DataCaptureContext has loaded them.
+function sdkVersion() {
+    var _a;
+    try {
+        return (_a = getCoreDefaults().Version) !== null && _a !== void 0 ? _a : 'unknown';
     }
-    get imageQuality() {
-        return this._imageQuality;
+    catch (_b) {
+        return 'unknown';
     }
-    set imageQuality(quality) {
-        if (quality < 0 || quality > 100) {
-            throw new Error('Image quality must be between 0 and 100');
+}
+function serializeLogRecord(record) {
+    return JSON.stringify(Object.assign(Object.assign({}, record), { time: new Date(record.ts).toISOString(), level: logLevelName(record.level).trim(), category: logCategoryName(record.category) }));
+}
+function buildLogHeader(level, now = new Date()) {
+    return JSON.stringify({
+        type: 'scandit-debug-log',
+        formatVersion: 2,
+        sdkVersion: sdkVersion(),
+        exportedAt: now.toISOString(),
+        level: logLevelName(level).trim(),
+    });
+}
+function writeLogs(path, level, flushPending) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const proxy = coreProxy();
+        if (proxy === undefined) {
+            throw new Error('ScanditLogger.writeLogs: the SDK is not initialised yet');
         }
-        this._imageQuality = quality;
-    }
-    get isAutoRotateEnabled() {
-        return this._isAutoRotateEnabled;
-    }
-    set isAutoRotateEnabled(enabled) {
-        this._isAutoRotateEnabled = enabled;
-    }
-}
-__decorate([
-    nameForSerialization('sc_frame_isFileSystemCacheEnabled')
-], FrameDataSettings.prototype, "_isFileSystemCacheEnabled", void 0);
-__decorate([
-    nameForSerialization('sc_frame_imageQuality')
-], FrameDataSettings.prototype, "_imageQuality", void 0);
-__decorate([
-    nameForSerialization('sc_frame_autoRotate')
-], FrameDataSettings.prototype, "_isAutoRotateEnabled", void 0);
-
-class FrameDataSettingsBuilder {
-    constructor(settings) {
-        this.settings = settings;
-    }
-    enableFileSystemCache(enabled) {
-        this.settings.isFileSystemCacheEnabled = enabled;
-        return this;
-    }
-    setImageQuality(quality) {
-        this.settings.imageQuality = quality;
-        return this;
-    }
-    enableAutoRotate(enabled) {
-        this.settings.isAutoRotateEnabled = enabled;
-        return this;
-    }
+        yield flushPending();
+        const result = yield callCore(proxy, Object.assign(Object.assign({ moduleName: 'CoreModule', methodName: 'writeLogs', isEventRegistration: false }, (path === undefined ? {} : { path })), { header: buildLogHeader(level) }));
+        // Every FrameworksResult implementation wraps a non-map success value as `{ data: <string> }`.
+        const written = result === null || result === void 0 ? void 0 : result.data;
+        if (typeof written !== 'string' || written.length === 0) {
+            throw new Error('ScanditLogger.writeLogs: the native side did not report where the file was written');
+        }
+        return written;
+    });
 }
 
-class DataCaptureContextSettings extends DefaultSerializeable {
-    constructor() {
-        super();
-        this._frameSettings = new FrameDataSettings();
+const BUFFER_SIZE = 1000;
+const NATIVE_QUEUE_CAP = 1000;
+const REDACTED = '[redacted]';
+const REDACTED_ARG_KEYS = Object.freeze([
+    'frameData',
+    'viewBytes',
+    'licenseKey',
+    'deviceName',
+    'externalId',
+    'deviceOS',
+    'deviceModelName',
+    'deviceId',
+    'barcodeResult',
+    'mrzResult',
+    'vizResult',
+    'mobileDocumentResult',
+    'mobileDocumentOcrResult',
+    'verificationResult',
+    'nfcResult',
+    'imageInfo',
+    'firstName',
+    'lastName',
+    'fullName',
+    'sex',
+    'dateOfBirth',
+    'nationality',
+    'nationalityISO',
+    'address',
+    'documentNumber',
+    'documentAdditionalNumber',
+    'passportNumber',
+    'visaNumber',
+    'dateOfExpiry',
+    'dateOfIssue',
+    'age',
+    'frontReviewImage',
+]);
+// Log-storage calls carry headers and record batches, never worth storing as a record's args.
+const REDACTED_ARG_METHODS = Object.freeze([
+    'parseString',
+    'parseRawData',
+    'writeLogs',
+    'appendLogs',
+    'clearLogs',
+]);
+class ScanditLogger {
+    /**
+     * Merge per-method log metadata into the global registry. Called as a
+     * module-load side effect by each platform package's generated
+     * `LogMetadata.ts` barrel. Last write wins for duplicate keys.
+     */
+    static registerMethodMetadata(metadata) {
+        for (const [key, value] of Object.entries(metadata)) {
+            ScanditLogger._methodMetadata.set(key, value);
+        }
     }
-    get frameDataSettings() {
-        return this._frameSettings;
+    /** Lookup the metadata for a given native method name, if any. */
+    static getMethodMetadata(methodName) {
+        return ScanditLogger._methodMetadata.get(methodName);
     }
-    set frameDataSettings(settings) {
-        this._frameSettings = settings;
+    static _redactValue(value) {
+        if (value == null)
+            return value;
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (trimmed.length === 0 || (trimmed[0] !== '{' && trimmed[0] !== '[')) {
+                return value;
+            }
+            try {
+                const parsed = JSON.parse(trimmed);
+                return JSON.stringify(ScanditLogger._redactValue(parsed));
+            }
+            catch (_a) {
+                return value;
+            }
+        }
+        if (Array.isArray(value)) {
+            return value.map(v => ScanditLogger._redactValue(v));
+        }
+        if (typeof value === 'object') {
+            const out = {};
+            for (const [k, v] of Object.entries(value)) {
+                out[k] = ScanditLogger._redactedArgKeys.has(k) ? REDACTED : ScanditLogger._redactValue(v);
+            }
+            return out;
+        }
+        return value;
     }
-    frameDataSettingsBuilder() {
-        return new FrameDataSettingsBuilder(this._frameSettings);
+    static _applyArgPolicy(message, fields) {
+        if (fields === undefined || !('args' in fields))
+            return fields;
+        const { args } = fields, rest = __rest(fields, ["args"]);
+        const redacted = ScanditLogger._isRedactedArgMethod(message)
+            ? ScanditLogger._redactEveryValue(args)
+            : ScanditLogger._redactValue(args);
+        return Object.assign(Object.assign({}, rest), { args: redacted });
     }
-    setProperty(name, value) {
-        this[name] = value;
+    static _isRedactedArgMethod(message) {
+        const method = message.slice(message.lastIndexOf('.') + 1).replace(/^\$+/, '');
+        return REDACTED_ARG_METHODS.includes(method);
     }
-    getProperty(name) {
-        return this[name];
+    static _redactEveryValue(args) {
+        if (Array.isArray(args))
+            return args.map(() => REDACTED);
+        if (args !== null && typeof args === 'object') {
+            const out = {};
+            for (const key of Object.keys(args))
+                out[key] = REDACTED;
+            return out;
+        }
+        return REDACTED;
+    }
+    static _applyErrorPolicy(error) {
+        if (error === undefined || error.stack === undefined)
+            return error;
+        const rest = __rest(error, ["stack"]);
+        return rest;
+    }
+    static setLevel(level) {
+        ScanditLogger._level = level;
+        ScanditLogger._emitConfig();
+    }
+    static getLevel() {
+        return ScanditLogger._level;
+    }
+    /**
+     * Subscribe to configuration changes (`setLevel`). The callback fires immediately with the current
+     * configuration when attached, then again on every subsequent change.
+     * Returns an unsubscribe function.
+     *
+     * Used by `installNativeLogReceiver` to push the JS-side config to the
+     * native singletons over the bridge. Not part of the customer-facing API.
+     */
+    static onConfigChange(cb) {
+        ScanditLogger._configListeners.add(cb);
+        try {
+            cb({ level: ScanditLogger._level });
+        }
+        catch (err) {
+            console.error('[ScanditLogger] config listener threw on attach:', err);
+        }
+        return () => ScanditLogger._configListeners.delete(cb);
+    }
+    static _emitConfig() {
+        if (ScanditLogger._configListeners.size === 0)
+            return;
+        const cfg = { level: ScanditLogger._level };
+        // Snapshot: a listener may attach another (the lazy receiver does), and a live
+        // Set iteration would visit the newcomer in the same pass, firing it twice.
+        for (const cb of [...ScanditLogger._configListeners]) {
+            try {
+                cb(cfg);
+            }
+            catch (err) {
+                console.error('[ScanditLogger] config listener threw:', err);
+            }
+        }
+    }
+    static getRecentLogs() {
+        const out = [];
+        const count = ScanditLogger._count;
+        const start = count < BUFFER_SIZE ? 0 : ScanditLogger._writeIdx;
+        const total = Math.min(count, BUFFER_SIZE);
+        for (let i = 0; i < total; i++) {
+            const record = ScanditLogger._buffer[(start + i) % BUFFER_SIZE];
+            if (record !== undefined)
+                out.push(record);
+        }
+        return out;
+    }
+    static subscribe(cb) {
+        ScanditLogger._subscribers.add(cb);
+        return () => ScanditLogger._subscribers.delete(cb);
+    }
+    static clear() {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            ScanditLogger._buffer = new Array(BUFFER_SIZE);
+            ScanditLogger._writeIdx = 0;
+            ScanditLogger._count = 0;
+            ScanditLogger._pendingForNative = [];
+            const proxy = coreProxy();
+            if (proxy === undefined)
+                return;
+            // An appendLogs already in flight would otherwise land after the delete.
+            yield ((_a = ScanditLogger._nativeSink) === null || _a === void 0 ? void 0 : _a.flush());
+            yield callCore(proxy, {
+                moduleName: 'CoreModule',
+                methodName: 'clearLogs',
+                isEventRegistration: false,
+            });
+        });
+    }
+    /** TS-emitted records not yet handed to native storage. Internal: used by `installNativeLogReceiver`. */
+    static pendingNativeRecordCount() {
+        return ScanditLogger._pendingForNative.length;
+    }
+    /** Removes and returns every record waiting for native storage. Internal. */
+    static takePendingNativeRecords() {
+        const records = ScanditLogger._pendingForNative;
+        ScanditLogger._pendingForNative = [];
+        return records;
+    }
+    /** Registers (or, with `undefined`, removes) the sink that moves queued records to native storage. Internal. */
+    static setNativeSink(sink) {
+        ScanditLogger._nativeSink = sink;
+    }
+    static _enqueueForNative(record) {
+        var _a;
+        const queue = ScanditLogger._pendingForNative;
+        queue.push(record);
+        if (queue.length > NATIVE_QUEUE_CAP)
+            queue.shift();
+        try {
+            (_a = ScanditLogger._nativeSink) === null || _a === void 0 ? void 0 : _a.onQueued();
+        }
+        catch (err) {
+            console.error('[ScanditLogger] native sink threw:', err);
+        }
+    }
+    /**
+     * Writes the records the SDK stored on the device, oldest first, as a redacted JSON-lines file
+     * and resolves with the absolute path written. Without `path` the file is
+     * `scandit-debug-log.jsonl` in the application's cache directory, replaced on every call.
+     *
+     * An app can only write inside its own storage: pass a path under the app container on iOS
+     * (Documents, Library or the temporary directory) or under `Context.getFilesDir()` /
+     * `Context.getExternalFilesDir()` on Android. A relative `path` is resolved against the app's
+     * documents/files directory, which is the portable way to ask for a destination.
+     *
+     * Rejects when no record is stored (call `setLevel` first), the SDK is not initialized yet,
+     * or the destination cannot be written.
+     */
+    static writeLogs(path) {
+        return writeLogs(path, ScanditLogger.getLevel(), () => { var _a, _b; return (_b = (_a = ScanditLogger._nativeSink) === null || _a === void 0 ? void 0 : _a.flush()) !== null && _b !== void 0 ? _b : Promise.resolve(); });
+    }
+    /** Whether a record at `level` would be kept under the current level. */
+    static isEnabled(level) {
+        return level !== LogLevel.Off && ScanditLogger._level !== LogLevel.Off && level <= ScanditLogger._level;
+    }
+    static emit(level, category, source, message, fields, durationMs, error) {
+        if (!ScanditLogger.isEnabled(level))
+            return;
+        const record = {
+            ts: Date.now(),
+            level,
+            category,
+            source,
+            message,
+            fields: ScanditLogger._applyArgPolicy(message, fields),
+            durationMs,
+            error: ScanditLogger._applyErrorPolicy(error),
+        };
+        ScanditLogger._buffer[ScanditLogger._writeIdx] = record;
+        ScanditLogger._writeIdx = (ScanditLogger._writeIdx + 1) % BUFFER_SIZE;
+        ScanditLogger._count++;
+        ScanditLogger._enqueueForNative(record);
+        ScanditLogger.writeToNativeSink(record);
+        for (const sub of ScanditLogger._subscribers) {
+            try {
+                sub(record);
+            }
+            catch (err) {
+                // Subscribers must not break the SDK.
+                console.error('[ScanditLogger] subscriber threw:', err);
+            }
+        }
+    }
+    /**
+     * Insert a `LogRecord` produced by the native side into the local buffer.
+     *
+     * Applies the TS-side level gate; native already applied its per-method override.
+     *
+     * Skips the platform-native console sink (the native side already wrote
+     * to `android.util.Log` / `os_log` / etc.).
+     *
+     * Best-effort correlation: when the incoming
+     * record has a `durationMs`, look back for the most recent unmatched
+     * `ts.bridge` record with the same method name (last segment after the
+     * dot) within a 10-second window and attach a derived
+     * `fields.bridgeOverheadMs = tsRoundTrip - nativeWork`.
+     *
+     * Notifies subscribers so live consumers see a unified TS + native
+     * stream. Intended for use by `installNativeLogReceiver` and equivalent
+     * platform adapters — not part of the customer-facing API.
+     */
+    static ingest(record) {
+        if (ScanditLogger._level === LogLevel.Off)
+            return;
+        if (record.level > ScanditLogger._level)
+            return;
+        const enriched = ScanditLogger._withBridgeOverhead(Object.assign(Object.assign({}, record), { fields: ScanditLogger._applyArgPolicy(record.message, record.fields), error: ScanditLogger._applyErrorPolicy(record.error) }));
+        ScanditLogger._buffer[ScanditLogger._writeIdx] = enriched;
+        ScanditLogger._writeIdx = (ScanditLogger._writeIdx + 1) % BUFFER_SIZE;
+        ScanditLogger._count++;
+        for (const sub of ScanditLogger._subscribers) {
+            try {
+                sub(enriched);
+            }
+            catch (err) {
+                console.error('[ScanditLogger] subscriber threw:', err);
+            }
+        }
+    }
+    static _withBridgeOverhead(record) {
+        var _a;
+        if (record.durationMs === undefined)
+            return record;
+        if (record.source.startsWith('ts.'))
+            return record;
+        const nativeMethod = record.message;
+        const window = ScanditLogger._CORRELATION_WINDOW_MS;
+        const total = Math.min(ScanditLogger._count, BUFFER_SIZE);
+        if (total === 0)
+            return record;
+        const writeIdx = ScanditLogger._writeIdx;
+        // Walk newest → oldest in the ring buffer.
+        for (let i = 1; i <= total; i++) {
+            const idx = (writeIdx - i + BUFFER_SIZE * 2) % BUFFER_SIZE;
+            const candidate = ScanditLogger._buffer[idx];
+            if (!candidate)
+                continue;
+            if (record.ts - candidate.ts > window)
+                break;
+            if (!candidate.source.startsWith('ts.bridge'))
+                continue;
+            if (candidate.durationMs === undefined)
+                continue;
+            const dot = candidate.message.lastIndexOf('.');
+            const candidateMethod = dot >= 0 ? candidate.message.slice(dot + 1) : candidate.message;
+            if (candidateMethod !== nativeMethod)
+                continue;
+            const overheadMs = candidate.durationMs - record.durationMs;
+            return Object.assign(Object.assign({}, record), { fields: Object.assign(Object.assign({}, ((_a = record.fields) !== null && _a !== void 0 ? _a : {})), { bridgeOverheadMs: overheadMs }) });
+        }
+        return record;
+    }
+    static format(record) {
+        const ts = new Date(record.ts).toISOString();
+        const level = logLevelName(record.level);
+        const category = `[${logCategoryName(record.category)}]`.padEnd(15);
+        const source = record.source.padEnd(16);
+        const parts = [ts, level, category, source, record.message];
+        if (record.durationMs !== undefined)
+            parts.push(`duration=${record.durationMs}ms`);
+        if (record.fields !== undefined)
+            parts.push(`fields=${ScanditLogger.formatFields(record.fields)}`);
+        if (record.error !== undefined)
+            parts.push(`error=${record.error.name}: ${record.error.message}`);
+        return parts.join('  ');
+    }
+    static formatFields(fields) {
+        try {
+            return JSON.stringify(fields);
+        }
+        catch (_a) {
+            return '[unserializable]';
+        }
+    }
+    static writeToNativeSink(record) {
+        const line = ScanditLogger.format(record);
+        switch (record.level) {
+            case LogLevel.Error:
+                console.error(line);
+                return;
+            case LogLevel.Warn:
+                console.warn(line);
+                return;
+            case LogLevel.Info:
+                console.info(line);
+                return;
+            case LogLevel.Debug:
+            case LogLevel.Trace:
+                console.debug(line);
+                return;
+            default:
+                return;
+        }
     }
 }
-__decorate([
-    nameForSerialization('frameDataSettings')
-], DataCaptureContextSettings.prototype, "_frameSettings", void 0);
-
-class OpenSourceSoftwareLicenseInfo {
-    constructor(licenseText) {
-        this._licenseText = licenseText;
-    }
-    get licenseText() {
-        return this._licenseText;
-    }
-}
-
-class BaseController {
-    get _proxy() {
-        return this._cachedProxy;
-    }
-    constructor(proxyName) {
-        this._cachedProxy = FactoryMaker.createInstance(proxyName);
-    }
-}
+ScanditLogger._level = LogLevel.Off;
+ScanditLogger._buffer = new Array(BUFFER_SIZE);
+ScanditLogger._writeIdx = 0;
+ScanditLogger._count = 0;
+ScanditLogger._subscribers = new Set();
+ScanditLogger._configListeners = new Set();
+ScanditLogger._pendingForNative = [];
+ScanditLogger._redactedArgKeys = new Set(REDACTED_ARG_KEYS);
+ScanditLogger._CORRELATION_WINDOW_MS = 10000;
+ScanditLogger._methodMetadata = new Map();
 
 /*
  * This file is part of the Scandit Data Capture SDK
@@ -1832,6 +2423,42 @@ class CoreProxyAdapter {
                 isEventRegistration: false,
             });
             return result;
+        });
+    }
+    /**
+     * Adds an NV21 frame to the tracked sequence frame source with the given id
+     * @param frameSourceId The id of the sequence frame source the frame is added to
+     * @param width Frame width in pixels
+     * @param height Frame height in pixels
+     * @param frameData Base64-encoded NV21 frame bytes
+     */
+    addFrameToSequenceFrameSource(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ frameSourceId, width, height, frameData, }) {
+            const result = yield this.proxy.$executeCore({
+                moduleName: 'CoreModule',
+                methodName: 'addFrameToSequenceFrameSource',
+                isEventRegistration: false,
+                frameSourceId,
+                width,
+                height,
+                frameData,
+            });
+            return result;
+        });
+    }
+    /**
+     * Returns the current state of the tracked sequence frame source with the given id
+     * @param frameSourceId The id of the sequence frame source to get the state of
+     */
+    getSequenceFrameSourceState(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ frameSourceId }) {
+            const result = yield this.proxy.$executeCore({
+                moduleName: 'CoreModule',
+                methodName: 'getSequenceFrameSourceState',
+                isEventRegistration: false,
+                frameSourceId,
+            });
+            return JSON.parse(result.data);
         });
     }
     /**
@@ -2287,12 +2914,1640 @@ class CoreProxyAdapter {
             return result;
         });
     }
+    /**
+     * Registers a listener for an event with the global listener registry
+     * @param eventName Event name
+     * @param viewId View identifier the listener is scoped to
+     * @param modeId Mode identifier the listener is scoped to
+     */
+    addListener(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ eventName, viewId, modeId, }) {
+            const result = yield this.proxy.$executeCore({
+                moduleName: 'CoreModule',
+                methodName: 'addListener',
+                isEventRegistration: true,
+                eventName,
+                viewId,
+                modeId,
+            });
+            return result;
+        });
+    }
+    /**
+     * Removes a listener for an event from the global listener registry
+     * @param eventName Event name
+     * @param viewId View identifier the listener is scoped to
+     * @param modeId Mode identifier the listener is scoped to
+     */
+    removeListener(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ eventName, viewId, modeId, }) {
+            const result = yield this.proxy.$executeCore({
+                moduleName: 'CoreModule',
+                methodName: 'removeListener',
+                isEventRegistration: false,
+                eventName,
+                viewId,
+                modeId,
+            });
+            return result;
+        });
+    }
 }
 
+/*
+ *
+ * Global registry to handle listeners for events.
+ * subscription: name based, listen to all events of name x
+ * handler: mode/view id based, handle events of name x for mode/view id y
+ * listener: user specified listener, each handler has a list of listeners.
+ */
+function listenerRegistryState() {
+    const g = globalThis;
+    if (!g.__scanditListenerRegistryState) {
+        g.__scanditListenerRegistryState = {
+            fallbackEmitter: new EventEmitter(),
+            subscriptions: new Map(),
+            handlers: new Map(),
+        };
+    }
+    return g.__scanditListenerRegistryState;
+}
+class ListenerRegistry {
+    static get fallbackEmitter() {
+        return listenerRegistryState().fallbackEmitter;
+    }
+    // Map event name to its subscription
+    // Subscriptions extract the id and call the correct handler
+    static get subscriptions() {
+        return listenerRegistryState().subscriptions;
+    }
+    // Map an event name to its handlers, one per mode/view plus any id-less ones
+    // aka an event can have multiple modes listening to it and each mode can have multiple listeners
+    static get handlers() {
+        return listenerRegistryState().handlers;
+    }
+    /*
+     * Add a listener for a given event and target.
+     * We store multiple listeners for the same event and target, only the latest handler is called when the event is emitted.
+     */
+    static addListener(eventName, target, listener, handlerFn) {
+        const slot = this.slotFor(eventName);
+        if (target === null) {
+            return this.addGlobalListener(slot, listener, handlerFn);
+        }
+        const key = targetKey(target);
+        const handler = slot.byTarget.get(key);
+        if (handler === null || handler === void 0 ? void 0 : handler.listeners.some(l => l === listener)) {
+            // Listener already registered
+            return slot.ready;
+        }
+        if (!handler) {
+            slot.byTarget.set(key, { listeners: [listener], handler: handlerFn });
+            return Promise.all([slot.ready, this.nativeAddListener(eventName, target)]).then(() => undefined);
+        }
+        else {
+            slot.byTarget.set(key, { listeners: [...handler.listeners, listener], handler: handlerFn });
+            return slot.ready;
+        }
+    }
+    static listenersFor(eventName, target) {
+        var _a, _b;
+        const slot = this.handlers.get(eventName);
+        if (!slot) {
+            return [];
+        }
+        if (target === null) {
+            return slot.global.flatMap(handler => handler.listeners);
+        }
+        return [...((_b = (_a = slot.byTarget.get(targetKey(target))) === null || _a === void 0 ? void 0 : _a.listeners) !== null && _b !== void 0 ? _b : [])];
+    }
+    static hasListeners(eventName, target) {
+        return this.listenersFor(eventName, target).length > 0;
+    }
+    static removeListener(eventName, target, listener) {
+        const slot = this.handlers.get(eventName);
+        if (!slot) {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'no handlers found for event', { eventName });
+            return Promise.resolve();
+        }
+        const handler = target === null
+            ? slot.global.find(candidate => candidate.listeners.some(l => l === listener))
+            : slot.byTarget.get(targetKey(target));
+        if (!handler) {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'no handler found for event target', {
+                eventName,
+                target: describeTarget(target),
+            });
+            return Promise.resolve();
+        }
+        handler.listeners = handler.listeners.filter(l => l !== listener);
+        if (handler.listeners.length !== 0) {
+            return Promise.resolve();
+        }
+        const pending = [];
+        if (target === null) {
+            slot.global = slot.global.filter(candidate => candidate !== handler);
+            if (slot.global.length === 0) {
+                pending.push(this.nativeRemoveListener(eventName, null));
+            }
+        }
+        else {
+            slot.byTarget.delete(targetKey(target));
+            pending.push(this.nativeRemoveListener(eventName, target));
+        }
+        if (slot.byTarget.size === 0 && slot.global.length === 0) {
+            this.handlers.delete(eventName);
+            pending.push(this.unsubscribeToEvent(eventName));
+        }
+        return Promise.all(pending).then(() => undefined);
+    }
+    static addGlobalListener(slot, listener, handlerFn) {
+        if (slot.global.some(candidate => candidate.listeners.some(l => l === listener))) {
+            return slot.ready;
+        }
+        const handler = slot.global.find(candidate => candidate.handler === handlerFn);
+        if (!handler) {
+            const pending = [slot.ready];
+            if (slot.global.length === 0) {
+                pending.push(this.nativeAddListener(slot.eventName, null));
+            }
+            slot.global.push({ listeners: [listener], handler: handlerFn });
+            return Promise.all(pending).then(() => undefined);
+        }
+        if (handler.listeners.some(l => l === listener)) {
+            // Listener already registered
+            return slot.ready;
+        }
+        handler.listeners = [...handler.listeners, listener];
+        return slot.ready;
+    }
+    static slotFor(eventName) {
+        let slot = this.handlers.get(eventName);
+        if (!slot) {
+            slot = { eventName, byTarget: new Map(), global: [], ready: Promise.resolve() };
+            this.handlers.set(eventName, slot);
+            slot.ready = this.subscribeToEvent(eventName);
+        }
+        return slot;
+    }
+    static handleEvent(eventName, ...args) {
+        const slot = this.handlers.get(eventName);
+        if (!slot) {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'no handlers registered for event', {
+                eventName,
+            });
+            return;
+        }
+        const dataPayload = args[0];
+        const parsedData = parseData(dataPayload);
+        if (parsedData === null) {
+            ScanditLogger.emit(LogLevel.Error, LogCategory.Listener, 'ts.core', 'event unhandled, payload could not be decoded', { eventName });
+            return;
+        }
+        for (const handler of [...slot.global]) {
+            handler.handler(handler.listeners, dataPayload, parsedData);
+        }
+        const targetKeys = targetKeysOf(dataPayload, parsedData);
+        if (targetKeys.length === 0) {
+            if (slot.byTarget.size === 1) {
+                const [handler] = slot.byTarget.values();
+                handler.handler(handler.listeners, dataPayload, parsedData);
+            }
+            else if (slot.byTarget.size > 1) {
+                ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'event carries no target id, dropped', {
+                    eventName,
+                    targets: slot.byTarget.size,
+                });
+            }
+            return;
+        }
+        for (const key of targetKeys) {
+            const handler = slot.byTarget.get(key);
+            if (handler) {
+                handler.handler(handler.listeners, dataPayload, parsedData);
+            }
+        }
+    }
+    // Native RegistryEmitter sends every event registered here through CoreEventEmitter.
+    static eventSource() {
+        var _a;
+        const proxy = this.coreProxy();
+        return { proxy, emitter: (_a = proxy === null || proxy === void 0 ? void 0 : proxy.eventEmitter) !== null && _a !== void 0 ? _a : this.fallbackEmitter };
+    }
+    static subscribeToEvent(eventName) {
+        const { proxy: source, emitter } = this.eventSource();
+        const subscription = (...args) => this.handleEvent(eventName, ...args);
+        emitter.on(eventName, subscription);
+        this.subscriptions.set(eventName, subscription);
+        return Promise.resolve(source === null || source === void 0 ? void 0 : source.subscribeForEvents([eventName])).catch(error => {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'failed to subscribe to native event', {
+                eventName,
+                error: String(error),
+            });
+        });
+    }
+    static coreProxy() {
+        try {
+            return FactoryMaker.getInstance('CoreProxy');
+        }
+        catch (_a) {
+            return undefined;
+        }
+    }
+    static nativeAddListener(eventName, target) {
+        const proxy = this.coreProxy();
+        if (!proxy) {
+            return Promise.resolve();
+        }
+        return new CoreProxyAdapter(proxy).addListener(Object.assign({ eventName }, nativeTarget(target))).catch(error => {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'failed to register native listener', {
+                eventName,
+                error: String(error),
+            });
+        });
+    }
+    static nativeRemoveListener(eventName, target) {
+        const proxy = this.coreProxy();
+        if (!proxy) {
+            return Promise.resolve();
+        }
+        return new CoreProxyAdapter(proxy).removeListener(Object.assign({ eventName }, nativeTarget(target))).catch(error => {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'failed to unregister native listener', {
+                eventName,
+                error: String(error),
+            });
+        });
+    }
+    static reset() {
+        for (const [eventName, subscription] of this.subscriptions) {
+            this.eventSource().emitter.off(eventName, subscription);
+        }
+        this.subscriptions.clear();
+        this.handlers.clear();
+    }
+    static unsubscribeToEvent(eventName) {
+        const subscription = this.subscriptions.get(eventName);
+        if (!subscription) {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'no subscription found for event', {
+                eventName,
+            });
+            return Promise.resolve();
+        }
+        const { proxy: source, emitter } = this.eventSource();
+        emitter.off(eventName, subscription);
+        this.subscriptions.delete(eventName);
+        return Promise.resolve(source === null || source === void 0 ? void 0 : source.unsubscribeFromEvents([eventName])).catch(error => {
+            ScanditLogger.emit(LogLevel.Warn, LogCategory.Listener, 'ts.core', 'failed to unsubscribe from native event', {
+                eventName,
+                error: String(error),
+            });
+        });
+    }
+}
+function nativeTarget(target) {
+    if (target === null) {
+        return {};
+    }
+    return 'viewId' in target ? { viewId: target.viewId } : { modeId: target.modeId };
+}
+function targetKey(target) {
+    return 'viewId' in target ? `view:${target.viewId}` : `mode:${target.modeId}`;
+}
+function describeTarget(target) {
+    return target === null ? 'none' : targetKey(target);
+}
+function idOf(field, ev, data) {
+    const fromData = data[field];
+    if (typeof fromData === 'number') {
+        return fromData;
+    }
+    const fromWrapper = ev[field];
+    return typeof fromWrapper === 'number' ? fromWrapper : null;
+}
+function targetKeysOf(ev, data) {
+    var _a;
+    const keys = [];
+    const viewId = (_a = idOf('viewId', ev, data)) !== null && _a !== void 0 ? _a : idOf('dataCaptureViewId', ev, data);
+    if (viewId !== null) {
+        keys.push(`view:${viewId}`);
+    }
+    const modeId = idOf('modeId', ev, data);
+    if (modeId !== null) {
+        keys.push(`mode:${modeId}`);
+    }
+    return keys;
+}
+function parseData(ev) {
+    if (typeof (ev === null || ev === void 0 ? void 0 : ev.data) !== 'string') {
+        return null;
+    }
+    try {
+        return JSON.parse(ev.data);
+    }
+    catch (_a) {
+        return null;
+    }
+}
+FactoryMaker.bindInstance('ListenerRegistry', ListenerRegistry);
+
+class ContextStatus {
+    static fromJSON(json) {
+        const status = new ContextStatus();
+        status._code = json.code;
+        status._message = json.message;
+        status._isValid = json.isValid;
+        return status;
+    }
+    get message() {
+        return this._message;
+    }
+    get code() {
+        return this._code;
+    }
+    get isValid() {
+        return this._isValid;
+    }
+}
+
+class FrameDataSettings extends DefaultSerializeable {
+    constructor() {
+        super();
+        // Enables the file system cache for the frame.
+        this._isFileSystemCacheEnabled = false;
+        // The quality of the image. 0-100.
+        this._imageQuality = 100;
+        // Enables the auto-rotation of the frame.
+        this._isAutoRotateEnabled = false;
+    }
+    get isFileSystemCacheEnabled() {
+        return this._isFileSystemCacheEnabled;
+    }
+    set isFileSystemCacheEnabled(enabled) {
+        this._isFileSystemCacheEnabled = enabled;
+    }
+    get imageQuality() {
+        return this._imageQuality;
+    }
+    set imageQuality(quality) {
+        if (quality < 0 || quality > 100) {
+            throw new Error('Image quality must be between 0 and 100');
+        }
+        this._imageQuality = quality;
+    }
+    get isAutoRotateEnabled() {
+        return this._isAutoRotateEnabled;
+    }
+    set isAutoRotateEnabled(enabled) {
+        this._isAutoRotateEnabled = enabled;
+    }
+}
+__decorate([
+    nameForSerialization('sc_frame_isFileSystemCacheEnabled')
+], FrameDataSettings.prototype, "_isFileSystemCacheEnabled", void 0);
+__decorate([
+    nameForSerialization('sc_frame_imageQuality')
+], FrameDataSettings.prototype, "_imageQuality", void 0);
+__decorate([
+    nameForSerialization('sc_frame_autoRotate')
+], FrameDataSettings.prototype, "_isAutoRotateEnabled", void 0);
+
+class FrameDataSettingsBuilder {
+    constructor(settings) {
+        this.settings = settings;
+    }
+    enableFileSystemCache(enabled) {
+        this.settings.isFileSystemCacheEnabled = enabled;
+        return this;
+    }
+    setImageQuality(quality) {
+        this.settings.imageQuality = quality;
+        return this;
+    }
+    enableAutoRotate(enabled) {
+        this.settings.isAutoRotateEnabled = enabled;
+        return this;
+    }
+}
+
+class DataCaptureContextSettings extends DefaultSerializeable {
+    constructor() {
+        super();
+        this._frameSettings = new FrameDataSettings();
+    }
+    get frameDataSettings() {
+        return this._frameSettings;
+    }
+    set frameDataSettings(settings) {
+        this._frameSettings = settings;
+    }
+    frameDataSettingsBuilder() {
+        return new FrameDataSettingsBuilder(this._frameSettings);
+    }
+    setProperty(name, value) {
+        this[name] = value;
+    }
+    getProperty(name) {
+        return this[name];
+    }
+}
+__decorate([
+    nameForSerialization('frameDataSettings')
+], DataCaptureContextSettings.prototype, "_frameSettings", void 0);
+
+class OpenSourceSoftwareLicenseInfo {
+    constructor(licenseText) {
+        this._licenseText = licenseText;
+    }
+    get licenseText() {
+        return this._licenseText;
+    }
+}
+
+class BaseController {
+    get _proxy() {
+        return this._cachedProxy;
+    }
+    dispose() { }
+    constructor(proxyName) {
+        this._cachedProxy = FactoryMaker.createInstance(proxyName);
+    }
+}
+
+function errorMessage(err) {
+    return err instanceof Error ? err.message : String(err);
+}
+
+const INSTRUMENTED = Symbol.for('scanditLogger.bridgeCallInstrumented');
+const SOURCE = 'ts.bridge';
+// The log file's own commands: a record about storing records would be stored in turn, forever.
+const UNLOGGED_METHODS = new Set(['appendLogs', 'clearLogs']);
+var BridgeCallKind;
+(function (BridgeCallKind) {
+    BridgeCallKind["Method"] = "method";
+    BridgeCallKind["EventRegistration"] = "eventRegistration";
+})(BridgeCallKind || (BridgeCallKind = {}));
+function isUnlogged(args) {
+    const method = args === null || args === void 0 ? void 0 : args.methodName;
+    return typeof method === 'string' && UNLOGGED_METHODS.has(method);
+}
+function isInstrumented(call) {
+    return call[INSTRUMENTED] === true;
+}
+/**
+ * Binds `call` to `owner` and decorates it so each invocation emits one `LogRecord`.
+ * Idempotent: an already instrumented `call` is returned as is.
+ */
+function instrumentBridgeCall(call, owner, kind) {
+    if (isInstrumented(call))
+        return call;
+    const bound = call.bind(owner);
+    const instrumented = kind === BridgeCallKind.EventRegistration
+        ? createDispatcher(bound, /*defaultCategory*/ LogCategory.Listener, /*tag*/ '$$')
+        : createDispatcher(bound, /*defaultCategory*/ LogCategory.Bridge, /*tag*/ '$');
+    return Object.assign(instrumented, { [INSTRUMENTED]: true });
+}
+// Must stay a plain (non-async) function: an `async` wrapper allocates a Promise
+// and adds a microtask tick even when it only returns `call(...)` unchanged.
+function createDispatcher(call, defaultCategory, tag) {
+    return (fnName, args) => {
+        // Gate on Off alone: gating on Debug would also suppress the LogLevel.Error
+        // record the catch block emits, which a level of e.g. Error must still get.
+        if (ScanditLogger.getLevel() === LogLevel.Off || isUnlogged(args)) {
+            try {
+                return call(fnName, args);
+            }
+            catch (err) {
+                // Keep the async signature's contract: the removed `async` wrapper turned a
+                // sync throw into a rejection. Cast, not wrap, so the value reaches the caller as thrown.
+                return Promise.reject(err);
+            }
+        }
+        return instrument(call, fnName, args, defaultCategory, tag);
+    };
+}
+function instrument(call, fnName, args, defaultCategory, tag) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const start = Date.now();
+        const { message, level, category, errorCategory, buildFields } = resolveDispatch(fnName, args, defaultCategory, tag);
+        // Built once, and only if a record will use it: per-frame Trace calls are dropped at Debug.
+        let fields;
+        let fieldsBuilt = false;
+        const getFields = () => {
+            if (!fieldsBuilt) {
+                fields = buildFields();
+                fieldsBuilt = true;
+            }
+            return fields;
+        };
+        // Snapshot the args before the call can mutate them.
+        if (ScanditLogger.isEnabled(level))
+            getFields();
+        try {
+            // `await` tolerates both Promise and non-Promise returns. Some test
+            // doubles (and historical native modules) return plain values; we still
+            // want to record one LogRecord per call.
+            const result = yield call(fnName, args);
+            ScanditLogger.emit(level, category, SOURCE, message, ScanditLogger.isEnabled(level) ? getFields() : undefined, Date.now() - start);
+            return result;
+        }
+        catch (err) {
+            ScanditLogger.emit(LogLevel.Error, errorCategory, SOURCE, message, getFields(), Date.now() - start, toLogError(err));
+            throw err;
+        }
+    });
+}
+/**
+ * Many proxies route calls through a generic dispatcher (e.g.
+ * `proxy.$executeCore({ moduleName, methodName, ... })`). When we detect that
+ * shape, surface the actual `moduleName.methodName` in the log message
+ * instead of the meaningless outer dispatcher name. Also lift any
+ * `modeId`/`viewId`/`parentId` from the args into `fields`, and re-route
+ * `isEventRegistration: true` calls into the `Listener` category.
+ */
+const DISPATCHER_KEYS = new Set(['moduleName', 'methodName', 'isEventRegistration']);
+const ID_KEYS = new Set(['modeId', 'viewId', 'parentId']);
+function resolveDispatch(fnName, args, defaultCategory, tag) {
+    var _a, _b, _c;
+    const dispatcher = (args !== null && args !== void 0 ? args : {});
+    const method = typeof dispatcher.methodName === 'string' ? dispatcher.methodName : undefined;
+    const baseCategory = method !== undefined && dispatcher.isEventRegistration ? LogCategory.Listener : defaultCategory;
+    const override = ScanditLogger.getMethodMetadata(method !== null && method !== void 0 ? method : fnName);
+    return {
+        message: method !== undefined ? `${(_a = dispatcher.moduleName) !== null && _a !== void 0 ? _a : fnName}.${method}` : `${tag}${fnName}`,
+        level: (_b = override === null || override === void 0 ? void 0 : override.level) !== null && _b !== void 0 ? _b : LogLevel.Debug,
+        category: (_c = override === null || override === void 0 ? void 0 : override.category) !== null && _c !== void 0 ? _c : baseCategory,
+        errorCategory: baseCategory,
+        buildFields: () => buildFields(args, dispatcher),
+    };
+}
+function buildFields(args, dispatcher) {
+    const fields = {};
+    if (typeof dispatcher.modeId === 'number')
+        fields.modeId = dispatcher.modeId;
+    if (typeof dispatcher.viewId === 'number')
+        fields.viewId = dispatcher.viewId;
+    if (typeof dispatcher.parentId === 'number')
+        fields.parentId = dispatcher.parentId;
+    // Inner args go under `fields.args`, minus dispatcher boilerplate and the
+    // already-promoted IDs; `ScanditLogger.emit` decides which values survive.
+    if (args != null && typeof args === 'object') {
+        const innerArgs = {};
+        for (const [key, value] of Object.entries(dispatcher)) {
+            if (DISPATCHER_KEYS.has(key) || ID_KEYS.has(key))
+                continue;
+            innerArgs[key] = value;
+        }
+        if (Object.keys(innerArgs).length > 0) {
+            fields.args = innerArgs;
+        }
+    }
+    return Object.keys(fields).length ? fields : undefined;
+}
+function toLogError(err) {
+    if (err instanceof Error) {
+        return { name: err.name, message: errorMessage(err), stack: err.stack };
+    }
+    return { name: 'Error', message: errorMessage(err) };
+}
+
+/** Instruments a proxy's bridge calls for logging; `NativeProxy` already does this at construction. Idempotent. */
+function wrapNativeProxy(target) {
+    target._call = instrumentBridgeCall(target._call, target, BridgeCallKind.Method);
+    target._callEventRegistration = instrumentBridgeCall(target._callEventRegistration, target, BridgeCallKind.EventRegistration);
+}
+
+const BATCH_EVENT = 'ScanditLogger.batch';
+const FILE_FLUSH_INTERVAL_MS = 100;
+const FILE_FLUSH_MAX_RECORDS = 50;
+/**
+ * Per-proxy teardown for everything `installNativeLogReceiver` registers — both
+ * the BATCH_EVENT listener and the config listener. Keyed weakly so a discarded
+ * proxy does not pin its closures.
+ *
+ * Both need this. `proxy.eventEmitter` is `eventemitter3`, whose `on()` appends
+ * unconditionally: it de-duplicates neither distinct closures nor repeated
+ * registrations of the same function reference (verified empirically). So a
+ * second `installNativeLogReceiver` on the same proxy — e.g. after a module
+ * teardown/reinit — would leave the previous BATCH_EVENT handler attached and
+ * every native record would be ingested once per accumulated handler,
+ * duplicating entries in the ring buffer and in `subscribe(cb)` callbacks.
+ */
+const previousTeardowns = new WeakMap();
+/**
+ * Different bridges deliver the same logical event in different shapes.
+ *
+ * - RN new architecture wraps every event in `{ name, data: <JSON-stringified payload>, ... }`.
+ * - RN old architecture / direct emitters may deliver the payload object directly.
+ *
+ * Normalise into a `BatchPayload` regardless of which shape we receive.
+ */
+function parseBatchPayload(raw) {
+    if (raw == null)
+        return null;
+    if (typeof raw !== 'object')
+        return null;
+    const obj = raw;
+    if (Array.isArray(obj.records))
+        return obj;
+    if (typeof obj.data === 'string') {
+        try {
+            const parsed = JSON.parse(obj.data);
+            if (parsed && Array.isArray(parsed.records))
+                return parsed;
+        }
+        catch (_a) {
+            return null;
+        }
+    }
+    return null;
+}
+// Sends queued records to `appendLogs` at 50 waiting or 100 ms after the first, draining any
+// queued earlier on attach; the returned detach leaves unsent records queued.
+function attachNativeFileSink(proxy) {
+    let timer;
+    let sending = Promise.resolve();
+    const sendAll = () => {
+        if (timer !== undefined) {
+            clearTimeout(timer);
+            timer = undefined;
+        }
+        const records = ScanditLogger.takePendingNativeRecords();
+        for (let i = 0; i < records.length; i += FILE_FLUSH_MAX_RECORDS) {
+            const lines = records
+                .slice(i, i + FILE_FLUSH_MAX_RECORDS)
+                .map(serializeLogRecord)
+                .join('\n');
+            sending = sending
+                .then(() => callCore(proxy, { moduleName: 'CoreModule', methodName: 'appendLogs', isEventRegistration: false, lines }))
+                .then(() => undefined)
+                .catch((err) => {
+                console.warn('[ScanditLogger] could not store log records on the device:', errorMessage(err));
+            });
+        }
+    };
+    const onQueued = () => {
+        if (ScanditLogger.pendingNativeRecordCount() >= FILE_FLUSH_MAX_RECORDS) {
+            sendAll();
+        }
+        else if (timer === undefined) {
+            timer = setTimeout(sendAll, FILE_FLUSH_INTERVAL_MS);
+        }
+    };
+    const flush = () => {
+        sendAll();
+        return sending;
+    };
+    ScanditLogger.setNativeSink({ onQueued, flush });
+    if (ScanditLogger.pendingNativeRecordCount() > 0)
+        onQueued();
+    return () => {
+        ScanditLogger.setNativeSink(undefined);
+        if (timer !== undefined)
+            clearTimeout(timer);
+        timer = undefined;
+    };
+}
+/**
+ * Wire up the cross-bridge log channel: subscribe to the native-emitted
+ * `ScanditLogger.batch` event and merge each incoming record into the local
+ * in-memory buffer.
+ *
+ * Native records are inserted via `ScanditLogger.ingest` so they:
+ *   • are NOT re-checked against TS-side level/category gating (native
+ *     already applied its own gates);
+ *   • are NOT re-written to the JS console (native already wrote them to
+ *     the platform-native logger);
+ *   • DO appear in `getRecentLogs()` and DO trigger `subscribe(cb)`
+ *     callbacks, giving the customer one unified record stream.
+ *
+ * Call this once per framework, immediately after the NativeProxy is bound
+ * (typically in `init*Proxy.ts`).
+ *
+ * Returns a teardown that detaches the BATCH_EVENT handler, the config
+ * listener and the `appendLogs` sink, so the receiver can be turned off again. Calling this function more
+ * than once on the same proxy is safe: the previous registration is disposed
+ * first. It is NOT safe to rely on the EventEmitter to de-duplicate — it does
+ * not (see `previousTeardowns`).
+ */
+function installNativeLogReceiver(proxy) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        // Dispose anything a previous install left attached to this proxy before
+        // registering again, otherwise handlers accumulate and records are ingested
+        // once per accumulated handler.
+        (_a = previousTeardowns.get(proxy)) === null || _a === void 0 ? void 0 : _a();
+        const onBatch = (rawEvent) => {
+            var _a, _b, _c, _d, _e, _f, _g;
+            const payload = parseBatchPayload(rawEvent);
+            const records = payload === null || payload === void 0 ? void 0 : payload.records;
+            if (!records || records.length === 0)
+                return;
+            for (const raw of records) {
+                const record = {
+                    ts: Number(raw.ts) || Date.now(),
+                    level: (_a = raw.level) !== null && _a !== void 0 ? _a : LogLevel.Info,
+                    category: (_b = raw.category) !== null && _b !== void 0 ? _b : LogCategory.Bridge,
+                    source: String((_c = raw.source) !== null && _c !== void 0 ? _c : 'native.unknown'),
+                    message: String((_d = raw.message) !== null && _d !== void 0 ? _d : ''),
+                    fields: (_e = raw.fields) !== null && _e !== void 0 ? _e : undefined,
+                    durationMs: (_f = raw.durationMs) !== null && _f !== void 0 ? _f : undefined,
+                    error: (_g = raw.error) !== null && _g !== void 0 ? _g : undefined,
+                };
+                ScanditLogger.ingest(record);
+            }
+        };
+        proxy.eventEmitter.on(BATCH_EVENT, onBatch);
+        // Push TS-side config (level) to the native singleton.
+        // Fires once immediately on attach (carrying whatever level the customer
+        // already set), then again on every subsequent setLevel call. Failures are logged but never throw.
+        //
+        // Each onConfigChange call adds a fresh closure to a Set, so without a
+        // teardown a re-install would leave the previous listener attached and fire
+        // one redundant `setLoggerConfig` bridge call per accumulated listener on
+        // every subsequent setLevel.
+        const disposeConfigListener = ScanditLogger.onConfigChange(cfg => {
+            void callCore(proxy, {
+                moduleName: 'CoreModule',
+                methodName: 'setLoggerConfig',
+                isEventRegistration: false,
+                level: cfg.level,
+            }).catch((err) => {
+                console.warn('[ScanditLogger] native config sync failed:', errorMessage(err));
+            });
+        });
+        const detachFileSink = attachNativeFileSink(proxy);
+        const teardown = () => {
+            proxy.eventEmitter.off(BATCH_EVENT, onBatch);
+            disposeConfigListener();
+            detachFileSink();
+            previousTeardowns.delete(proxy);
+        };
+        // Publish the teardown SYNCHRONOUSLY, before the first `await` below. Everything
+        // this function registers is attached above with no intervening suspension, so a
+        // concurrent second install (two module inits racing, or a reinit that does not
+        // await the previous install) is guaranteed to find a complete teardown at the
+        // top of this function and dispose it. Registering listeners before an `await`
+        // but publishing the teardown after it would leave a window in which the second
+        // call sees nothing to dispose and both `onBatch` handlers stay attached —
+        // reintroducing exactly the duplicate-ingestion bug this file prevents.
+        previousTeardowns.set(proxy, teardown);
+        try {
+            // Cast: BaseProxy declares `subscribeForEvents(): void`, but the concrete
+            // NativeProxy implementation is async — every framework relies on that
+            // promise for backpressure during native subscribe.
+            yield proxy.subscribeForEvents([BATCH_EVENT]);
+        }
+        catch (err) {
+            // Subscribing may be a no-op on frameworks that auto-deliver events.
+            // Failing here must not block SDK init.
+            console.warn('[ScanditLogger] could not subscribe to native batch event:', err);
+        }
+        return teardown;
+    });
+}
+/**
+ * Lazy front door for `installNativeLogReceiver`: attaches only a JS-side
+ * `ScanditLogger.onConfigChange` gate (a `Set.add` plus a synchronous
+ * callback — zero bridge traffic) and performs the real, bridge-crossing
+ * install on the first config whose `level !== LogLevel.Off`. Every app that
+ * never calls `setLevel` above `Off` never crosses the bridge for logging.
+ *
+ * `onConfigChange` fires synchronously on attach, so a customer who already
+ * called `setLevel(Debug)` before SDK init still gets the install immediately
+ * — this function does not delay that case, only the Off default.
+ *
+ * `onInstalled`, if given, runs once, right after the real install resolves
+ * — the hook `registerCoreProxies` uses to open the Cordova-only native log
+ * channel behind the same first-enable gate instead of eagerly.
+ */
+function armNativeLogReceiver(proxy, onInstalled) {
+    let installedTeardown = null;
+    let installing = false;
+    let disposed = false;
+    const disposeGate = ScanditLogger.onConfigChange(cfg => {
+        // Guarded explicitly, not left to installNativeLogReceiver's own idempotency, so
+        // a still-enabled app issues no second subscribeForEvents on every setLevel.
+        if (cfg.level === LogLevel.Off || installedTeardown || installing || disposed)
+            return;
+        // `installing` covers the await window inside installNativeLogReceiver, during
+        // which installedTeardown is not yet assigned.
+        installing = true;
+        void installNativeLogReceiver(proxy)
+            .then(teardown => {
+            // Torn down mid-install: undo it, or the receiver outlives its own teardown.
+            if (disposed) {
+                teardown();
+                return;
+            }
+            installedTeardown = teardown;
+            onInstalled === null || onInstalled === void 0 ? void 0 : onInstalled();
+        })
+            .catch((err) => {
+            // Debug logging is diagnostic: never let a failure here surface as an
+            // unhandled rejection. `void` does not consume a chained `.then`'s rejection.
+            console.warn('[ScanditLogger] could not install the native log receiver:', err);
+        })
+            .finally(() => {
+            installing = false;
+        });
+    });
+    return () => {
+        disposed = true;
+        disposeGate();
+        installedTeardown === null || installedTeardown === void 0 ? void 0 : installedTeardown();
+    };
+}
+
+/**
+ * Open the persistent native→TS log-batch channel on frameworks whose bridge
+ * requires an explicit `isEventRegistration: true` call before the native
+ * side will deliver events at all (Cordova: `CordovaEventEmitter.emit` is a
+ * no-op until `registerCallback` has run for the event name — see
+ * `CordovaEventEmitter.kt`/`.swift`). RN and Capacitor don't need this: their
+ * bridges deliver native events without a dedicated subscribe call.
+ *
+ * This stays a SEPARATE opt-in from `installNativeLogReceiver` — folding the
+ * two together would add a native call on every framework, not just the ones
+ * that need it.
+ *
+ * `registerCoreProxies` is the only caller: it runs this after
+ * `installNativeLogReceiver` has attached its `ScanditLogger.batch` handler and
+ * called `proxy.subscribeForEvents(...)`, so the TS-side plumbing is ready
+ * before native starts delivering, and only for providers that declare
+ * `requiresNativeLogChannel`.
+ *
+ * Never throws — a failure here must not block SDK init. Mirrors
+ * `installNativeLogReceiver`'s `console.warn` handling.
+ */
+function subscribeNativeLogChannel(proxy) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield callCore(proxy, {
+                moduleName: 'CoreModule',
+                methodName: 'subscribeLoggerListener',
+                isEventRegistration: true,
+            });
+        }
+        catch (err) {
+            console.warn('[ScanditLogger] could not subscribe to native log channel:', err);
+        }
+    });
+}
+
+/*
+ * This file is part of the Scandit Data Capture SDK
+ *
+ * Copyright (C) 2026- Scandit AG. All rights reserved.
+ */
+// THIS FILE IS GENERATED. DO NOT EDIT MANUALLY.
+// Generator: scripts/bridge_generator/generate.py
+// Schema: scripts/bridge_generator/schemas/core.json
+/**
+ * Per-method `LogRecord` level and category overrides for the CoreProxy
+ * bridge surface. Consumed by the centralized `ScanditLogger` interceptor:
+ * per-frame / per-scan callbacks log at `Trace` under their category label, so
+ * they only show once the level is raised to `Trace`.
+ *
+ * Auto-registered as a side effect of importing this module via the
+ * generated `index.ts` barrel — no customer wiring required.
+ */
+const CORE_PROXY_LOG_METADATA = {};
+ScanditLogger.registerMethodMetadata(CORE_PROXY_LOG_METADATA);
+
+/*
+ * This file is part of the Scandit Data Capture SDK
+ *
+ * Copyright (C) 2026- Scandit AG. All rights reserved.
+ */
+// THIS FILE IS GENERATED. DO NOT EDIT MANUALLY.
+// Generator: scripts/bridge_generator/generate.py
+// Schema: scripts/bridge_generator/schemas/core.json
+//
+// Typed interfaces + throwing parse<Type> validators derived from the
+// serialization JSON schemas referenced by this module's bridge params.
+// No runtime dependency: validation is hand-rolled below, not zod/ajv.
+//
+// parse<Type> enforces only the JSON Schema keywords expressible without a
+// schema engine: required, type, enum, string const, additionalProperties,
+// null-ness, and root-level oneOf (dispatched on the discriminator to the
+// matching variant's parser).
+// NOT enforced — a payload violating one of these still parses:
+//   pattern, minimum/maximum, minLength/maxLength, multipleOf, and
+//   property-level oneOf of more than one non-null variant (those
+//   properties are typed `unknown` and left unvalidated).
+const ALLOWED_KEYS_PIXEL_POINT = new Set(['x', 'y']);
+function parsePixelPoint(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('PixelPoint: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_PIXEL_POINT.has(key)) {
+            throw new Error(`PixelPoint: unknown property '${key}'`);
+        }
+    }
+    let xValue = obj['x'];
+    if (xValue === undefined) {
+        throw new Error("PixelPoint: missing required property 'x'");
+    }
+    else if (xValue !== null) {
+        if (typeof xValue !== 'number') {
+            throw new Error('PixelPoint.x: expected a number');
+        }
+    }
+    else {
+        throw new Error('PixelPoint.x: null is not allowed');
+    }
+    let yValue = obj['y'];
+    if (yValue === undefined) {
+        throw new Error("PixelPoint: missing required property 'y'");
+    }
+    else if (yValue !== null) {
+        if (typeof yValue !== 'number') {
+            throw new Error('PixelPoint.y: expected a number');
+        }
+    }
+    else {
+        throw new Error('PixelPoint.y: null is not allowed');
+    }
+    return {
+        x: xValue,
+        y: yValue,
+    };
+}
+const ALLOWED_KEYS_PIXEL_QUADRILATERAL = new Set(['topLeft', 'topRight', 'bottomRight', 'bottomLeft']);
+function parsePixelQuadrilateral(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('PixelQuadrilateral: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_PIXEL_QUADRILATERAL.has(key)) {
+            throw new Error(`PixelQuadrilateral: unknown property '${key}'`);
+        }
+    }
+    let topLeftValue = obj['topLeft'];
+    if (topLeftValue === undefined) {
+        throw new Error("PixelQuadrilateral: missing required property 'topLeft'");
+    }
+    else if (topLeftValue !== null) {
+        topLeftValue = parsePixelPoint(topLeftValue);
+    }
+    else {
+        throw new Error('PixelQuadrilateral.topLeft: null is not allowed');
+    }
+    let topRightValue = obj['topRight'];
+    if (topRightValue === undefined) {
+        throw new Error("PixelQuadrilateral: missing required property 'topRight'");
+    }
+    else if (topRightValue !== null) {
+        topRightValue = parsePixelPoint(topRightValue);
+    }
+    else {
+        throw new Error('PixelQuadrilateral.topRight: null is not allowed');
+    }
+    let bottomRightValue = obj['bottomRight'];
+    if (bottomRightValue === undefined) {
+        throw new Error("PixelQuadrilateral: missing required property 'bottomRight'");
+    }
+    else if (bottomRightValue !== null) {
+        bottomRightValue = parsePixelPoint(bottomRightValue);
+    }
+    else {
+        throw new Error('PixelQuadrilateral.bottomRight: null is not allowed');
+    }
+    let bottomLeftValue = obj['bottomLeft'];
+    if (bottomLeftValue === undefined) {
+        throw new Error("PixelQuadrilateral: missing required property 'bottomLeft'");
+    }
+    else if (bottomLeftValue !== null) {
+        bottomLeftValue = parsePixelPoint(bottomLeftValue);
+    }
+    else {
+        throw new Error('PixelQuadrilateral.bottomLeft: null is not allowed');
+    }
+    return {
+        topLeft: topLeftValue,
+        topRight: topRightValue,
+        bottomRight: bottomRightValue,
+        bottomLeft: bottomLeftValue,
+    };
+}
+const ENUM_VALUES_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED_STATE = [
+    'on',
+    'off',
+    'starting',
+    'stopping',
+    'standby',
+    'bootingUp',
+    'wakingUp',
+    'goingToSleep',
+    'shuttingDown',
+];
+const ENUM_VALUES_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED_CAMERA_POSITION = ['worldFacing', 'userFacing', 'unspecified'];
+const ENUM_VALUES_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED_EVENT = ['FrameSourceListener.onStateChanged'];
+const ALLOWED_KEYS_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED = new Set(['state', 'cameraPosition', 'event']);
+function parseFrameSourceListenerOnStateChanged(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('FrameSourceListenerOnStateChanged: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED.has(key)) {
+            throw new Error(`FrameSourceListenerOnStateChanged: unknown property '${key}'`);
+        }
+    }
+    let stateValue = obj['state'];
+    if (stateValue === undefined) {
+        throw new Error("FrameSourceListenerOnStateChanged: missing required property 'state'");
+    }
+    else if (stateValue !== null) {
+        if (!ENUM_VALUES_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED_STATE.includes(stateValue)) {
+            throw new Error("FrameSourceListenerOnStateChanged.state: unknown enum value '" + String(stateValue) + "'");
+        }
+    }
+    else {
+        throw new Error('FrameSourceListenerOnStateChanged.state: null is not allowed');
+    }
+    let cameraPositionValue = obj['cameraPosition'];
+    if (cameraPositionValue === undefined) {
+        cameraPositionValue = undefined;
+    }
+    else if (cameraPositionValue !== null) {
+        if (!ENUM_VALUES_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED_CAMERA_POSITION.includes(cameraPositionValue)) {
+            throw new Error("FrameSourceListenerOnStateChanged.cameraPosition: unknown enum value '" + String(cameraPositionValue) + "'");
+        }
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("FrameSourceListenerOnStateChanged: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_FRAME_SOURCE_LISTENER_ON_STATE_CHANGED_EVENT.includes(eventValue)) {
+            throw new Error("FrameSourceListenerOnStateChanged.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('FrameSourceListenerOnStateChanged.event: null is not allowed');
+    }
+    return {
+        state: stateValue,
+        cameraPosition: cameraPositionValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_TORCH_LISTENER_ON_TORCH_STATE_CHANGED_STATE = ['on', 'off', 'auto'];
+const ENUM_VALUES_TORCH_LISTENER_ON_TORCH_STATE_CHANGED_EVENT = ['TorchListener.onTorchStateChanged'];
+const ALLOWED_KEYS_TORCH_LISTENER_ON_TORCH_STATE_CHANGED = new Set(['state', 'event']);
+function parseTorchListenerOnTorchStateChanged(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('TorchListenerOnTorchStateChanged: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_TORCH_LISTENER_ON_TORCH_STATE_CHANGED.has(key)) {
+            throw new Error(`TorchListenerOnTorchStateChanged: unknown property '${key}'`);
+        }
+    }
+    let stateValue = obj['state'];
+    if (stateValue === undefined) {
+        throw new Error("TorchListenerOnTorchStateChanged: missing required property 'state'");
+    }
+    else if (stateValue !== null) {
+        if (!ENUM_VALUES_TORCH_LISTENER_ON_TORCH_STATE_CHANGED_STATE.includes(stateValue)) {
+            throw new Error("TorchListenerOnTorchStateChanged.state: unknown enum value '" + String(stateValue) + "'");
+        }
+    }
+    else {
+        throw new Error('TorchListenerOnTorchStateChanged.state: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("TorchListenerOnTorchStateChanged: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_TORCH_LISTENER_ON_TORCH_STATE_CHANGED_EVENT.includes(eventValue)) {
+            throw new Error("TorchListenerOnTorchStateChanged.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('TorchListenerOnTorchStateChanged.event: null is not allowed');
+    }
+    return {
+        state: stateValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_ZOOM_LISTENER_ON_ZOOM_LEVEL_CHANGED_EVENT = ['ZoomListener.onZoomLevelChanged'];
+const ALLOWED_KEYS_ZOOM_LISTENER_ON_ZOOM_LEVEL_CHANGED = new Set(['oldZoomLevel', 'newZoomLevel', 'event']);
+function parseZoomListenerOnZoomLevelChanged(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('ZoomListenerOnZoomLevelChanged: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_ZOOM_LISTENER_ON_ZOOM_LEVEL_CHANGED.has(key)) {
+            throw new Error(`ZoomListenerOnZoomLevelChanged: unknown property '${key}'`);
+        }
+    }
+    let oldZoomLevelValue = obj['oldZoomLevel'];
+    if (oldZoomLevelValue === undefined) {
+        throw new Error("ZoomListenerOnZoomLevelChanged: missing required property 'oldZoomLevel'");
+    }
+    else if (oldZoomLevelValue !== null) {
+        if (typeof oldZoomLevelValue !== 'number') {
+            throw new Error('ZoomListenerOnZoomLevelChanged.oldZoomLevel: expected a number');
+        }
+    }
+    else {
+        throw new Error('ZoomListenerOnZoomLevelChanged.oldZoomLevel: null is not allowed');
+    }
+    let newZoomLevelValue = obj['newZoomLevel'];
+    if (newZoomLevelValue === undefined) {
+        throw new Error("ZoomListenerOnZoomLevelChanged: missing required property 'newZoomLevel'");
+    }
+    else if (newZoomLevelValue !== null) {
+        if (typeof newZoomLevelValue !== 'number') {
+            throw new Error('ZoomListenerOnZoomLevelChanged.newZoomLevel: expected a number');
+        }
+    }
+    else {
+        throw new Error('ZoomListenerOnZoomLevelChanged.newZoomLevel: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("ZoomListenerOnZoomLevelChanged: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_ZOOM_LISTENER_ON_ZOOM_LEVEL_CHANGED_EVENT.includes(eventValue)) {
+            throw new Error("ZoomListenerOnZoomLevelChanged.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('ZoomListenerOnZoomLevelChanged.event: null is not allowed');
+    }
+    return {
+        oldZoomLevel: oldZoomLevelValue,
+        newZoomLevel: newZoomLevelValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_MACRO_MODE_LISTENER_ON_MACRO_MODE_CHANGED_MACRO_MODE = ['on', 'off', 'auto'];
+const ENUM_VALUES_MACRO_MODE_LISTENER_ON_MACRO_MODE_CHANGED_EVENT = ['MacroModeListener.onMacroModeChanged'];
+const ALLOWED_KEYS_MACRO_MODE_LISTENER_ON_MACRO_MODE_CHANGED = new Set(['macroMode', 'event']);
+function parseMacroModeListenerOnMacroModeChanged(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('MacroModeListenerOnMacroModeChanged: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_MACRO_MODE_LISTENER_ON_MACRO_MODE_CHANGED.has(key)) {
+            throw new Error(`MacroModeListenerOnMacroModeChanged: unknown property '${key}'`);
+        }
+    }
+    let macroModeValue = obj['macroMode'];
+    if (macroModeValue === undefined) {
+        throw new Error("MacroModeListenerOnMacroModeChanged: missing required property 'macroMode'");
+    }
+    else if (macroModeValue !== null) {
+        if (!ENUM_VALUES_MACRO_MODE_LISTENER_ON_MACRO_MODE_CHANGED_MACRO_MODE.includes(macroModeValue)) {
+            throw new Error("MacroModeListenerOnMacroModeChanged.macroMode: unknown enum value '" + String(macroModeValue) + "'");
+        }
+    }
+    else {
+        throw new Error('MacroModeListenerOnMacroModeChanged.macroMode: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("MacroModeListenerOnMacroModeChanged: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_MACRO_MODE_LISTENER_ON_MACRO_MODE_CHANGED_EVENT.includes(eventValue)) {
+            throw new Error("MacroModeListenerOnMacroModeChanged.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('MacroModeListenerOnMacroModeChanged.event: null is not allowed');
+    }
+    return {
+        macroMode: macroModeValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_DATA_CAPTURE_CONTEXT_LISTENER_ON_OBSERVATION_STARTED_EVENT = [
+    'DataCaptureContextListener.onObservationStarted',
+];
+const ALLOWED_KEYS_DATA_CAPTURE_CONTEXT_LISTENER_ON_OBSERVATION_STARTED = new Set(['licenseInfo', 'event']);
+function parseDataCaptureContextListenerOnObservationStarted(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('DataCaptureContextListenerOnObservationStarted: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_DATA_CAPTURE_CONTEXT_LISTENER_ON_OBSERVATION_STARTED.has(key)) {
+            throw new Error(`DataCaptureContextListenerOnObservationStarted: unknown property '${key}'`);
+        }
+    }
+    let licenseInfoValue = obj['licenseInfo'];
+    if (licenseInfoValue === undefined) {
+        throw new Error("DataCaptureContextListenerOnObservationStarted: missing required property 'licenseInfo'");
+    }
+    else if (licenseInfoValue !== null) {
+        if (typeof licenseInfoValue !== 'string') {
+            throw new Error('DataCaptureContextListenerOnObservationStarted.licenseInfo: expected a string');
+        }
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("DataCaptureContextListenerOnObservationStarted: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_DATA_CAPTURE_CONTEXT_LISTENER_ON_OBSERVATION_STARTED_EVENT.includes(eventValue)) {
+            throw new Error("DataCaptureContextListenerOnObservationStarted.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('DataCaptureContextListenerOnObservationStarted.event: null is not allowed');
+    }
+    return {
+        licenseInfo: licenseInfoValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_DATA_CAPTURE_CONTEXT_LISTENER_ON_STATUS_CHANGED_EVENT = [
+    'DataCaptureContextListener.onStatusChanged',
+];
+const ALLOWED_KEYS_DATA_CAPTURE_CONTEXT_LISTENER_ON_STATUS_CHANGED = new Set(['status', 'event']);
+function parseDataCaptureContextListenerOnStatusChanged(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('DataCaptureContextListenerOnStatusChanged: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_DATA_CAPTURE_CONTEXT_LISTENER_ON_STATUS_CHANGED.has(key)) {
+            throw new Error(`DataCaptureContextListenerOnStatusChanged: unknown property '${key}'`);
+        }
+    }
+    let statusValue = obj['status'];
+    if (statusValue === undefined) {
+        throw new Error("DataCaptureContextListenerOnStatusChanged: missing required property 'status'");
+    }
+    else if (statusValue !== null) {
+        if (typeof statusValue !== 'string') {
+            throw new Error('DataCaptureContextListenerOnStatusChanged.status: expected a string');
+        }
+    }
+    else {
+        throw new Error('DataCaptureContextListenerOnStatusChanged.status: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("DataCaptureContextListenerOnStatusChanged: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_DATA_CAPTURE_CONTEXT_LISTENER_ON_STATUS_CHANGED_EVENT.includes(eventValue)) {
+            throw new Error("DataCaptureContextListenerOnStatusChanged.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('DataCaptureContextListenerOnStatusChanged.event: null is not allowed');
+    }
+    return {
+        status: statusValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED_ORIENTATION = [
+    'unknown',
+    'portrait',
+    'portraitUpsideDown',
+    'landscapeLeft',
+    'landscapeRight',
+];
+const ENUM_VALUES_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED_EVENT = ['DataCaptureViewListener.onSizeChanged'];
+const ALLOWED_KEYS_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED = new Set(['viewId', 'size', 'orientation', 'event']);
+function parseDataCaptureViewListenerOnSizeChanged(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('DataCaptureViewListenerOnSizeChanged: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED.has(key)) {
+            throw new Error(`DataCaptureViewListenerOnSizeChanged: unknown property '${key}'`);
+        }
+    }
+    let viewIdValue = obj['viewId'];
+    if (viewIdValue === undefined) {
+        throw new Error("DataCaptureViewListenerOnSizeChanged: missing required property 'viewId'");
+    }
+    else if (viewIdValue !== null) {
+        if (typeof viewIdValue !== 'number') {
+            throw new Error('DataCaptureViewListenerOnSizeChanged.viewId: expected a number');
+        }
+        if (!Number.isInteger(viewIdValue)) {
+            throw new Error('DataCaptureViewListenerOnSizeChanged.viewId: expected an integer');
+        }
+    }
+    else {
+        throw new Error('DataCaptureViewListenerOnSizeChanged.viewId: null is not allowed');
+    }
+    let sizeValue = obj['size'];
+    if (sizeValue === undefined) {
+        throw new Error("DataCaptureViewListenerOnSizeChanged: missing required property 'size'");
+    }
+    else if (sizeValue !== null) {
+        sizeValue = parseDataCaptureViewListenerOnSizeChangedSize(sizeValue);
+    }
+    else {
+        throw new Error('DataCaptureViewListenerOnSizeChanged.size: null is not allowed');
+    }
+    let orientationValue = obj['orientation'];
+    if (orientationValue === undefined) {
+        throw new Error("DataCaptureViewListenerOnSizeChanged: missing required property 'orientation'");
+    }
+    else if (orientationValue !== null) {
+        if (!ENUM_VALUES_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED_ORIENTATION.includes(orientationValue)) {
+            throw new Error("DataCaptureViewListenerOnSizeChanged.orientation: unknown enum value '" + String(orientationValue) + "'");
+        }
+    }
+    else {
+        throw new Error('DataCaptureViewListenerOnSizeChanged.orientation: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("DataCaptureViewListenerOnSizeChanged: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED_EVENT.includes(eventValue)) {
+            throw new Error("DataCaptureViewListenerOnSizeChanged.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('DataCaptureViewListenerOnSizeChanged.event: null is not allowed');
+    }
+    return {
+        viewId: viewIdValue,
+        size: sizeValue,
+        orientation: orientationValue,
+        event: eventValue,
+    };
+}
+const ALLOWED_KEYS_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED_SIZE = new Set(['width', 'height']);
+function parseDataCaptureViewListenerOnSizeChangedSize(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('DataCaptureViewListenerOnSizeChangedSize: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_DATA_CAPTURE_VIEW_LISTENER_ON_SIZE_CHANGED_SIZE.has(key)) {
+            throw new Error(`DataCaptureViewListenerOnSizeChangedSize: unknown property '${key}'`);
+        }
+    }
+    let widthValue = obj['width'];
+    if (widthValue === undefined) {
+        throw new Error("DataCaptureViewListenerOnSizeChangedSize: missing required property 'width'");
+    }
+    else if (widthValue !== null) {
+        if (typeof widthValue !== 'number') {
+            throw new Error('DataCaptureViewListenerOnSizeChangedSize.width: expected a number');
+        }
+    }
+    else {
+        throw new Error('DataCaptureViewListenerOnSizeChangedSize.width: null is not allowed');
+    }
+    let heightValue = obj['height'];
+    if (heightValue === undefined) {
+        throw new Error("DataCaptureViewListenerOnSizeChangedSize: missing required property 'height'");
+    }
+    else if (heightValue !== null) {
+        if (typeof heightValue !== 'number') {
+            throw new Error('DataCaptureViewListenerOnSizeChangedSize.height: expected a number');
+        }
+    }
+    else {
+        throw new Error('DataCaptureViewListenerOnSizeChangedSize.height: null is not allowed');
+    }
+    return {
+        width: widthValue,
+        height: heightValue,
+    };
+}
+const ENUM_VALUES_FOCUS_GESTURE_LISTENER_ON_FOCUS_GESTURE_EVENT = ['FocusGestureListener.onFocusGesture'];
+const ALLOWED_KEYS_FOCUS_GESTURE_LISTENER_ON_FOCUS_GESTURE = new Set(['viewId', 'focusGesture', 'point', 'event']);
+function parseFocusGestureListenerOnFocusGesture(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('FocusGestureListenerOnFocusGesture: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_FOCUS_GESTURE_LISTENER_ON_FOCUS_GESTURE.has(key)) {
+            throw new Error(`FocusGestureListenerOnFocusGesture: unknown property '${key}'`);
+        }
+    }
+    let viewIdValue = obj['viewId'];
+    if (viewIdValue === undefined) {
+        throw new Error("FocusGestureListenerOnFocusGesture: missing required property 'viewId'");
+    }
+    else if (viewIdValue !== null) {
+        if (typeof viewIdValue !== 'number') {
+            throw new Error('FocusGestureListenerOnFocusGesture.viewId: expected a number');
+        }
+        if (!Number.isInteger(viewIdValue)) {
+            throw new Error('FocusGestureListenerOnFocusGesture.viewId: expected an integer');
+        }
+    }
+    else {
+        throw new Error('FocusGestureListenerOnFocusGesture.viewId: null is not allowed');
+    }
+    let focusGestureValue = obj['focusGesture'];
+    if (focusGestureValue === undefined) {
+        throw new Error("FocusGestureListenerOnFocusGesture: missing required property 'focusGesture'");
+    }
+    else if (focusGestureValue !== null) {
+        if (typeof focusGestureValue !== 'string') {
+            throw new Error('FocusGestureListenerOnFocusGesture.focusGesture: expected a string');
+        }
+    }
+    else {
+        throw new Error('FocusGestureListenerOnFocusGesture.focusGesture: null is not allowed');
+    }
+    let pointValue = obj['point'];
+    if (pointValue === undefined) {
+        throw new Error("FocusGestureListenerOnFocusGesture: missing required property 'point'");
+    }
+    else if (pointValue !== null) {
+        if (typeof pointValue !== 'string') {
+            throw new Error('FocusGestureListenerOnFocusGesture.point: expected a string');
+        }
+    }
+    else {
+        throw new Error('FocusGestureListenerOnFocusGesture.point: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("FocusGestureListenerOnFocusGesture: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_FOCUS_GESTURE_LISTENER_ON_FOCUS_GESTURE_EVENT.includes(eventValue)) {
+            throw new Error("FocusGestureListenerOnFocusGesture.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('FocusGestureListenerOnFocusGesture.event: null is not allowed');
+    }
+    return {
+        viewId: viewIdValue,
+        focusGesture: focusGestureValue,
+        point: pointValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_ZOOM_GESTURE_LISTENER_ON_ZOOM_IN_GESTURE_EVENT = ['ZoomGestureListener.onZoomInGesture'];
+const ALLOWED_KEYS_ZOOM_GESTURE_LISTENER_ON_ZOOM_IN_GESTURE = new Set(['viewId', 'zoomGesture', 'event']);
+function parseZoomGestureListenerOnZoomInGesture(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('ZoomGestureListenerOnZoomInGesture: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_ZOOM_GESTURE_LISTENER_ON_ZOOM_IN_GESTURE.has(key)) {
+            throw new Error(`ZoomGestureListenerOnZoomInGesture: unknown property '${key}'`);
+        }
+    }
+    let viewIdValue = obj['viewId'];
+    if (viewIdValue === undefined) {
+        throw new Error("ZoomGestureListenerOnZoomInGesture: missing required property 'viewId'");
+    }
+    else if (viewIdValue !== null) {
+        if (typeof viewIdValue !== 'number') {
+            throw new Error('ZoomGestureListenerOnZoomInGesture.viewId: expected a number');
+        }
+        if (!Number.isInteger(viewIdValue)) {
+            throw new Error('ZoomGestureListenerOnZoomInGesture.viewId: expected an integer');
+        }
+    }
+    else {
+        throw new Error('ZoomGestureListenerOnZoomInGesture.viewId: null is not allowed');
+    }
+    let zoomGestureValue = obj['zoomGesture'];
+    if (zoomGestureValue === undefined) {
+        throw new Error("ZoomGestureListenerOnZoomInGesture: missing required property 'zoomGesture'");
+    }
+    else if (zoomGestureValue !== null) {
+        if (typeof zoomGestureValue !== 'string') {
+            throw new Error('ZoomGestureListenerOnZoomInGesture.zoomGesture: expected a string');
+        }
+    }
+    else {
+        throw new Error('ZoomGestureListenerOnZoomInGesture.zoomGesture: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("ZoomGestureListenerOnZoomInGesture: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_ZOOM_GESTURE_LISTENER_ON_ZOOM_IN_GESTURE_EVENT.includes(eventValue)) {
+            throw new Error("ZoomGestureListenerOnZoomInGesture.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('ZoomGestureListenerOnZoomInGesture.event: null is not allowed');
+    }
+    return {
+        viewId: viewIdValue,
+        zoomGesture: zoomGestureValue,
+        event: eventValue,
+    };
+}
+const ENUM_VALUES_ZOOM_GESTURE_LISTENER_ON_ZOOM_OUT_GESTURE_EVENT = ['ZoomGestureListener.onZoomOutGesture'];
+const ALLOWED_KEYS_ZOOM_GESTURE_LISTENER_ON_ZOOM_OUT_GESTURE = new Set(['viewId', 'zoomGesture', 'event']);
+function parseZoomGestureListenerOnZoomOutGesture(raw) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        throw new Error('ZoomGestureListenerOnZoomOutGesture: expected an object');
+    }
+    const obj = raw;
+    for (const key of Object.keys(obj)) {
+        if (!ALLOWED_KEYS_ZOOM_GESTURE_LISTENER_ON_ZOOM_OUT_GESTURE.has(key)) {
+            throw new Error(`ZoomGestureListenerOnZoomOutGesture: unknown property '${key}'`);
+        }
+    }
+    let viewIdValue = obj['viewId'];
+    if (viewIdValue === undefined) {
+        throw new Error("ZoomGestureListenerOnZoomOutGesture: missing required property 'viewId'");
+    }
+    else if (viewIdValue !== null) {
+        if (typeof viewIdValue !== 'number') {
+            throw new Error('ZoomGestureListenerOnZoomOutGesture.viewId: expected a number');
+        }
+        if (!Number.isInteger(viewIdValue)) {
+            throw new Error('ZoomGestureListenerOnZoomOutGesture.viewId: expected an integer');
+        }
+    }
+    else {
+        throw new Error('ZoomGestureListenerOnZoomOutGesture.viewId: null is not allowed');
+    }
+    let zoomGestureValue = obj['zoomGesture'];
+    if (zoomGestureValue === undefined) {
+        throw new Error("ZoomGestureListenerOnZoomOutGesture: missing required property 'zoomGesture'");
+    }
+    else if (zoomGestureValue !== null) {
+        if (typeof zoomGestureValue !== 'string') {
+            throw new Error('ZoomGestureListenerOnZoomOutGesture.zoomGesture: expected a string');
+        }
+    }
+    else {
+        throw new Error('ZoomGestureListenerOnZoomOutGesture.zoomGesture: null is not allowed');
+    }
+    let eventValue = obj['event'];
+    if (eventValue === undefined) {
+        throw new Error("ZoomGestureListenerOnZoomOutGesture: missing required property 'event'");
+    }
+    else if (eventValue !== null) {
+        if (!ENUM_VALUES_ZOOM_GESTURE_LISTENER_ON_ZOOM_OUT_GESTURE_EVENT.includes(eventValue)) {
+            throw new Error("ZoomGestureListenerOnZoomOutGesture.event: unknown enum value '" + String(eventValue) + "'");
+        }
+    }
+    else {
+        throw new Error('ZoomGestureListenerOnZoomOutGesture.event: null is not allowed');
+    }
+    return {
+        viewId: viewIdValue,
+        zoomGesture: zoomGestureValue,
+        event: eventValue,
+    };
+}
+
+function createTolerantPayloadParser(logPrefix) {
+    // Warn-once keys per event, so a repeating malformed payload costs one log line, not one per frame.
+    const warnedSchemaValidationEvents = new Set();
+    return {
+        parsePayloadTolerantly(raw, strict, fallback, eventName) {
+            try {
+                return strict(raw);
+            }
+            catch (error) {
+                if (!warnedSchemaValidationEvents.has(eventName)) {
+                    warnedSchemaValidationEvents.add(eventName);
+                    console.warn(`${logPrefix} ${eventName}: payload failed schema validation, falling back to tolerant parsing: ${String(error)}`);
+                }
+                return fallback(raw);
+            }
+        },
+        resetWarnings() {
+            warnedSchemaValidationEvents.clear();
+        },
+    };
+}
+
+const tolerantParser$2 = createTolerantPayloadParser('DataCaptureContextController');
 var DataCaptureContextEvents;
 (function (DataCaptureContextEvents) {
     DataCaptureContextEvents["didChangeStatus"] = "DataCaptureContextListener.onStatusChanged";
     DataCaptureContextEvents["didStartObservingContext"] = "DataCaptureContextListener.onObservationStarted";
+    // Listed because the generated SubscribeContextListenerCommand registers the native callback
+    // for every name in the schema's event list, and on Cordova that registration is the gate: an
+    // unlisted name reaches notifyListeners with no handler and warns. Ignored here.
+    DataCaptureContextEvents["didChangeFrameSource"] = "DataCaptureContextListener.onFrameSourceChanged";
 })(DataCaptureContextEvents || (DataCaptureContextEvents = {}));
 class DataCaptureContextController extends BaseController {
     get framework() {
@@ -2300,12 +4555,6 @@ class DataCaptureContextController extends BaseController {
     }
     get frameworkVersion() {
         return this._proxy.frameworkVersion;
-    }
-    get privateContext() {
-        return this.context;
-    }
-    static forDataCaptureContext(context) {
-        return new DataCaptureContextController(context);
     }
     static getOpenSourceSoftwareLicenseInfo() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2318,11 +4567,11 @@ class DataCaptureContextController extends BaseController {
             return new OpenSourceSoftwareLicenseInfo(result);
         });
     }
-    constructor(context) {
+    constructor(listener) {
         super('DataCaptureContextProxy');
         this._listenerRegistered = false;
         this.adapter = new CoreProxyAdapter(this._proxy);
-        this.context = context;
+        this.listener = listener;
     }
     subscribeListener() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2333,25 +4582,20 @@ class DataCaptureContextController extends BaseController {
             this._proxy.subscribeForEvents(Object.values(DataCaptureContextEvents));
             this._proxy.eventEmitter.on(DataCaptureContextEvents.didChangeStatus, this.handleDidChangeStatusEvent.bind(this));
             this._proxy.eventEmitter.on(DataCaptureContextEvents.didStartObservingContext, this.handleDidStartObservingContextEvent.bind(this));
+            this._proxy.eventEmitter.on(DataCaptureContextEvents.didChangeFrameSource, this.handleDidChangeFrameSourceEvent.bind(this));
             this._listenerRegistered = true;
         });
     }
-    updateContextFromJSON() {
+    updateContextFromJson(context) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield this.adapter.updateContextFromJson({ contextJson: JSON.stringify(this.context.toJSON()) });
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
+            yield this.adapter.updateContextFromJson({ contextJson: JSON.stringify(context) });
         });
     }
     addModeToContext(mode) {
-        return this.adapter.addModeToContext({ modeJson: JSON.stringify(mode.toJSON()) });
+        return this.adapter.addModeToContext({ modeJson: JSON.stringify(mode) });
     }
     removeModeFromContext(mode) {
-        return this.adapter.removeModeFromContext({ modeJson: JSON.stringify(mode.toJSON()) });
+        return this.adapter.removeModeFromContext({ modeJson: JSON.stringify(mode) });
     }
     removeAllModesFromContext() {
         return this.adapter.removeAllModes();
@@ -2370,56 +4614,99 @@ class DataCaptureContextController extends BaseController {
             this._proxy.unsubscribeFromEvents(Object.values(DataCaptureContextEvents));
             this._proxy.eventEmitter.off(DataCaptureContextEvents.didChangeStatus, this.handleDidChangeStatusEvent.bind(this));
             this._proxy.eventEmitter.off(DataCaptureContextEvents.didStartObservingContext, this.handleDidStartObservingContextEvent.bind(this));
+            this._proxy.eventEmitter.off(DataCaptureContextEvents.didChangeFrameSource, this.handleDidChangeFrameSourceEvent.bind(this));
             this._listenerRegistered = false;
         });
     }
-    initialize() {
-        return this.initializeContextFromJSON();
-    }
-    initializeContextFromJSON() {
+    createContextFromJson(context) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield this.adapter.createContextFromJson({ contextJson: JSON.stringify(this.context.toJSON()) });
-            }
-            catch (error) {
-                this.notifyListenersOfDeserializationError(error);
-                throw error;
-            }
+            yield this.adapter.createContextFromJson({ contextJson: JSON.stringify(context) });
         });
     }
     handleDidChangeStatusEvent(eventPayload) {
-        const event = EventDataParser.parseIfShouldHandle(eventPayload, {});
-        if (event === SKIP) {
+        const cast = EventDataParser.parseIfShouldHandle(eventPayload, {});
+        if (cast === SKIP) {
             return;
         }
-        if (event === null) {
+        if (cast === null) {
             console.error('DataCaptureContextController didChangeStatus payload is null');
             return;
         }
-        const contextStatus = ContextStatus['fromJSON'](JSON.parse(event.status));
-        this.notifyListenersOfDidChangeStatus(contextStatus);
-    }
-    handleDidStartObservingContextEvent() {
-        this.privateContext.listeners.forEach(listener => {
-            var _a;
-            (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this.context);
-        });
-    }
-    notifyListenersOfDeserializationError(error) {
-        const contextStatus = ContextStatus['fromJSON']({
-            message: error,
-            code: -1,
-            isValid: true,
-        });
-        this.notifyListenersOfDidChangeStatus(contextStatus);
-    }
-    notifyListenersOfDidChangeStatus(contextStatus) {
-        this.privateContext.listeners.forEach(listener => {
-            if (listener.didChangeStatus) {
-                listener.didChangeStatus(this.context, contextStatus);
+        const event = tolerantParser$2.parsePayloadTolerantly(cast, parseDataCaptureContextListenerOnStatusChanged, map => {
+            // `status` is an embedded JSON string decoded below via JSON.parse -- a non-string must
+            // decline BEFORE the decode, not throw out of this handler (SDC-32670).
+            if (typeof map.status !== 'string') {
+                return null;
             }
-        });
+            return {
+                status: map.status,
+                event: DataCaptureContextEvents.didChangeStatus,
+            };
+        }, 'didChangeStatus');
+        if (event === null) {
+            return;
+        }
+        // The tolerant parse guarantees `status` is a string, not that it holds valid JSON -- decode
+        // failures must not throw out of this handler. Flutter's `_handleStatusChanged` guards the
+        // same decode (SDC-32670).
+        let contextStatus;
+        try {
+            contextStatus = ContextStatus['fromJSON'](JSON.parse(event.status));
+        }
+        catch (error) {
+            console.warn(`DataCaptureContextController didChangeStatus: undecodable status: ${String(error)}`);
+            return;
+        }
+        this.reportStatus(contextStatus);
     }
+    // Deliberately empty: jsmobile keeps its own frame-source state in CameraSwitchControlController.
+    // The handler exists so the event has a consumer.
+    handleDidChangeFrameSourceEvent() { }
+    // `licenseInfo` is wire-present on this event (both natives emit it) but unconsumed by
+    // jsmobile -- only Flutter reads it. Adding a consumer here would be new public API and is out
+    // of scope for SDC-32670; parsed here only so a malformed payload is caught, not silently used.
+    handleDidStartObservingContextEvent(eventPayload) {
+        // The payload is parsed for validation only; nothing here reads it (see comment above). This
+        // callback signals that the context is live, so no payload problem may suppress it -- an app
+        // waiting on a callback that never arrives has no way to notice. `SKIP` is the one case that
+        // must still suppress, because it means the event belongs to a different view/mode.
+        try {
+            const cast = EventDataParser.parseIfShouldHandle(eventPayload, {});
+            if (cast === SKIP) {
+                return;
+            }
+            if (cast !== null) {
+                tolerantParser$2.parsePayloadTolerantly(cast, parseDataCaptureContextListenerOnObservationStarted, map => {
+                    // `licenseInfo` is legitimately null on both natives -- do not require it, only reject
+                    // a wrong-typed value (SDC-32670).
+                    const rawLicenseInfo = map.licenseInfo;
+                    if (rawLicenseInfo !== null && rawLicenseInfo !== undefined && typeof rawLicenseInfo !== 'string') {
+                        return null;
+                    }
+                    // Positive `typeof` narrowing rather than `?? null`: narrowing an `unknown` by a
+                    // negative guard does not survive into the object literal on the DebugApp's tsc, which
+                    // then sees `unknown` and fails TS2345.
+                    const licenseInfo = typeof rawLicenseInfo === 'string' ? rawLicenseInfo : null;
+                    return {
+                        licenseInfo,
+                        event: DataCaptureContextEvents.didStartObservingContext,
+                    };
+                }, 'didStartObservingContext');
+            }
+        }
+        catch (error) {
+            console.warn(`DataCaptureContextController didStartObservingContext: unparsable payload: ${String(error)}`);
+        }
+        this.listener.didStartObservingContext();
+    }
+    reportStatus(contextStatus) {
+        this.listener.didChangeStatus(contextStatus);
+    }
+}
+
+const modeBaseBrand = Symbol('ModeBase');
+function isModeBase(value) {
+    return (typeof value === 'object' && value !== null && value[modeBaseBrand] === true);
 }
 
 class DataCaptureContext extends DefaultSerializeable {
@@ -2446,24 +4733,24 @@ class DataCaptureContext extends DefaultSerializeable {
     static forLicenseKey(licenseKey) {
         const instance = DataCaptureContext.create(licenseKey, null, null);
         // Call initialize to ensure the shared instance is updated.
-        void instance.controller.initialize();
+        void instance.createNativeContext();
         return instance;
     }
     static forLicenseKeyWithSettings(licenseKey, settings) {
         const instance = DataCaptureContext.create(licenseKey, null, settings);
         // Call initialize to ensure the shared instance is updated.
-        void instance.controller.initialize();
+        void instance.createNativeContext();
         return instance;
     }
     static forLicenseKeyWithOptions(licenseKey, options) {
         const instance = DataCaptureContext.create(licenseKey, options, null);
         // Call initialize to ensure the shared instance is updated.
-        void instance.controller.initialize();
+        void instance.createNativeContext();
         return instance;
     }
     static initialize(licenseKey, options = null, settings = null) {
         DataCaptureContext.create(licenseKey, options, settings);
-        void DataCaptureContext.sharedInstance.controller.initialize();
+        void DataCaptureContext.sharedInstance.createNativeContext();
         return DataCaptureContext.sharedInstance;
     }
     static create(licenseKey, options, settings) {
@@ -2489,7 +4776,10 @@ class DataCaptureContext extends DefaultSerializeable {
             this.settings = settings;
         }
         if (this.controller == null) {
-            this.controller = DataCaptureContextController.forDataCaptureContext(this);
+            this.controller = new DataCaptureContextController({
+                didChangeStatus: contextStatus => this.notifyListenersOfDidChangeStatus(contextStatus),
+                didStartObservingContext: () => this.notifyListenersOfDidStartObservingContext(),
+            });
             this._framework = this.controller.framework;
             this._frameworkVersion = this.controller.frameworkVersion;
         }
@@ -2510,6 +4800,30 @@ class DataCaptureContext extends DefaultSerializeable {
                 frameSource.context = this;
             }
         });
+    }
+    /**
+     * Mirror a frame-source change that already occurred on the native side (e.g. a
+     * CameraSwitchControl tap handled by the native camera switcher, which swaps the context's
+     * active camera on its own). Repoints the TS-side frame source and active-context pointers
+     * WITHOUT re-serializing to native — native is already in this state, so calling
+     * setFrameSource() would trigger a redundant, and failing, swap.
+     *
+     * Private on purpose: framework-internal callers (CameraSwitchControl) reach it
+     * through the PrivateDataCaptureContext cast, keeping it off the public SDK surface.
+     */
+    adoptActiveFrameSource(frameSource) {
+        if (this._frameSource === frameSource) {
+            return;
+        }
+        if (this._frameSource) {
+            this._frameSource.context = null;
+        }
+        this._frameSource = frameSource;
+        frameSource.context = this;
+    }
+    // Reached by BaseDataCaptureView through PrivateDataCaptureContext.
+    attachView(view) {
+        this.view = view;
     }
     addListener(listener) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -2565,9 +4879,7 @@ class DataCaptureContext extends DefaultSerializeable {
             if (this.modes.length === 0) {
                 return;
             }
-            this.modes.forEach(mode => {
-                mode._context = null;
-            });
+            this.modes.forEach(mode => this.detachMode(mode));
             this.modes = [];
             yield this.controller.removeAllModesFromContext();
         });
@@ -2589,20 +4901,75 @@ class DataCaptureContext extends DefaultSerializeable {
             yield this.update();
         });
     }
+    notifyListenersOfDidChangeStatus(contextStatus) {
+        this.listeners.forEach(listener => {
+            if (listener.didChangeStatus) {
+                listener.didChangeStatus(this, contextStatus);
+            }
+        });
+    }
+    notifyListenersOfDidStartObservingContext() {
+        this.listeners.forEach(listener => {
+            var _a;
+            (_a = listener.didStartObservingContext) === null || _a === void 0 ? void 0 : _a.call(listener, this);
+        });
+    }
+    createNativeContext() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.controller.createContextFromJson(this.toJSON());
+            }
+            catch (error) {
+                this.notifyListenersOfNativeContextError(error);
+                throw error;
+            }
+        });
+    }
     update() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.controller) {
                 return;
             }
-            yield this.controller.updateContextFromJSON();
+            try {
+                yield this.controller.updateContextFromJson(this.toJSON());
+            }
+            catch (error) {
+                this.notifyListenersOfNativeContextError(error);
+                throw error;
+            }
         });
+    }
+    // Serializing the context or native deserializing it failed; listeners learn of it as a status change.
+    notifyListenersOfNativeContextError(error) {
+        this.notifyListenersOfDidChangeStatus(ContextStatus['fromJSON']({
+            message: error,
+            code: -1,
+            isValid: true,
+        }));
     }
     addModeInternal(mode) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.modes.includes(mode)) {
                 this.modes.push(mode);
-                yield this.controller.addModeToContext(mode);
-                mode._context = this;
+                if (isModeBase(mode)) {
+                    mode.onStartAddingToContext(this);
+                    try {
+                        yield this.controller.addModeToContext(mode.toJSON());
+                    }
+                    catch (error) {
+                        const index = this.modes.indexOf(mode);
+                        if (index !== -1) {
+                            this.modes.splice(index, 1);
+                        }
+                        mode.onFailedAddingToContext();
+                        throw error;
+                    }
+                    mode.onAddedToContext();
+                }
+                else {
+                    yield this.controller.addModeToContext(mode.toJSON());
+                    mode._context = this;
+                }
             }
         });
     }
@@ -2612,9 +4979,17 @@ class DataCaptureContext extends DefaultSerializeable {
             if (index !== -1) {
                 this.modes.splice(index, 1);
             }
-            mode._context = null;
-            yield this.controller.removeModeFromContext(mode);
+            this.detachMode(mode);
+            yield this.controller.removeModeFromContext(mode.toJSON());
         });
+    }
+    detachMode(mode) {
+        if (isModeBase(mode)) {
+            mode.onRemovedFromContext();
+        }
+        else {
+            mode._context = null;
+        }
     }
 }
 __decorate([
@@ -2644,6 +5019,139 @@ __decorate([
 __decorate([
     ignoreFromSerialization
 ], DataCaptureContext, "coreDefaults", null);
+
+var _a;
+class ModeBase extends DefaultSerializeable {
+    onStartAddingToContext(context) {
+        var _b, _c;
+        if (this.controller === null) {
+            this.controller = this.createController();
+        }
+        if (this.listenerController === null) {
+            this.listenerController = (_c = (_b = this.createListenerController) === null || _b === void 0 ? void 0 : _b.call(this)) !== null && _c !== void 0 ? _c : null;
+        }
+        this.created = new Promise(resolve => {
+            this.resolveCreated = resolve;
+        });
+        this._context = context;
+        this.state = 'creating';
+    }
+    onAddedToContext() {
+        var _b;
+        if (!this.resolveCreated) {
+            console.error('onAddedToContext called without onStartAddingToContext being called first');
+            return;
+        }
+        this.resolveCreated();
+        this.resolveCreated = null;
+        this.state = 'created';
+        (_b = this.onCreated) === null || _b === void 0 ? void 0 : _b.call(this);
+    }
+    onFailedAddingToContext() {
+        var _b;
+        (_b = this.resolveCreated) === null || _b === void 0 ? void 0 : _b.call(this);
+        this.resolveCreated = null;
+        this.created = null;
+        this.state = 'notCreated';
+        this._context = null;
+    }
+    onRemovedFromContext() {
+        var _b, _c;
+        (_b = this.resolveCreated) === null || _b === void 0 ? void 0 : _b.call(this);
+        this.resolveCreated = null;
+        this.state = 'notCreated';
+        this.created = null;
+        this._context = null;
+        (_c = this.listenerController) === null || _c === void 0 ? void 0 : _c.dispose();
+        this.listenerController = null;
+        if (!this.controller) {
+            return;
+        }
+        this.controller.dispose();
+        this.controller = null;
+    }
+    awaitCreation() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.created;
+            while (this.state === 'creating') {
+                yield this.created;
+            }
+            return this.state === 'created';
+        });
+    }
+    withController(action, fallback) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!(yield this.awaitCreation())) {
+                this.logHeld();
+                return fallback;
+            }
+            if (!this.controller) {
+                this.logModeError('controller is not created');
+                return fallback;
+            }
+            return action(this.controller);
+        });
+    }
+    withListenerController(action, fallback) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!(yield this.awaitCreation())) {
+                this.logHeld();
+                return fallback;
+            }
+            if (!this.listenerController) {
+                this.logModeError('listener controller is not created');
+                return fallback;
+            }
+            return action(this.listenerController);
+        });
+    }
+    logHeld() {
+        ScanditLogger.emit(LogLevel.Debug, LogCategory.Lifecycle, 'ts.mode', `${this.constructor.name}: held until it is added to a context`);
+    }
+    logModeError(detail) {
+        const message = `${this.constructor.name}: ${detail}`;
+        ScanditLogger.emit(LogLevel.Error, LogCategory.Lifecycle, 'ts.mode', message);
+        if (ScanditLogger.getLevel() < LogLevel.Error) {
+            console.error(message);
+        }
+    }
+    get context() {
+        return this._context;
+    }
+    constructor() {
+        var _b, _c;
+        super();
+        this.state = 'notCreated';
+        this.created = null;
+        this.resolveCreated = null;
+        this.modeId = Math.floor(Math.random() * 100000000);
+        this.controller = null;
+        this.listenerController = null;
+        this._context = null;
+        this[_a] = true;
+        this.controller = this.createController();
+        this.listenerController = (_c = (_b = this.createListenerController) === null || _b === void 0 ? void 0 : _b.call(this)) !== null && _c !== void 0 ? _c : null;
+    }
+}
+_a = modeBaseBrand;
+__decorate([
+    ignoreFromSerialization
+], ModeBase.prototype, "state", void 0);
+__decorate([
+    ignoreFromSerialization
+], ModeBase.prototype, "created", void 0);
+__decorate([
+    ignoreFromSerialization
+], ModeBase.prototype, "resolveCreated", void 0);
+__decorate([
+    ignoreFromSerialization
+], ModeBase.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], ModeBase.prototype, "listenerController", void 0);
+__decorate([
+    ignoreFromSerialization
+], ModeBase.prototype, "_context", void 0);
 
 var VibrationType;
 (function (VibrationType) {
@@ -2721,17 +5229,12 @@ __decorate([
 ], Sound.prototype, "resource", void 0);
 
 class FeedbackController extends BaseController {
-    static forFeedback(feedback) {
-        const controller = new FeedbackController(feedback);
-        return controller;
-    }
-    constructor(feedback) {
+    constructor() {
         super('CoreProxy');
-        this.feedback = feedback;
         this.adapter = new CoreProxyAdapter(this._proxy);
     }
-    emit() {
-        void this.adapter.emitFeedback({ feedbackJson: JSON.stringify(this.feedback.toJSON()) });
+    emitFeedback(feedback) {
+        void this.adapter.emitFeedback({ feedbackJson: JSON.stringify(feedback) });
     }
     dispose() {
         this._proxy.dispose();
@@ -2757,21 +5260,19 @@ class Feedback extends DefaultSerializeable {
         this._sound = null;
         this._vibration = vibration;
         this._sound = sound;
-        this.controller = new FeedbackController(this);
+        this.controller = new FeedbackController();
     }
     emit() {
-        this.controller.emit();
+        this.controller.emitFeedback(this.toJSON());
     }
     toJSON() {
         return super.toJSON();
     }
 }
 __decorate([
-    ignoreFromSerializationIfNull,
     nameForSerialization('vibration')
 ], Feedback.prototype, "_vibration", void 0);
 __decorate([
-    ignoreFromSerializationIfNull,
     nameForSerialization('sound')
 ], Feedback.prototype, "_sound", void 0);
 __decorate([
@@ -2809,8 +5310,16 @@ var ZoomListenerEvents;
     ZoomListenerEvents["didChangeZoomLevel"] = "ZoomListener.onZoomLevelChanged";
 })(ZoomListenerEvents || (ZoomListenerEvents = {}));
 
+const tolerantParser$1 = createTolerantPayloadParser('CameraController');
+/**
+ * Clears warn-once bookkeeping between test cases.
+ * @internal Test-only; not part of this package's consumable surface.
+ */
+function resetCameraControllerPayloadParserWarnings() {
+    tolerantParser$1.resetWarnings();
+}
 class CameraController extends BaseController {
-    constructor(camera) {
+    constructor(cameraPosition, listener) {
         super('CoreProxy');
         // Arrow function wrapper to avoid .bind(this) and always use current class state
         this.handleDidChangeStateEventWrapper = (ev) => {
@@ -2828,24 +5337,22 @@ class CameraController extends BaseController {
         this.handleDidChangeZoomLevelEventWrapper = (ev) => {
             return this.handleDidChangeZoomLevelEvent(ev);
         };
-        this.camera = camera;
+        this.cameraPosition = cameraPosition;
+        this.listener = listener;
         this.adapter = new CoreProxyAdapter(this._proxy);
         void this.subscribeListener();
-    }
-    get privateCamera() {
-        return this.camera;
     }
     getCurrentState() {
         return __awaiter(this, void 0, void 0, function* () {
             return yield this.adapter.getCameraState({
-                cameraPosition: this.privateCamera._position,
+                cameraPosition: this.cameraPosition,
             });
         });
     }
     getIsTorchAvailable() {
         return __awaiter(this, void 0, void 0, function* () {
             return yield this.adapter.isTorchAvailable({
-                cameraPosition: this.privateCamera._position,
+                cameraPosition: this.cameraPosition,
             });
         });
     }
@@ -2920,57 +5427,104 @@ class CameraController extends BaseController {
         this._proxy.dispose();
     }
     handleDidChangeStateEvent(ev) {
-        const event = EventDataParser.parseIfShouldHandle(ev, {});
-        if (event === SKIP || event === null) {
+        const cast = EventDataParser.parseIfShouldHandle(ev, {});
+        if (cast === SKIP || cast === null) {
             return;
         }
-        if (event.cameraPosition !== this.privateCamera._position || !this.privateCamera.isActiveCamera) {
+        const parsed = tolerantParser$1.parsePayloadTolerantly(cast, parseFrameSourceListenerOnStateChanged, map => {
+            // `cameraPosition` is legitimately absent for a non-Camera frame source on both natives
+            // (an explicit `null` is also still accepted, for compatibility with payloads from older
+            // native versions), so it must NOT be required -- only `state` is. Declining on a
+            // missing/wrong-typed `state` beats guessing (SDC-32670).
+            if (typeof map.state !== 'string') {
+                return null;
+            }
+            if (map.cameraPosition !== undefined && map.cameraPosition !== null && typeof map.cameraPosition !== 'string') {
+                return null;
+            }
+            return {
+                state: map.state,
+                cameraPosition: map.cameraPosition,
+                event: FrameSourceListenerEvents.didChangeState,
+            };
+        }, 'didChangeState');
+        if (parsed === null) {
             return;
         }
-        this.privateCamera.currentCameraState = event.state;
-        this.privateCamera.listeners.forEach(listener => {
-            var _a;
-            (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this.camera, this.privateCamera._desiredState);
-        });
+        const event = {
+            state: parsed.state,
+            cameraPosition: parsed.cameraPosition,
+        };
+        // cameraPosition is absent/null for a non-Camera frame source on both natives (SDC-32670) --
+        // such an event can never match this camera's position, so it's filtered out same as a mismatch.
+        if (event.cameraPosition == null || event.cameraPosition !== this.cameraPosition) {
+            return;
+        }
+        this.listener.didChangeState(event.state);
     }
     handleDidChangeTorchToStateEvent(ev) {
-        const event = EventDataParser.parseIfShouldHandle(ev, {});
-        if (event === SKIP || event === null) {
+        const cast = EventDataParser.parseIfShouldHandle(ev, {});
+        if (cast === SKIP || cast === null) {
             return;
         }
-        if (this.privateCamera.isActiveCamera) {
-            const torchState = event.state;
-            this.privateCamera.desiredTorchState = torchState;
-            this.privateCamera.torchListeners.forEach(listener => {
-                var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeTorchToState) === null || _a === void 0 ? void 0 : _a.call(listener, torchState);
-            });
+        const event = tolerantParser$1.parsePayloadTolerantly(cast, parseTorchListenerOnTorchStateChanged, map => {
+            // `state` is required to build a TorchState; without it there is nothing to hand
+            // listeners, so decline rather than fabricate one (SDC-32670).
+            if (typeof map.state !== 'string') {
+                return null;
+            }
+            return {
+                state: map.state,
+                event: TorchListenerEvents.didChangeTorchToState,
+            };
+        }, 'didChangeTorchToState');
+        if (event === null) {
+            return;
         }
+        this.listener.didChangeTorchState(event.state);
     }
     handleDidChangeMacroModeEvent(ev) {
-        const event = EventDataParser.parseIfShouldHandle(ev, {});
-        if (event === SKIP || event === null) {
+        const cast = EventDataParser.parseIfShouldHandle(ev, {});
+        if (cast === SKIP || cast === null) {
             return;
         }
-        if (this.privateCamera.isActiveCamera) {
-            const macroMode = event.macroMode;
-            this.privateCamera.macroModeListeners.forEach(listener => {
-                var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeMacroMode) === null || _a === void 0 ? void 0 : _a.call(listener, macroMode);
-            });
+        const event = tolerantParser$1.parsePayloadTolerantly(cast, parseMacroModeListenerOnMacroModeChanged, map => {
+            // `macroMode` is required to build a MacroMode; without it there is nothing to hand
+            // listeners, so decline rather than fabricate one (SDC-32670).
+            if (typeof map.macroMode !== 'string') {
+                return null;
+            }
+            return {
+                macroMode: map.macroMode,
+                event: MacroModeListenerEvents.didChangeMacroMode,
+            };
+        }, 'didChangeMacroMode');
+        if (event === null) {
+            return;
         }
+        this.listener.didChangeMacroMode(event.macroMode);
     }
     handleDidChangeZoomLevelEvent(ev) {
-        const event = EventDataParser.parseIfShouldHandle(ev, {});
-        if (event === SKIP || event === null) {
+        const cast = EventDataParser.parseIfShouldHandle(ev, {});
+        if (cast === SKIP || cast === null) {
             return;
         }
-        if (this.privateCamera.isActiveCamera) {
-            this.privateCamera.zoomListeners.forEach(listener => {
-                var _a;
-                (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeZoomLevel) === null || _a === void 0 ? void 0 : _a.call(listener, event.oldZoomLevel, event.newZoomLevel);
-            });
+        const event = tolerantParser$1.parsePayloadTolerantly(cast, parseZoomListenerOnZoomLevelChanged, map => {
+            // Both zoom levels are Float/CGFloat on the wire, not necessarily integers -- require
+            // `number`, not `Number.isInteger`. Missing/wrong-typed either one, decline (SDC-32670).
+            if (typeof map.oldZoomLevel !== 'number' || typeof map.newZoomLevel !== 'number') {
+                return null;
+            }
+            return {
+                oldZoomLevel: map.oldZoomLevel,
+                newZoomLevel: map.newZoomLevel,
+                event: ZoomListenerEvents.didChangeZoomLevel,
+            };
+        }, 'didChangeZoomLevel');
+        if (event === null) {
+            return;
         }
+        this.listener.didChangeZoomLevel(event.oldZoomLevel, event.newZoomLevel);
     }
 }
 
@@ -2987,6 +5541,66 @@ var FrameSourceState;
     FrameSourceState["ShuttingDown"] = "shuttingDown";
 })(FrameSourceState || (FrameSourceState = {}));
 
+/**
+ * Observes which camera native treats as active.
+ *
+ * The native `CameraSwitchControl` swaps the DataCaptureContext's active camera on its own when
+ * tapped and the TS layer is never told. This controller listens to the frame-source state events
+ * (which carry the camera position) and reports each camera that native brought up, so the owner
+ * can mirror the switch without issuing any native call.
+ */
+class CameraSwitchControlController extends BaseController {
+    constructor(onCameraActivated) {
+        super('CoreProxy');
+        this.subscribed = false;
+        // Arrow-function wrapper (matches CameraController) so `this` stays bound and always current.
+        this.handleDidChangeStateWrapper = (ev) => {
+            return this.handleDidChangeState(ev);
+        };
+        this.onCameraActivated = onCameraActivated;
+        this.adapter = new CoreProxyAdapter(this._proxy);
+    }
+    subscribe() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.subscribed) {
+                return;
+            }
+            this.subscribed = true;
+            yield this.adapter.registerFrameSourceListener();
+            this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateWrapper);
+        });
+    }
+    unsubscribe() {
+        if (!this.subscribed) {
+            return;
+        }
+        this.subscribed = false;
+        // Only detach our JS handler. We intentionally do NOT unregister the native frame-source
+        // listener — the active camera's own CameraController may still depend on it.
+        this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateWrapper);
+    }
+    handleDidChangeState(ev) {
+        const event = EventDataParser.parseIfShouldHandle(ev, {});
+        if (event === SKIP || event === null) {
+            return;
+        }
+        // Only report a camera that reached a STABLE up state (on/standby). Transition states
+        // (starting, bootingUp, …) must never be written into `desiredState`: that field serializes
+        // to native, whose state machine rejects transition values as a desired state
+        // (BAR_REQUIRES(!isTransition(state)) in async_start_stop_state_machine.cc → abort).
+        // The paired "off" event for the outgoing camera is likewise ignored.
+        if (event.state !== FrameSourceState.On && event.state !== FrameSourceState.Standby) {
+            return;
+        }
+        // A non-camera frame source carries no position; there is no camera to report.
+        if (event.cameraPosition == null) {
+            return;
+        }
+        this.onCameraActivated(event.cameraPosition, event.state);
+    }
+}
+
 class ImageBuffer {
     get width() {
         return this._width;
@@ -3000,22 +5614,19 @@ class ImageBuffer {
 }
 
 class ImageFrameSourceController extends BaseController {
-    constructor(imageFrameSource) {
+    constructor(onStateChanged) {
         super('CoreProxy');
         this.handleDidChangeStateEventWrapper = (ev) => {
             return this.handleDidChangeStateEvent(ev);
         };
-        this.imageFrameSource = imageFrameSource;
+        this.onStateChanged = onStateChanged;
         this.adapter = new CoreProxyAdapter(this._proxy);
         void this.subscribeListener();
     }
-    get privateImageFrameSource() {
-        return this.imageFrameSource;
-    }
-    getCurrentState() {
+    getCurrentState(cameraPosition) {
         return __awaiter(this, void 0, void 0, function* () {
             return yield this.adapter.getCameraState({
-                cameraPosition: JSON.stringify(this.privateImageFrameSource.position),
+                cameraPosition: JSON.stringify(cameraPosition),
             });
         });
     }
@@ -3053,12 +5664,7 @@ class ImageFrameSourceController extends BaseController {
             console.error('ImageFrameSourceController didChangeState payload is null');
             return;
         }
-        const newState = event.state;
-        this.privateImageFrameSource.listeners.forEach(listener => {
-            if (listener.didChangeState) {
-                listener.didChangeState(this.imageFrameSource, newState);
-            }
-        });
+        this.onStateChanged(event.state);
     }
 }
 
@@ -3094,7 +5700,7 @@ class ImageFrameSource extends DefaultSerializeable {
         this._desiredState = FrameSourceState.Off;
         this.listeners = [];
         this._context = null;
-        this.controller = new ImageFrameSourceController(this);
+        this.controller = new ImageFrameSourceController(state => this.notifyStateChanged(state));
     }
     switchToDesiredState(state) {
         this._desiredState = state;
@@ -3119,7 +5725,14 @@ class ImageFrameSource extends DefaultSerializeable {
         this.listeners.splice(this.listeners.indexOf(listener), 1);
     }
     getCurrentState() {
-        return this.controller.getCurrentState();
+        return this.controller.getCurrentState(this.position);
+    }
+    notifyStateChanged(state) {
+        this.listeners.forEach(listener => {
+            if (listener.didChangeState) {
+                listener.didChangeState(this, state);
+            }
+        });
     }
     didChange() {
         if (this.context) {
@@ -3151,6 +5764,191 @@ __decorate([
 __decorate([
     ignoreFromSerialization
 ], ImageFrameSource.prototype, "controller", void 0);
+
+class SequenceFrameSourceController extends BaseController {
+    constructor(frameSourceId, onStateChanged) {
+        super('CoreProxy');
+        this.handleDidChangeStateEventWrapper = (ev) => {
+            return this.handleDidChangeStateEvent(ev);
+        };
+        this.frameSourceId = frameSourceId;
+        this.onStateChanged = onStateChanged;
+        this.adapter = new CoreProxyAdapter(this._proxy);
+        void this.subscribeListener();
+    }
+    getCurrentState() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.adapter.getSequenceFrameSourceState({
+                frameSourceId: this.frameSourceId,
+            });
+        });
+    }
+    switchToDesiredState(desiredState) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.adapter.switchCameraToDesiredState({
+                stateJson: desiredState.toString(),
+            });
+        });
+    }
+    addFrame(width, height, frameData) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.adapter.addFrameToSequenceFrameSource({
+                frameSourceId: this.frameSourceId,
+                width,
+                height,
+                frameData,
+            });
+        });
+    }
+    subscribeListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.adapter.registerFrameSourceListener();
+            this._proxy.subscribeForEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.on(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEventWrapper);
+        });
+    }
+    unsubscribeListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.adapter.unregisterFrameSourceListener();
+            this._proxy.unsubscribeFromEvents([FrameSourceListenerEvents.didChangeState]);
+            this._proxy.eventEmitter.off(FrameSourceListenerEvents.didChangeState, this.handleDidChangeStateEventWrapper);
+        });
+    }
+    dispose() {
+        void this.unsubscribeListener();
+        this._proxy.dispose();
+    }
+    handleDidChangeStateEvent(ev) {
+        const event = EventDataParser.parseIfShouldHandle(ev, {});
+        if (event === SKIP) {
+            return;
+        }
+        if (event === null) {
+            console.error('SequenceFrameSourceController didChangeState payload is null');
+            return;
+        }
+        this.onStateChanged(event.state);
+    }
+}
+
+/**
+ * A frame source that processes frames fed to it via {@link SequenceFrameSource.addFrame},
+ * in the order they are added. Use it when the camera is not handled by the SDK (e.g. when
+ * another framework owns the camera).
+ */
+class SequenceFrameSource extends DefaultSerializeable {
+    set context(newContext) {
+        if (newContext == null) {
+            void this.controller.unsubscribeListener();
+        }
+        else if (this._context == null) {
+            void this.controller.subscribeListener();
+        }
+        this._context = newContext;
+    }
+    get context() {
+        return this._context;
+    }
+    get desiredState() {
+        return this._desiredState;
+    }
+    /**
+     * Creates a sequence frame source for the given camera position. On iOS the lens position
+     * (0.0-1.0) sets the capture device lens position; on Android it is ignored.
+     */
+    static create(position, lensPosition) {
+        const sequenceFrameSource = new SequenceFrameSource();
+        sequenceFrameSource.position = position;
+        sequenceFrameSource._lensPosition = lensPosition !== null && lensPosition !== void 0 ? lensPosition : 1;
+        return sequenceFrameSource;
+    }
+    static fromJSON(json) {
+        return SequenceFrameSource.create(json.position, json.lensPosition);
+    }
+    constructor() {
+        super();
+        this.type = 'sequence';
+        this._lensPosition = 1;
+        this._id = `${Date.now()}-${SequenceFrameSource.nextInstanceId++}`;
+        this._desiredState = FrameSourceState.Off;
+        this.listeners = [];
+        this._context = null;
+        this.controller = new SequenceFrameSourceController(this._id, state => this.notifyStateChanged(state));
+    }
+    switchToDesiredState(state) {
+        this._desiredState = state;
+        return this.controller.switchToDesiredState(state);
+    }
+    /**
+     * Adds a frame with the given width and height. The frame data must be the Base64 encoding
+     * of the raw NV21 bytes of the frame. If this frame source is on and connected to a
+     * data capture context, this is the next frame that will be processed.
+     */
+    addFrame(width, height, frameData) {
+        return this.controller.addFrame(width, height, frameData);
+    }
+    addListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.push(listener);
+    }
+    removeListener(listener) {
+        if (listener == null) {
+            return;
+        }
+        if (!this.listeners.includes(listener)) {
+            return;
+        }
+        this.listeners.splice(this.listeners.indexOf(listener), 1);
+    }
+    getCurrentState() {
+        return this.controller.getCurrentState();
+    }
+    notifyStateChanged(state) {
+        this.listeners.forEach(listener => {
+            if (listener.didChangeState) {
+                listener.didChangeState(this, state);
+            }
+        });
+    }
+    didChange() {
+        if (this.context) {
+            return this.context.update();
+        }
+        return Promise.resolve();
+    }
+    setNativeFrameSourceIsBeingCreated() {
+        // SequenceFrameSource has no asynchronous native initialization step, so
+        // there is nothing to track here. The method exists only to satisfy the
+        // PrivateFrameSource contract that DataCaptureContext.setFrameSource()
+        // invokes on every frame source.
+    }
+}
+// The native handlers key their instance-reuse and addFrame routing on this id, so it must
+// be unique across instances — a timestamp alone can collide within the same millisecond.
+SequenceFrameSource.nextInstanceId = 0;
+__decorate([
+    nameForSerialization('lensPosition')
+], SequenceFrameSource.prototype, "_lensPosition", void 0);
+__decorate([
+    nameForSerialization('id')
+], SequenceFrameSource.prototype, "_id", void 0);
+__decorate([
+    nameForSerialization('desiredState')
+], SequenceFrameSource.prototype, "_desiredState", void 0);
+__decorate([
+    ignoreFromSerialization
+], SequenceFrameSource.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], SequenceFrameSource.prototype, "_context", void 0);
+__decorate([
+    ignoreFromSerialization
+], SequenceFrameSource.prototype, "controller", void 0);
 
 class PrivateFrameData {
     get imageBuffers() {
@@ -3312,7 +6110,12 @@ class Camera extends DefaultSerializeable {
         this.settings = settings || null;
         this._desiredTorchState = desiredTorchState || TorchState.Off;
         this._desiredState = desiredState || FrameSourceState.Off;
-        this.controller = new CameraController(this);
+        this.controller = new CameraController(this._position, {
+            didChangeState: state => this.handleNativeStateChanged(state),
+            didChangeTorchState: torchState => this.handleNativeTorchStateChanged(torchState),
+            didChangeMacroMode: macroMode => this.handleNativeMacroModeChanged(macroMode),
+            didChangeZoomLevel: (oldZoomLevel, newZoomLevel) => this.handleNativeZoomLevelChanged(oldZoomLevel, newZoomLevel),
+        });
     }
     switchToDesiredState(state) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3325,7 +6128,11 @@ class Camera extends DefaultSerializeable {
             }
             if (!this.isActiveCamera) {
                 // Phase 1: Not yet added to context
-                console.warn('The current camera is not added to the DataCaptureContext. Add camera to the DataCaptureContext first.');
+                const warning = 'The current camera is not added to the DataCaptureContext. Add camera to the DataCaptureContext first.';
+                ScanditLogger.emit(LogLevel.Warn, LogCategory.Lifecycle, 'ts.camera', warning);
+                if (ScanditLogger.getLevel() < LogLevel.Warn) {
+                    console.warn(warning);
+                }
                 return;
             }
             // Phase 3: Execute immediately
@@ -3446,7 +6253,9 @@ class Camera extends DefaultSerializeable {
                 // Phase 3: Execute immediately
                 yield this.didChange();
             }
-            // Phase 1: Just update the property, no action needed
+            else {
+                ScanditLogger.emit(LogLevel.Debug, LogCategory.Lifecycle, 'ts.camera', 'Camera.applySettings: stored until the camera is set as the frame source');
+            }
         });
     }
     set context(newContext) {
@@ -3542,6 +6351,46 @@ class Camera extends DefaultSerializeable {
             if (this.context) {
                 yield this.context.update();
             }
+        });
+    }
+    // Native reports events for this position whether or not the camera is in use; only the
+    // camera attached to a context forwards them to its listeners.
+    handleNativeStateChanged(state) {
+        if (!this.isActiveCamera) {
+            return;
+        }
+        this.currentCameraState = state;
+        this.listeners.forEach(listener => {
+            var _a;
+            (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeState) === null || _a === void 0 ? void 0 : _a.call(listener, this, this._desiredState);
+        });
+    }
+    handleNativeTorchStateChanged(torchState) {
+        if (!this.isActiveCamera) {
+            return;
+        }
+        this.desiredTorchState = torchState;
+        this.torchListeners.forEach(listener => {
+            var _a;
+            (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeTorchToState) === null || _a === void 0 ? void 0 : _a.call(listener, torchState);
+        });
+    }
+    handleNativeMacroModeChanged(macroMode) {
+        if (!this.isActiveCamera) {
+            return;
+        }
+        this.macroModeListeners.forEach(listener => {
+            var _a;
+            (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeMacroMode) === null || _a === void 0 ? void 0 : _a.call(listener, macroMode);
+        });
+    }
+    handleNativeZoomLevelChanged(oldZoomLevel, newZoomLevel) {
+        if (!this.isActiveCamera) {
+            return;
+        }
+        this.zoomListeners.forEach(listener => {
+            var _a;
+            (_a = listener === null || listener === void 0 ? void 0 : listener.didChangeZoomLevel) === null || _a === void 0 ? void 0 : _a.call(listener, oldZoomLevel, newZoomLevel);
         });
     }
     resetPhaseState() {
@@ -3646,658 +6495,6 @@ __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('name')
 ], ControlImage.prototype, "_name", void 0);
-
-var DataCaptureViewEvents;
-(function (DataCaptureViewEvents) {
-    DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
-    DataCaptureViewEvents["onFocusGesture"] = "FocusGestureListener.onFocusGesture";
-})(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
-class DataCaptureViewController extends BaseController {
-    constructor(view) {
-        super('DataCaptureViewProxy');
-        this._listenerRegistered = false;
-        this._focusGestureListenerRegistered = false;
-        this._zoomGestureListenerRegistered = false;
-        this.handleOnFocusGestureEventWrapper = (eventPayload) => {
-            return this.handleOnFocusGestureEvent(eventPayload);
-        };
-        this.handleOnZoomInGestureEventWrapper = (eventPayload) => {
-            return this.handleOnZoomInGestureEvent(eventPayload);
-        };
-        this.handleOnZoomOutGestureEventWrapper = (eventPayload) => {
-            return this.handleOnZoomOutGestureEvent(eventPayload);
-        };
-        // Arrow function wrapper to avoid .bind(this) and always use current class state
-        this.handleDidChangeSizeEventWrapper = (eventPayload) => {
-            return this.handleDidChangeSizeEvent(eventPayload);
-        };
-        this.view = view;
-        this.adapter = new CoreProxyAdapter(this._proxy);
-    }
-    viewPointForFramePoint(point) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this.adapter.viewPointForFramePoint({
-                viewId: this.view.viewId,
-                pointJson: JSON.stringify(point.toJSON()),
-            });
-            return Point['fromJSON'](JSON.parse(result));
-        });
-    }
-    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const result = yield this.adapter.viewQuadrilateralForFrameQuadrilateral({
-                viewId: this.view.viewId,
-                quadrilateralJson: JSON.stringify(quadrilateral.toJSON()),
-            });
-            return Quadrilateral['fromJSON'](JSON.parse(result));
-        });
-    }
-    triggerFocus(point) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.adapter.triggerFocus({ viewId: this.view.viewId, pointJson: JSON.stringify(point.toJSON()) });
-        });
-    }
-    triggerZoomIn() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.adapter.triggerZoomIn({ viewId: this.view.viewId });
-        });
-    }
-    triggerZoomOut() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.adapter.triggerZoomOut({ viewId: this.view.viewId });
-        });
-    }
-    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
-        return this._proxy.$setDataCaptureViewPositionAndSize({ top, left, width, height, shouldBeUnderWebView });
-    }
-    show() {
-        if (!this.isViewCreated())
-            return Promise.resolve();
-        return this._proxy.$showDataCaptureView({ viewId: this.view.viewId });
-    }
-    hide() {
-        if (!this.isViewCreated())
-            return Promise.resolve();
-        return this._proxy.$hideDataCaptureView({ viewId: this.view.viewId });
-    }
-    createNativeView() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.createView();
-            yield this.subscribeListener();
-        });
-    }
-    removeNativeView() {
-        return this._proxy.$removeDataCaptureView({ viewId: this.view.viewId });
-    }
-    updateView() {
-        if (!this.isViewCreated())
-            return Promise.resolve();
-        const json = this.view.toJSON();
-        return this.adapter.updateDataCaptureView({ viewJson: JSON.stringify(json) });
-    }
-    dispose() {
-        void this.unsubscribeListener();
-        void this.unsubscribeFocusGestureListener();
-        void this.unsubscribeZoomGestureListener();
-        this._proxy.dispose();
-    }
-    subscribeListener() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this._listenerRegistered) {
-                return;
-            }
-            yield this.adapter.registerListenerForViewEvents({ viewId: this.view.viewId });
-            this._proxy.subscribeForEvents(Object.values(DataCaptureViewEvents));
-            this._proxy.eventEmitter.on(DataCaptureViewEvents.didChangeSize, this.handleDidChangeSizeEventWrapper);
-            this._listenerRegistered = true;
-        });
-    }
-    unsubscribeListener() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this._listenerRegistered) {
-                return;
-            }
-            yield this.adapter.unregisterListenerForViewEvents({ viewId: this.view.viewId });
-            this._proxy.unsubscribeFromEvents(Object.values(DataCaptureViewEvents));
-            this._proxy.eventEmitter.off(DataCaptureViewEvents.didChangeSize, this.handleDidChangeSizeEventWrapper);
-            this._listenerRegistered = false;
-        });
-    }
-    updateFocusGestureListenerSubscription(focusGesture, shouldSubscribe) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!focusGesture) {
-                if (this._focusGestureListenerRegistered) {
-                    yield this.unsubscribeFocusGestureListener();
-                }
-                return;
-            }
-            const privateFocusGesture = focusGesture;
-            const hasListeners = privateFocusGesture.listeners && privateFocusGesture.listeners.length > 0;
-            if (shouldSubscribe && hasListeners && !this._focusGestureListenerRegistered) {
-                yield this.subscribeFocusGestureListener();
-            }
-            else if (!hasListeners && this._focusGestureListenerRegistered) {
-                yield this.unsubscribeFocusGestureListener();
-            }
-        });
-    }
-    subscribeFocusGestureListener() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this._focusGestureListenerRegistered || !this.isViewCreated()) {
-                return;
-            }
-            yield this.adapter.registerFocusGestureListener({ viewId: this.view.viewId });
-            this._proxy.subscribeForEvents([FocusGestureListenerEvents.onFocusGesture]);
-            this._proxy.eventEmitter.on(FocusGestureListenerEvents.onFocusGesture, this.handleOnFocusGestureEventWrapper);
-            this._focusGestureListenerRegistered = true;
-        });
-    }
-    unsubscribeFocusGestureListener() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this._focusGestureListenerRegistered) {
-                return;
-            }
-            yield this.adapter.unregisterFocusGestureListener({ viewId: this.view.viewId });
-            this._proxy.unsubscribeFromEvents([FocusGestureListenerEvents.onFocusGesture]);
-            this._proxy.eventEmitter.off(FocusGestureListenerEvents.onFocusGesture, this.handleOnFocusGestureEventWrapper);
-            this._focusGestureListenerRegistered = false;
-        });
-    }
-    handleOnFocusGestureEvent(eventPayload) {
-        const event = EventDataParser.parseIfShouldHandle(eventPayload, { viewId: this.view.viewId });
-        if (event === SKIP) {
-            return;
-        }
-        if (event === null) {
-            console.error('DataCaptureViewController onFocusGesture payload is null');
-            return;
-        }
-        const focusGesture = this.view.focusGesture;
-        if (!focusGesture) {
-            return;
-        }
-        const privateFocusGesture = focusGesture;
-        if (!privateFocusGesture.listeners || privateFocusGesture.listeners.length === 0) {
-            return;
-        }
-        const point = PointWithUnit['fromJSON'](event.point);
-        privateFocusGesture.listeners.forEach(listener => {
-            if (listener.didFocusGesture) {
-                listener.didFocusGesture(focusGesture, point);
-            }
-        });
-    }
-    updateZoomGestureListenerSubscription(zoomGesture, shouldSubscribe) {
-        return __awaiter(this, void 0, void 0, function* () {
-            // Check if any gesture in the current array has listeners
-            const anyHasListeners = this.view.zoomGestures.some(gesture => {
-                const privateGesture = gesture;
-                return privateGesture.listeners && privateGesture.listeners.length > 0;
-            });
-            if (shouldSubscribe && anyHasListeners && !this._zoomGestureListenerRegistered) {
-                yield this.subscribeZoomGestureListener();
-            }
-            else if (!anyHasListeners && this._zoomGestureListenerRegistered) {
-                yield this.unsubscribeZoomGestureListener();
-            }
-        });
-    }
-    selectZoomLevel(zoomLevel) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isViewCreated()) {
-                return Promise.resolve(zoomLevel);
-            }
-            return this.adapter.selectZoomLevel({ viewId: this.view.viewId, zoomLevel });
-        });
-    }
-    subscribeZoomGestureListener() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this._zoomGestureListenerRegistered || !this.isViewCreated()) {
-                return;
-            }
-            yield this.adapter.registerZoomGestureListener({ viewId: this.view.viewId });
-            this._proxy.subscribeForEvents([
-                ZoomGestureListenerEvents.onZoomInGesture,
-                ZoomGestureListenerEvents.onZoomOutGesture,
-            ]);
-            this._proxy.eventEmitter.on(ZoomGestureListenerEvents.onZoomInGesture, this.handleOnZoomInGestureEventWrapper);
-            this._proxy.eventEmitter.on(ZoomGestureListenerEvents.onZoomOutGesture, this.handleOnZoomOutGestureEventWrapper);
-            this._zoomGestureListenerRegistered = true;
-        });
-    }
-    unsubscribeZoomGestureListener() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this._zoomGestureListenerRegistered) {
-                return;
-            }
-            yield this.adapter.unregisterZoomGestureListener({ viewId: this.view.viewId });
-            this._proxy.unsubscribeFromEvents([
-                ZoomGestureListenerEvents.onZoomInGesture,
-                ZoomGestureListenerEvents.onZoomOutGesture,
-            ]);
-            this._proxy.eventEmitter.off(ZoomGestureListenerEvents.onZoomInGesture, this.handleOnZoomInGestureEventWrapper);
-            this._proxy.eventEmitter.off(ZoomGestureListenerEvents.onZoomOutGesture, this.handleOnZoomOutGestureEventWrapper);
-            this._zoomGestureListenerRegistered = false;
-        });
-    }
-    handleOnZoomInGestureEvent(eventPayload) {
-        const event = EventDataParser.parseIfShouldHandle(eventPayload, {
-            viewId: this.view.viewId,
-        });
-        if (event === SKIP) {
-            return;
-        }
-        if (event === null) {
-            console.error('DataCaptureViewController onZoomInGesture payload is null');
-            return;
-        }
-        for (const zoomGesture of this.view.zoomGestures) {
-            const privateZoomGesture = zoomGesture;
-            if (privateZoomGesture.listeners && privateZoomGesture.listeners.length > 0) {
-                privateZoomGesture.listeners.forEach(listener => {
-                    if (listener.didZoomInGesture) {
-                        listener.didZoomInGesture(zoomGesture);
-                    }
-                });
-            }
-        }
-    }
-    handleOnZoomOutGestureEvent(eventPayload) {
-        const event = EventDataParser.parseIfShouldHandle(eventPayload, {
-            viewId: this.view.viewId,
-        });
-        if (event === SKIP) {
-            return;
-        }
-        if (event === null) {
-            console.error('DataCaptureViewController onZoomOutGesture payload is null');
-            return;
-        }
-        for (const zoomGesture of this.view.zoomGestures) {
-            const privateZoomGesture = zoomGesture;
-            if (privateZoomGesture.listeners && privateZoomGesture.listeners.length > 0) {
-                privateZoomGesture.listeners.forEach(listener => {
-                    if (listener.didZoomOutGesture) {
-                        listener.didZoomOutGesture(zoomGesture);
-                    }
-                });
-            }
-        }
-    }
-    createView() {
-        return this._proxy.$createDataCaptureView({ viewJson: JSON.stringify(this.view.toJSON()) });
-    }
-    handleDidChangeSizeEvent(eventPayload) {
-        const event = EventDataParser.parseIfShouldHandle(eventPayload, {
-            viewId: this.view.viewId,
-        });
-        if (event === SKIP) {
-            return;
-        }
-        if (event === null) {
-            console.error('DataCaptureViewController didChangeSize payload is null');
-            return;
-        }
-        const size = Size['fromJSON'](event.size);
-        const orientation = event.orientation;
-        this.view.listeners.forEach(listener => {
-            if (listener.didChangeSize) {
-                listener.didChangeSize(this.view.viewComponent, size, orientation);
-            }
-        });
-    }
-    isViewCreated() {
-        return this.view.viewId > 0;
-    }
-}
-
-class BaseDataCaptureView extends DefaultSerializeable {
-    get context() {
-        return this._context;
-    }
-    set context(context) {
-        if (!(context instanceof DataCaptureContext || context == null)) {
-            // This should never happen, but let's just be sure
-            throw new Error('The context for a capture view must be a DataCaptureContext');
-        }
-        this._context = context;
-        if (this._context) {
-            this._context.view = this;
-        }
-    }
-    get coreDefaults() {
-        return getCoreDefaults();
-    }
-    get scanAreaMargins() {
-        return this._scanAreaMargins;
-    }
-    get viewId() {
-        var _a;
-        return (_a = this._viewId) !== null && _a !== void 0 ? _a : -1;
-    }
-    set viewId(newValue) {
-        this._viewId = newValue;
-    }
-    set scanAreaMargins(newValue) {
-        this._scanAreaMargins = newValue;
-        void this.controller.updateView();
-    }
-    get pointOfInterest() {
-        return this._pointOfInterest;
-    }
-    set pointOfInterest(newValue) {
-        this._pointOfInterest = newValue;
-        void this.controller.updateView();
-    }
-    get logoAnchor() {
-        return this._logoAnchor;
-    }
-    set logoAnchor(newValue) {
-        this._logoAnchor = newValue;
-        void this.controller.updateView();
-    }
-    get logoOffset() {
-        return this._logoOffset;
-    }
-    set logoOffset(newValue) {
-        this._logoOffset = newValue;
-        void this.controller.updateView();
-    }
-    get focusGesture() {
-        return this._focusGesture;
-    }
-    set focusGesture(newValue) {
-        if (this._focusGesture) {
-            const privateFocusGesture = this._focusGesture;
-            privateFocusGesture.onListenersChanged = undefined;
-            privateFocusGesture._controller = null;
-            void this.controller.updateFocusGestureListenerSubscription(this._focusGesture, false);
-        }
-        this._focusGesture = newValue;
-        if (newValue) {
-            const privateFocusGesture = newValue;
-            privateFocusGesture._controller = this.controller;
-            privateFocusGesture.onListenersChanged = () => {
-                void this.controller.updateFocusGestureListenerSubscription(newValue, true);
-            };
-            void this.controller.updateFocusGestureListenerSubscription(newValue, true);
-        }
-        void this.controller.updateView();
-    }
-    get zoomGestures() {
-        return this._zoomGestures;
-    }
-    set zoomGestures(newValue) {
-        // Detach old gestures
-        for (const gesture of this._zoomGestures) {
-            const privateGesture = gesture;
-            privateGesture.onListenersChanged = undefined;
-            privateGesture._controller = null;
-            void this.controller.updateZoomGestureListenerSubscription(gesture, false);
-        }
-        this._zoomGestures = newValue;
-        // Attach new gestures
-        for (const gesture of this._zoomGestures) {
-            const privateGesture = gesture;
-            privateGesture._controller = this.controller;
-            const capturedGesture = gesture;
-            privateGesture.onListenersChanged = () => {
-                void this.controller.updateZoomGestureListenerSubscription(capturedGesture, true);
-            };
-            void this.controller.updateZoomGestureListenerSubscription(gesture, true);
-        }
-        void this.controller.updateView();
-    }
-    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
-    get zoomGesture() {
-        var _a;
-        return (_a = this._zoomGestures[0]) !== null && _a !== void 0 ? _a : null;
-    }
-    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
-    set zoomGesture(newValue) {
-        this.zoomGestures = newValue != null ? [newValue] : [];
-    }
-    get logoStyle() {
-        return this._logoStyle;
-    }
-    set logoStyle(newValue) {
-        this._logoStyle = newValue;
-        void this.controller.updateView();
-    }
-    get shouldShowZoomNotification() {
-        return this._shouldShowZoomNotification;
-    }
-    set shouldShowZoomNotification(newValue) {
-        this._shouldShowZoomNotification = newValue;
-        void this.controller.updateView();
-    }
-    get privateContext() {
-        return this.context;
-    }
-    static forContext(context) {
-        const view = new BaseDataCaptureView(context);
-        view.context = context;
-        return view;
-    }
-    constructor(context) {
-        var _a;
-        super();
-        this.parentId = null;
-        this.overlays = [];
-        this.listeners = [];
-        this._context = null;
-        this._viewId = -1;
-        this.controls = [];
-        this.isViewCreated = false;
-        this.context = context;
-        this._scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
-        this._pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
-        this._logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
-        this._logoOffset = this.coreDefaults.DataCaptureView.logoOffset;
-        this._focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
-        this._zoomGestures = [];
-        this._logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
-        this._shouldShowZoomNotification = (_a = this.coreDefaults.DataCaptureView.shouldShowZoomNotification) !== null && _a !== void 0 ? _a : true;
-        this.controller = new DataCaptureViewController(this);
-        // Wire up default zoom gestures after controller is available
-        this.zoomGestures = this.coreDefaults.DataCaptureView.zoomGestures;
-    }
-    addOverlay(overlay) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.overlays.includes(overlay)) {
-                return;
-            }
-            overlay.view = this;
-            this.overlays.push(overlay);
-            yield this.controller.updateView();
-        });
-    }
-    removeOverlay(overlay) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.overlays.includes(overlay)) {
-                return;
-            }
-            overlay.view = null;
-            this.overlays.splice(this.overlays.indexOf(overlay), 1);
-            yield this.controller.updateView();
-        });
-    }
-    removeAllOverlays() {
-        if (this.overlays.length === 0) {
-            return;
-        }
-        const overlaysCopy = [...this.overlays];
-        for (const overlay of overlaysCopy) {
-            overlay.view = null;
-            this.overlays.splice(this.overlays.indexOf(overlay), 1);
-        }
-        void this.controller.updateView();
-    }
-    addListener(listener) {
-        if (!this.listeners.includes(listener)) {
-            this.listeners.push(listener);
-        }
-    }
-    removeListener(listener) {
-        if (this.listeners.includes(listener)) {
-            this.listeners.splice(this.listeners.indexOf(listener), 1);
-        }
-    }
-    viewPointForFramePoint(point) {
-        return this.controller.viewPointForFramePoint(point);
-    }
-    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
-        return this.controller.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
-    }
-    triggerFocus(point) {
-        return this.controller.triggerFocus(point);
-    }
-    triggerZoomIn() {
-        return this.controller.triggerZoomIn();
-    }
-    triggerZoomOut() {
-        return this.controller.triggerZoomOut();
-    }
-    addControl(control) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.controls.includes(control)) {
-                control.view = this;
-                this.controls.push(control);
-                yield this.controller.updateView();
-            }
-        });
-    }
-    addControlWithAnchorAndOffset(control, anchor, offset) {
-        if (!this.controls.includes(control)) {
-            control.view = this;
-            control.anchor = anchor;
-            control.offset = offset;
-            this.controls.push(control);
-            void this.controller.updateView();
-        }
-    }
-    removeControl(control) {
-        if (this.controls.includes(control)) {
-            control.view = null;
-            this.controls.splice(this.controls.indexOf(control), 1);
-            void this.controller.updateView();
-        }
-    }
-    controlUpdated() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.controller.updateView();
-        });
-    }
-    createNativeView(viewId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.isViewCreated) {
-                return Promise.resolve();
-            }
-            this.viewId = viewId;
-            yield this.controller.createNativeView();
-            this.isViewCreated = true;
-            this.notifyOverlaysOfViewIdChange();
-        });
-    }
-    notifyOverlaysOfViewIdChange() {
-        this.overlays.forEach(overlay => {
-            if (typeof overlay.onViewIdChanged === 'function') {
-                overlay.onViewIdChanged();
-            }
-        });
-    }
-    removeNativeView() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isViewCreated) {
-                return Promise.resolve();
-            }
-            yield this.controller.removeNativeView();
-            this.isViewCreated = false;
-        });
-    }
-    dispose() {
-        this.removeAllOverlays();
-        this.listeners.forEach(listener => this.removeListener(listener));
-        this.controller.dispose();
-        this.viewId = -1;
-        this.isViewCreated = false;
-    }
-    // HTML Views only
-    setFrame(frame, isUnderContent = false) {
-        return this.setPositionAndSize(frame.origin.y, frame.origin.x, frame.size.width, frame.size.height, isUnderContent);
-    }
-    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
-        return this.controller.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
-    }
-    show() {
-        if (!this.context) {
-            throw new Error('There should be a context attached to a view that should be shown');
-        }
-        return this.controller.show();
-    }
-    hide() {
-        if (!this.context) {
-            throw new Error('There should be a context attached to a view that should be shown');
-        }
-        return this.controller.hide();
-    }
-    setProperty(name, value) {
-        this[name] = value;
-        void this.controller.updateView();
-    }
-    selectZoomLevel(zoomLevel) {
-        return this.controller.selectZoomLevel(zoomLevel);
-    }
-}
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "viewComponent", void 0);
-__decorate([
-    nameForSerialization('parentId'),
-    ignoreFromSerializationIfNull
-], BaseDataCaptureView.prototype, "parentId", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "listeners", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "_context", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "coreDefaults", null);
-__decorate([
-    nameForSerialization('scanAreaMargins')
-], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
-__decorate([
-    nameForSerialization('viewId')
-], BaseDataCaptureView.prototype, "_viewId", void 0);
-__decorate([
-    nameForSerialization('pointOfInterest')
-], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
-__decorate([
-    nameForSerialization('logoAnchor')
-], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
-__decorate([
-    nameForSerialization('logoOffset')
-], BaseDataCaptureView.prototype, "_logoOffset", void 0);
-__decorate([
-    nameForSerialization('focusGesture')
-], BaseDataCaptureView.prototype, "_focusGesture", void 0);
-__decorate([
-    nameForSerialization('zoomGestures')
-], BaseDataCaptureView.prototype, "_zoomGestures", void 0);
-__decorate([
-    nameForSerialization('logoStyle')
-], BaseDataCaptureView.prototype, "_logoStyle", void 0);
-__decorate([
-    nameForSerialization('shouldShowZoomNotification')
-], BaseDataCaptureView.prototype, "_shouldShowZoomNotification", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "controller", void 0);
-__decorate([
-    ignoreFromSerialization
-], BaseDataCaptureView.prototype, "isViewCreated", void 0);
 
 class ZoomSwitchControl extends DefaultSerializeable {
     static get coreDefaults() {
@@ -4577,6 +6774,175 @@ __decorate([
     ignoreFromSerializationIfNull,
     nameForSerialization('accessibilityHintWhenOn')
 ], TorchSwitchControl.prototype, "accessibilityHintWhenOn", void 0);
+
+class CameraSwitchControl extends DefaultSerializeable {
+    get view() {
+        return this._view;
+    }
+    // Attaching to / detaching from a view is the lifecycle hook for keeping the TS camera state
+    // in sync with the native camera switcher: subscribe while attached, unsubscribe when removed.
+    set view(view) {
+        var _a, _b;
+        this._view = view;
+        if (view) {
+            this.controller =
+                (_a = this.controller) !== null && _a !== void 0 ? _a : new CameraSwitchControlController((position, state) => this.adoptNativeActiveCamera(position, state));
+            void this.controller.subscribe();
+        }
+        else {
+            (_b = this.controller) === null || _b === void 0 ? void 0 : _b.unsubscribe();
+        }
+    }
+    constructor(primaryCamera, secondaryCamera) {
+        super();
+        this.type = 'camera';
+        this.icon = {
+            primaryCamera: { default: null, pressed: null },
+            secondaryCamera: { default: null, pressed: null },
+        };
+        this._view = null;
+        this.controller = null;
+        this.anchor = null;
+        this.offset = null;
+        this.accessibilityLabelWhenWorldFacing = null;
+        this.accessibilityHintWhenWorldFacing = null;
+        this.accessibilityLabelWhenUserFacing = null;
+        this.accessibilityHintWhenUserFacing = null;
+        this._primaryCamera = primaryCamera;
+        this._secondaryCamera = secondaryCamera;
+    }
+    get primaryCamera() {
+        return this._primaryCamera;
+    }
+    get secondaryCamera() {
+        return this._secondaryCamera;
+    }
+    get primaryCameraImage() {
+        var _a, _b;
+        if (((_a = this.icon.primaryCamera.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.primaryCamera.default) === null || _b === void 0 ? void 0 : _b.data;
+        }
+        return null;
+    }
+    set primaryCameraImage(primaryCameraImage) {
+        var _a;
+        this.icon.primaryCamera.default = ControlImage.fromBase64EncodedImage(primaryCameraImage);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    get primaryCameraPressedImage() {
+        var _a, _b;
+        if (((_a = this.icon.primaryCamera.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.primaryCamera.pressed) === null || _b === void 0 ? void 0 : _b.data;
+        }
+        return null;
+    }
+    set primaryCameraPressedImage(primaryCameraPressedImage) {
+        var _a;
+        this.icon.primaryCamera.pressed = ControlImage.fromBase64EncodedImage(primaryCameraPressedImage);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    get secondaryCameraImage() {
+        var _a, _b;
+        if (((_a = this.icon.secondaryCamera.default) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.secondaryCamera.default) === null || _b === void 0 ? void 0 : _b.data;
+        }
+        return null;
+    }
+    set secondaryCameraImage(secondaryCameraImage) {
+        var _a;
+        this.icon.secondaryCamera.default = ControlImage.fromBase64EncodedImage(secondaryCameraImage);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    get secondaryCameraPressedImage() {
+        var _a, _b;
+        if (((_a = this.icon.secondaryCamera.pressed) === null || _a === void 0 ? void 0 : _a.isBase64EncodedImage()) == true) {
+            return (_b = this.icon.secondaryCamera.pressed) === null || _b === void 0 ? void 0 : _b.data;
+        }
+        return null;
+    }
+    set secondaryCameraPressedImage(secondaryCameraPressedImage) {
+        var _a;
+        this.icon.secondaryCamera.pressed = ControlImage.fromBase64EncodedImage(secondaryCameraPressedImage);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    setPrimaryCameraImage(resource) {
+        var _a;
+        this.icon.primaryCamera.default = ControlImage.fromResourceName(resource);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    setPrimaryCameraPressedImage(resource) {
+        var _a;
+        this.icon.primaryCamera.pressed = ControlImage.fromResourceName(resource);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    setSecondaryCameraImage(resource) {
+        var _a;
+        this.icon.secondaryCamera.default = ControlImage.fromResourceName(resource);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    setSecondaryCameraPressedImage(resource) {
+        var _a;
+        this.icon.secondaryCamera.pressed = ControlImage.fromResourceName(resource);
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a['controlUpdated']());
+    }
+    // Native swaps the context's active camera on its own when the switcher is tapped; mirror that
+    // switch in the TS state (context frame source, both cameras' states) without calling native.
+    adoptNativeActiveCamera(cameraPosition, state) {
+        var _a;
+        const context = (_a = this._view) === null || _a === void 0 ? void 0 : _a.context;
+        if (!context) {
+            return;
+        }
+        const primary = this._primaryCamera;
+        const secondary = this._secondaryCamera;
+        const next = cameraPosition === primary.position ? primary : cameraPosition === secondary.position ? secondary : null;
+        if (!next || context.frameSource === next) {
+            return;
+        }
+        const previous = context.frameSource;
+        context.adoptActiveFrameSource(next);
+        next._desiredState = state;
+        next.currentCameraState = state;
+        if (previous) {
+            previous._desiredState = FrameSourceState.Off;
+            previous.currentCameraState = FrameSourceState.Off;
+        }
+    }
+}
+__decorate([
+    nameForSerialization('primaryCamera')
+], CameraSwitchControl.prototype, "_primaryCamera", void 0);
+__decorate([
+    nameForSerialization('secondaryCamera')
+], CameraSwitchControl.prototype, "_secondaryCamera", void 0);
+__decorate([
+    ignoreFromSerialization
+], CameraSwitchControl.prototype, "_view", void 0);
+__decorate([
+    ignoreFromSerialization
+], CameraSwitchControl.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerializationIfNull
+], CameraSwitchControl.prototype, "anchor", void 0);
+__decorate([
+    ignoreFromSerializationIfNull
+], CameraSwitchControl.prototype, "offset", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('accessibilityLabelWhenWorldFacing')
+], CameraSwitchControl.prototype, "accessibilityLabelWhenWorldFacing", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('accessibilityHintWhenWorldFacing')
+], CameraSwitchControl.prototype, "accessibilityHintWhenWorldFacing", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('accessibilityLabelWhenUserFacing')
+], CameraSwitchControl.prototype, "accessibilityLabelWhenUserFacing", void 0);
+__decorate([
+    ignoreFromSerializationIfNull,
+    nameForSerialization('accessibilityHintWhenUserFacing')
+], CameraSwitchControl.prototype, "accessibilityHintWhenUserFacing", void 0);
 
 var VideoResolution;
 (function (VideoResolution) {
@@ -5251,6 +7617,1197 @@ __decorate([
     nameForSerialization('size')
 ], RectangularLocationSelection.prototype, "_sizeWithUnitAndAspect", void 0);
 
+var DataCaptureViewEvents;
+(function (DataCaptureViewEvents) {
+    DataCaptureViewEvents["didChangeSize"] = "DataCaptureViewListener.onSizeChanged";
+    DataCaptureViewEvents["onFocusGesture"] = "FocusGestureListener.onFocusGesture";
+})(DataCaptureViewEvents || (DataCaptureViewEvents = {}));
+const tolerantParser = createTolerantPayloadParser('DataCaptureViewController');
+/**
+ * Clears warn-once bookkeeping between test cases.
+ * @internal Test-only; not part of this package's consumable surface.
+ */
+function resetDataCaptureViewPayloadParserWarnings() {
+    tolerantParser.resetWarnings();
+}
+class DataCaptureViewController extends BaseController {
+    /** `nativeViewId` reads the id of the native view this controller drives; it changes as the view is (re)created. */
+    constructor(nativeViewId, listener) {
+        super('DataCaptureViewProxy');
+        this._listenerRegistered = false;
+        this._focusGestureListenerRegistered = false;
+        this._zoomGestureListenerRegistered = false;
+        this.handleOnFocusGestureEventWrapper = (eventPayload) => {
+            return this.handleOnFocusGestureEvent(eventPayload);
+        };
+        this.handleOnZoomInGestureEventWrapper = (eventPayload) => {
+            return this.handleOnZoomInGestureEvent(eventPayload);
+        };
+        this.handleOnZoomOutGestureEventWrapper = (eventPayload) => {
+            return this.handleOnZoomOutGestureEvent(eventPayload);
+        };
+        // Arrow function wrapper to avoid .bind(this) and always use current class state
+        this.handleDidChangeSizeEventWrapper = (eventPayload) => {
+            return this.handleDidChangeSizeEvent(eventPayload);
+        };
+        this.nativeViewId = nativeViewId;
+        this.listener = listener;
+        this.adapter = new CoreProxyAdapter(this._proxy);
+    }
+    viewPointForFramePoint(point) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const payload = point.toJSON();
+            const result = yield this.adapter.viewPointForFramePoint({
+                viewId: this.nativeViewId(),
+                pointJson: JSON.stringify(payload),
+            });
+            // Direct assignment, not `as unknown as`: PixelPoint and PointJSON are structurally
+            // identical, so this keeps compiling only while that stays true.
+            const validated = parsePixelPoint(JSON.parse(result));
+            return Point['fromJSON'](validated);
+        });
+    }
+    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const payload = quadrilateral.toJSON();
+            const result = yield this.adapter.viewQuadrilateralForFrameQuadrilateral({
+                viewId: this.nativeViewId(),
+                quadrilateralJson: JSON.stringify(payload),
+            });
+            const validated = parsePixelQuadrilateral(JSON.parse(result));
+            return Quadrilateral['fromJSON'](validated);
+        });
+    }
+    triggerFocus(point) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const payload = point.toJSON();
+            yield this.adapter.triggerFocus({ viewId: this.nativeViewId(), pointJson: JSON.stringify(payload) });
+        });
+    }
+    triggerZoomIn() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.adapter.triggerZoomIn({ viewId: this.nativeViewId() });
+        });
+    }
+    triggerZoomOut() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.adapter.triggerZoomOut({ viewId: this.nativeViewId() });
+        });
+    }
+    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
+        return this._proxy.$setDataCaptureViewPositionAndSize({ top, left, width, height, shouldBeUnderWebView });
+    }
+    show() {
+        if (!this.hasNativeView)
+            return Promise.resolve();
+        return this._proxy.$showDataCaptureView({ viewId: this.nativeViewId() });
+    }
+    hide() {
+        if (!this.hasNativeView)
+            return Promise.resolve();
+        return this._proxy.$hideDataCaptureView({ viewId: this.nativeViewId() });
+    }
+    createNativeView(view) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._proxy.$createDataCaptureView({ viewJson: JSON.stringify(view) });
+            yield this.subscribeListener();
+        });
+    }
+    // SDC-33139: `viewId` defaults to whatever the view currently owns, but an
+    // orphaned-view cleanup must pass the id its own creation installed: by then
+    // a remount may have overwritten the field, and removing by that id would
+    // tear down the live view instead of the orphan.
+    removeNativeView(viewId = this.nativeViewId()) {
+        return this._proxy.$removeDataCaptureView({ viewId });
+    }
+    updateView(view) {
+        if (!this.hasNativeView)
+            return Promise.resolve();
+        return this.adapter.updateDataCaptureView({ viewJson: JSON.stringify(view) });
+    }
+    dispose() {
+        void this.unsubscribeListener();
+        void this.unsubscribeFocusGestureListener();
+        void this.unsubscribeZoomGestureListener();
+        this._proxy.dispose();
+    }
+    subscribeListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this._listenerRegistered) {
+                return;
+            }
+            yield this.adapter.registerListenerForViewEvents({ viewId: this.nativeViewId() });
+            this._proxy.subscribeForEvents(Object.values(DataCaptureViewEvents));
+            this._proxy.eventEmitter.on(DataCaptureViewEvents.didChangeSize, this.handleDidChangeSizeEventWrapper);
+            this._listenerRegistered = true;
+        });
+    }
+    unsubscribeListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this._listenerRegistered) {
+                return;
+            }
+            yield this.adapter.unregisterListenerForViewEvents({ viewId: this.nativeViewId() });
+            this._proxy.unsubscribeFromEvents(Object.values(DataCaptureViewEvents));
+            this._proxy.eventEmitter.off(DataCaptureViewEvents.didChangeSize, this.handleDidChangeSizeEventWrapper);
+            this._listenerRegistered = false;
+        });
+    }
+    updateFocusGestureListenerSubscription(focusGesture, shouldSubscribe) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!focusGesture) {
+                if (this._focusGestureListenerRegistered) {
+                    yield this.unsubscribeFocusGestureListener();
+                }
+                return;
+            }
+            const privateFocusGesture = focusGesture;
+            const hasListeners = privateFocusGesture.listeners && privateFocusGesture.listeners.length > 0;
+            if (shouldSubscribe && hasListeners && !this._focusGestureListenerRegistered) {
+                yield this.subscribeFocusGestureListener();
+            }
+            else if (!hasListeners && this._focusGestureListenerRegistered) {
+                yield this.unsubscribeFocusGestureListener();
+            }
+        });
+    }
+    subscribeFocusGestureListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this._focusGestureListenerRegistered || !this.hasNativeView) {
+                return;
+            }
+            yield this.adapter.registerFocusGestureListener({ viewId: this.nativeViewId() });
+            this._proxy.subscribeForEvents([FocusGestureListenerEvents.onFocusGesture]);
+            this._proxy.eventEmitter.on(FocusGestureListenerEvents.onFocusGesture, this.handleOnFocusGestureEventWrapper);
+            this._focusGestureListenerRegistered = true;
+        });
+    }
+    unsubscribeFocusGestureListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this._focusGestureListenerRegistered) {
+                return;
+            }
+            yield this.adapter.unregisterFocusGestureListener({ viewId: this.nativeViewId() });
+            this._proxy.unsubscribeFromEvents([FocusGestureListenerEvents.onFocusGesture]);
+            this._proxy.eventEmitter.off(FocusGestureListenerEvents.onFocusGesture, this.handleOnFocusGestureEventWrapper);
+            this._focusGestureListenerRegistered = false;
+        });
+    }
+    handleOnFocusGestureEvent(eventPayload) {
+        const cast = EventDataParser.parseIfShouldHandle(eventPayload, {
+            viewId: this.nativeViewId(),
+        });
+        if (cast === SKIP) {
+            return;
+        }
+        if (cast === null) {
+            console.error('DataCaptureViewController onFocusGesture payload is null');
+            return;
+        }
+        const event = tolerantParser.parsePayloadTolerantly(cast, parseFocusGestureListenerOnFocusGesture, map => {
+            // `point` is required and wire-encoded as an embedded JSON string; without it there is
+            // nothing to construct a PointWithUnit from, so decline rather than fabricate one.
+            if (typeof map.point !== 'string' || typeof map.viewId !== 'number' || typeof map.focusGesture !== 'string') {
+                return null;
+            }
+            return {
+                viewId: map.viewId,
+                focusGesture: map.focusGesture,
+                point: map.point,
+                event: FocusGestureListenerEvents.onFocusGesture,
+            };
+        }, 'onFocusGesture');
+        if (event === null) {
+            return;
+        }
+        this.listener.didFocusGesture(event.point);
+    }
+    updateZoomGestureListenerSubscription(zoomGestures, shouldSubscribe) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Check if any of the view's gestures has listeners
+            const anyHasListeners = zoomGestures.some(gesture => {
+                const privateGesture = gesture;
+                return privateGesture.listeners && privateGesture.listeners.length > 0;
+            });
+            if (shouldSubscribe && anyHasListeners && !this._zoomGestureListenerRegistered) {
+                yield this.subscribeZoomGestureListener();
+            }
+            else if (!anyHasListeners && this._zoomGestureListenerRegistered) {
+                yield this.unsubscribeZoomGestureListener();
+            }
+        });
+    }
+    selectZoomLevel(zoomLevel) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.hasNativeView) {
+                return Promise.resolve(zoomLevel);
+            }
+            return this.adapter.selectZoomLevel({ viewId: this.nativeViewId(), zoomLevel });
+        });
+    }
+    subscribeZoomGestureListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this._zoomGestureListenerRegistered || !this.hasNativeView) {
+                return;
+            }
+            yield this.adapter.registerZoomGestureListener({ viewId: this.nativeViewId() });
+            this._proxy.subscribeForEvents([
+                ZoomGestureListenerEvents.onZoomInGesture,
+                ZoomGestureListenerEvents.onZoomOutGesture,
+            ]);
+            this._proxy.eventEmitter.on(ZoomGestureListenerEvents.onZoomInGesture, this.handleOnZoomInGestureEventWrapper);
+            this._proxy.eventEmitter.on(ZoomGestureListenerEvents.onZoomOutGesture, this.handleOnZoomOutGestureEventWrapper);
+            this._zoomGestureListenerRegistered = true;
+        });
+    }
+    unsubscribeZoomGestureListener() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this._zoomGestureListenerRegistered) {
+                return;
+            }
+            yield this.adapter.unregisterZoomGestureListener({ viewId: this.nativeViewId() });
+            this._proxy.unsubscribeFromEvents([
+                ZoomGestureListenerEvents.onZoomInGesture,
+                ZoomGestureListenerEvents.onZoomOutGesture,
+            ]);
+            this._proxy.eventEmitter.off(ZoomGestureListenerEvents.onZoomInGesture, this.handleOnZoomInGestureEventWrapper);
+            this._proxy.eventEmitter.off(ZoomGestureListenerEvents.onZoomOutGesture, this.handleOnZoomOutGestureEventWrapper);
+            this._zoomGestureListenerRegistered = false;
+        });
+    }
+    handleOnZoomInGestureEvent(eventPayload) {
+        const cast = EventDataParser.parseIfShouldHandle(eventPayload, {
+            viewId: this.nativeViewId(),
+        });
+        if (cast === SKIP) {
+            return;
+        }
+        if (cast === null) {
+            console.error('DataCaptureViewController onZoomInGesture payload is null');
+            return;
+        }
+        const event = tolerantParser.parsePayloadTolerantly(cast, parseZoomGestureListenerOnZoomInGesture, map => {
+            // `viewId`/`zoomGesture` are required to route to this view's gesture listeners; without
+            // them there is nothing safe to dispatch, so decline rather than guess (SDC-32670).
+            if (typeof map.viewId !== 'number' || typeof map.zoomGesture !== 'string') {
+                return null;
+            }
+            return {
+                viewId: map.viewId,
+                zoomGesture: map.zoomGesture,
+                event: ZoomGestureListenerEvents.onZoomInGesture,
+            };
+        }, 'onZoomInGesture');
+        if (event === null) {
+            return;
+        }
+        // `zoomGesture` is wire-present but the view dispatches to its own `zoomGestures` local
+        // state rather than the payload field -- known gap, not schematized into a new consumer.
+        this.listener.didZoomInGesture();
+    }
+    handleOnZoomOutGestureEvent(eventPayload) {
+        const cast = EventDataParser.parseIfShouldHandle(eventPayload, {
+            viewId: this.nativeViewId(),
+        });
+        if (cast === SKIP) {
+            return;
+        }
+        if (cast === null) {
+            console.error('DataCaptureViewController onZoomOutGesture payload is null');
+            return;
+        }
+        const event = tolerantParser.parsePayloadTolerantly(cast, parseZoomGestureListenerOnZoomOutGesture, map => {
+            // Same requirement as onZoomInGesture above: decline rather than dispatch on a bad
+            // payload (SDC-32670).
+            if (typeof map.viewId !== 'number' || typeof map.zoomGesture !== 'string') {
+                return null;
+            }
+            return {
+                viewId: map.viewId,
+                zoomGesture: map.zoomGesture,
+                event: ZoomGestureListenerEvents.onZoomOutGesture,
+            };
+        }, 'onZoomOutGesture');
+        if (event === null) {
+            return;
+        }
+        // `zoomGesture` is wire-present but unconsumed here, same as onZoomInGesture above.
+        this.listener.didZoomOutGesture();
+    }
+    handleDidChangeSizeEvent(eventPayload) {
+        const cast = EventDataParser.parseIfShouldHandle(eventPayload, {
+            viewId: this.nativeViewId(),
+        });
+        if (cast === SKIP) {
+            return;
+        }
+        if (cast === null) {
+            console.error('DataCaptureViewController didChangeSize payload is null');
+            return;
+        }
+        const event = tolerantParser.parsePayloadTolerantly(cast, parseDataCaptureViewListenerOnSizeChanged, map => {
+            // `size.width`/`size.height` feed Size.fromJSON downstream -- Android sends Int, iOS
+            // sends CGFloat, so accept any `number`, but a non-object `size` or non-numeric field
+            // must decline rather than produce a Size with NaN/undefined dimensions (SDC-32670).
+            if (typeof map.viewId !== 'number' || typeof map.orientation !== 'string') {
+                return null;
+            }
+            const size = map.size;
+            if (typeof size !== 'object' ||
+                size === null ||
+                typeof size.width !== 'number' ||
+                typeof size.height !== 'number') {
+                return null;
+            }
+            return {
+                viewId: map.viewId,
+                size: { width: size.width, height: size.height },
+                orientation: map.orientation,
+                event: DataCaptureViewEvents.didChangeSize,
+            };
+        }, 'didChangeSize');
+        if (event === null) {
+            return;
+        }
+        this.listener.didChangeSize(Size['fromJSON'](event.size), event.orientation);
+    }
+    get hasNativeView() {
+        return this.nativeViewId() > 0;
+    }
+}
+
+function generateIdentifier() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+// Lets a base *View class's action methods await native view creation. Resolves
+// true once creation completes, false if it never will (creation rejected, timed
+// out, or the view was disposed/removed). It never rejects, so callers branch on
+// the boolean.
+//
+// Invariants:
+//   - Each cycle settles only through the handle `begin()` returns. A view can
+//     be disposed while its creation round trip is in flight, and that stale
+//     attempt must not satisfy a gate re-armed for the next lifecycle.
+//   - `begin()` adopts a promise callers are already parked on rather than
+//     replacing it: a caller can legitimately arrive one tick before creation is
+//     kicked off, and a fresh promise would strand it.
+//   - After `markAbandoned()` the gate stays settled-false until the next
+//     `begin()`, so a caller arriving post-teardown returns early instead of
+//     parking on a promise nothing resolves.
+//   - Every wait is bounded, so a native round trip that never returns cannot
+//     park callers forever.
+// Deadlines the creation cycle rather than any individual caller, so a caller
+// arriving late in a slow creation gets a shorter effective wait. The timer is
+// `unref`'d and cleared on settle, so an unawaited gate costs nothing.
+const VIEW_CREATION_TIMEOUT_MS = 15000;
+// Bounds a wait on a gate whose creation cycle has never been kicked off
+// (`generation === 0`). Nothing is in flight to wait for, so the only question
+// is how far behind the caller `begin()` is. On the normal path that is
+// microtask-close: `tryCreateNativeView()` calls `createNativeView()`
+// synchronously. But the Android components also drive creation from a
+// `requestAnimationFrame` retry loop when `findNodeHandle` has no tag yet
+// (SDC-32583; e.g. `BarcodePickView.tsx` scheduleCreateNativeView), and on a
+// congested JS thread that loop can take many frames — so this budget covers
+// tens of frames rather than a couple of ticks. Timing out here no-ops the very
+// call this gate exists to deliver, so it is deliberately generous relative to
+// the microtask case while staying far below the full creation bound.
+//
+// RESIDUAL RISK, deliberately documented rather than resolved (review rounds
+// 23-25): this is a fixed wall-clock budget over a retry loop with no bound of
+// its own, so under enough JS-thread congestion a caller can still settle false
+// before `begin()` ever opens a cycle. Where the caller's action method writes a
+// serialised flag (BarcodeAr/BarcodePick `start`, BarcodeFind `startSearching`)
+// the creation payload that follows carries the intent anyway and native still
+// acts on it, so the call is not lost. Three call sites have no such flag and
+// ARE lost in that case, with only a Warn:
+//   - `BaseDataCaptureView.show()` / `.hide()`
+//   - `BaseSparkScanView.startScanning()`
+//   - `BarcodeCountViewController.endScanningPhase()` / `startScanningPhase()`
+// The structural fix is for the RN components to signal "an attempt is
+// scheduled" as they enter `scheduleCreateNativeView`, letting the gate apply
+// the full bound from that point and leaving this budget to the genuinely
+// never-attached Cordova/Capacitor case. Not done here: it re-touches the
+// creation path in all six components, so it is the ticket owner's call.
+// The full 15 s bound would apply to callers with nothing to wait for at all: a
+// view configured but never attached parks a `show()`/`hide()`, a
+// `BarcodeCountViewController.endScanningPhase()`, or every property setter
+// routed through `BaseBarcodeFindView.update()` for the full timeout where
+// before this change they returned immediately. Once `begin()` opens a cycle
+// the full bound applies, so a genuinely slow native round trip is unaffected.
+const VIEW_CREATION_PRE_BEGIN_TIMEOUT_MS = 1000;
+class ViewCreationGate {
+    constructor(creationTimeoutMs = VIEW_CREATION_TIMEOUT_MS, preBeginTimeoutMs = VIEW_CREATION_PRE_BEGIN_TIMEOUT_MS) {
+        this.creationTimeoutMs = creationTimeoutMs;
+        this.preBeginTimeoutMs = preBeginTimeoutMs;
+        this.generation = 0;
+        // Whether a gated method is actually parked on this cycle. `resolve` cannot
+        // answer that: it is armed in the constructor and only cleared by `settle()`,
+        // so it means "not yet settled" — true for a view that was constructed, never
+        // laid out, and disposed.
+        this.hasWaiter = false;
+        this.created$ = new Promise(resolve => (this.resolve = resolve));
+    }
+    // Identifies the current creation cycle. A caller that samples this before
+    // writing state which `toJSON()` serialises can tell, after awaiting, whether
+    // a cycle opened in between — i.e. whether creation carried that state to
+    // native already and a second dispatch would be redundant.
+    currentGeneration() {
+        return this.generation;
+    }
+    whenCreated() {
+        // Only a caller on an unsettled cycle actually parks; on a settled gate this
+        // hands back the memoized result immediately, which is not a wait and must
+        // not arm the teardown warning.
+        if (this.resolve !== undefined) {
+            this.hasWaiter = true;
+        }
+        // Bound the wait from the moment someone actually waits, so a view whose
+        // creation is never kicked off releases its callers instead of hanging.
+        this.armTimeout();
+        return this.created$;
+    }
+    // Starts a creation cycle. Only the returned handle can settle this cycle;
+    // once the gate has moved on, the handle's calls are ignored. Opening a cycle
+    // supersedes any still-in-flight one, so two overlapping attempts can't alias
+    // and have the first satisfy waiters belonging to the second.
+    begin() {
+        const generation = ++this.generation;
+        const isCurrent = () => generation === this.generation;
+        if (this.resolve === undefined) {
+            // The previous cycle already settled — arm a fresh promise for this one.
+            // Nobody is parked on it yet, so the waiter flag starts clean.
+            this.created$ = new Promise(resolve => (this.resolve = resolve));
+            this.hasWaiter = false;
+        }
+        // Otherwise keep the promise callers are already parked on: they arrived
+        // from `onLayout` a tick before creation was kicked off.
+        this.clearTimer();
+        this.armTimeout();
+        return {
+            isCurrent,
+            succeeded: () => {
+                if (isCurrent()) {
+                    this.settle(true);
+                }
+            },
+            failed: () => {
+                if (isCurrent()) {
+                    this.warn('native view creation failed; view methods will no-op');
+                    this.settle(false);
+                }
+            },
+        };
+    }
+    // The view is going away (dispose/removeNativeView): release anyone parked on
+    // the gate and stay terminal until the next `begin()`. Re-arming here would
+    // hand every later caller a promise nothing resolves.
+    markAbandoned() {
+        const hadWaiters = this.hasWaiter && this.resolve !== undefined;
+        this.generation += 1;
+        this.settle(false);
+        if (hadWaiters) {
+            // A gated method that was parked here now returns having done nothing.
+            // The failure and timeout paths warn; without this, teardown-during-wait
+            // is the one silent case — the same shape this gate exists to remove.
+            this.warn('view torn down while a caller waited for creation; the call did not reach native');
+        }
+    }
+    settle(created) {
+        this.clearTimer();
+        this.hasWaiter = false;
+        const resolve = this.resolve;
+        this.resolve = undefined;
+        if (resolve !== undefined) {
+            resolve(created);
+        }
+        else {
+            // Already settled (or never armed): replace the memoized result so
+            // callers arriving later see the current lifecycle state.
+            this.created$ = Promise.resolve(created);
+        }
+    }
+    // Starts the bound for the current wait, if one is needed and not already
+    // running. Tied to the generation so a superseded cycle's timer is inert.
+    armTimeout() {
+        var _a, _b;
+        if (this.resolve === undefined)
+            return; // already settled — nothing to bound
+        if (this.timer !== undefined)
+            return; // already bounded
+        const generation = this.generation;
+        // No cycle has ever opened, so bound this on the short pre-`begin()` budget.
+        // `begin()` clears and re-arms, which upgrades a caller that arrived first to
+        // the full bound.
+        const timeoutMs = generation === 0 ? this.preBeginTimeoutMs : this.creationTimeoutMs;
+        if (timeoutMs <= 0)
+            return;
+        const timer = setTimeout(() => {
+            if (generation === this.generation && this.resolve !== undefined) {
+                this.warn('native view creation did not complete in time; view methods will no-op', {
+                    timeoutMs,
+                });
+                this.settle(false);
+            }
+        }, timeoutMs);
+        this.timer = timer;
+        // A view dropped without dispose() would otherwise keep this handle alive
+        // for the full timeout (and surface as an open handle under Jest). No-op
+        // in React Native, where setTimeout returns a plain number.
+        (_b = (_a = timer).unref) === null || _b === void 0 ? void 0 : _b.call(_a);
+    }
+    clearTimer() {
+        if (this.timer !== undefined) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
+    }
+    warn(message, fields) {
+        ScanditLogger.emit(LogLevel.Warn, LogCategory.Lifecycle, 'ts.core', message, fields);
+    }
+}
+
+/**
+ * Overlay classes the native bridge keys by type alone, so a view can hold at most one.
+ *
+ * Kept off the public API surface and out of the overlay classes themselves: the value is a
+ * display name rather than `constructor.name`, which a minified React Native release bundle
+ * mangles exactly where a customer reads the error.
+ *
+ * @internal
+ */
+const singleInstanceOverlayNames = new Map();
+/** @internal */
+function markSingleInstancePerView(overlayClass, displayName) {
+    singleInstanceOverlayNames.set(overlayClass, displayName);
+}
+/** @internal */
+function singleInstanceOverlayName(overlay) {
+    return singleInstanceOverlayNames.get(overlay.constructor);
+}
+class BaseDataCaptureView extends DefaultSerializeable {
+    get context() {
+        return this._context;
+    }
+    set context(context) {
+        if (context != null) {
+            context.attachView(this);
+        }
+        this._context = context;
+    }
+    get coreDefaults() {
+        return getCoreDefaults();
+    }
+    get scanAreaMargins() {
+        return this._scanAreaMargins;
+    }
+    get viewId() {
+        var _a;
+        return (_a = this._viewId) !== null && _a !== void 0 ? _a : -1;
+    }
+    set viewId(newValue) {
+        this._viewId = newValue;
+    }
+    set scanAreaMargins(newValue) {
+        this._scanAreaMargins = newValue;
+        void this.updateNativeView();
+    }
+    get pointOfInterest() {
+        return this._pointOfInterest;
+    }
+    set pointOfInterest(newValue) {
+        this._pointOfInterest = newValue;
+        void this.updateNativeView();
+    }
+    get logoAnchor() {
+        return this._logoAnchor;
+    }
+    set logoAnchor(newValue) {
+        this._logoAnchor = newValue;
+        void this.updateNativeView();
+    }
+    get logoOffset() {
+        return this._logoOffset;
+    }
+    set logoOffset(newValue) {
+        this._logoOffset = newValue;
+        void this.updateNativeView();
+    }
+    get focusGesture() {
+        return this._focusGesture;
+    }
+    set focusGesture(newValue) {
+        if (this._focusGesture) {
+            const privateFocusGesture = this._focusGesture;
+            privateFocusGesture.onListenersChanged = undefined;
+            privateFocusGesture._controller = null;
+            void this.controller.updateFocusGestureListenerSubscription(this._focusGesture, false);
+        }
+        this._focusGesture = newValue;
+        if (newValue) {
+            const privateFocusGesture = newValue;
+            privateFocusGesture._controller = this.controller;
+            privateFocusGesture.onListenersChanged = () => {
+                void this.controller.updateFocusGestureListenerSubscription(newValue, true);
+            };
+            void this.controller.updateFocusGestureListenerSubscription(newValue, true);
+        }
+        void this.updateNativeView();
+    }
+    get zoomGestures() {
+        return this._zoomGestures;
+    }
+    set zoomGestures(newValue) {
+        // Detach old gestures
+        for (const gesture of this._zoomGestures) {
+            const privateGesture = gesture;
+            privateGesture.onListenersChanged = undefined;
+            privateGesture._controller = null;
+            void this.controller.updateZoomGestureListenerSubscription(this._zoomGestures, false);
+        }
+        this._zoomGestures = newValue;
+        // Attach new gestures
+        for (const gesture of this._zoomGestures) {
+            const privateGesture = gesture;
+            privateGesture._controller = this.controller;
+            privateGesture.onListenersChanged = () => {
+                void this.controller.updateZoomGestureListenerSubscription(this._zoomGestures, true);
+            };
+            void this.controller.updateZoomGestureListenerSubscription(this._zoomGestures, true);
+        }
+        void this.updateNativeView();
+    }
+    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
+    get zoomGesture() {
+        var _a;
+        return (_a = this._zoomGestures[0]) !== null && _a !== void 0 ? _a : null;
+    }
+    /** @deprecated Use zoomGestures instead. Will be removed in a future version. */
+    set zoomGesture(newValue) {
+        this.zoomGestures = newValue != null ? [newValue] : [];
+    }
+    get logoStyle() {
+        return this._logoStyle;
+    }
+    set logoStyle(newValue) {
+        this._logoStyle = newValue;
+        void this.updateNativeView();
+    }
+    get shouldShowZoomNotification() {
+        return this._shouldShowZoomNotification;
+    }
+    set shouldShowZoomNotification(newValue) {
+        this._shouldShowZoomNotification = newValue;
+        void this.updateNativeView();
+    }
+    /**
+     * Resolves true once this view's native counterpart exists, false if it
+     * never will (creation failed, timed out, or the view was torn down).
+     *
+     * Callers that arrive before creation has been kicked off park until it is,
+     * bounded by VIEW_CREATION_PRE_BEGIN_TIMEOUT_MS; once a creation cycle is in
+     * flight the bound is VIEW_CREATION_TIMEOUT_MS. Reachable on Cordova/Capacitor
+     * when a view method runs before connectToElement().
+     *
+     * @internal Not part of the documented API surface: it exists so the base
+     * view's own action methods can await creation, and is public only because
+     * the framework plugins reach it across package boundaries.
+     */
+    whenViewCreated() {
+        return this.viewCreationGate.whenCreated();
+    }
+    get privateContext() {
+        return this.context;
+    }
+    static forContext(context) {
+        const view = new BaseDataCaptureView(context);
+        view.context = context;
+        return view;
+    }
+    constructor(context) {
+        var _a;
+        super();
+        this.parentId = null;
+        this.overlays = [];
+        this.listeners = [];
+        this._context = null;
+        this._viewId = -1;
+        this.controls = [];
+        this.isViewCreated = false;
+        // SDC-33139: lets a method called before createNativeView finishes (e.g.
+        // from a consumer's `onLayout`) await native view creation instead of
+        // silently no-oping.
+        this.viewCreationGate = new ViewCreationGate();
+        this.context = context;
+        this._scanAreaMargins = this.coreDefaults.DataCaptureView.scanAreaMargins;
+        this._pointOfInterest = this.coreDefaults.DataCaptureView.pointOfInterest;
+        this._logoAnchor = this.coreDefaults.DataCaptureView.logoAnchor;
+        this._logoOffset = this.coreDefaults.DataCaptureView.logoOffset;
+        this._focusGesture = this.coreDefaults.DataCaptureView.focusGesture;
+        this._zoomGestures = [];
+        this._logoStyle = this.coreDefaults.DataCaptureView.logoStyle;
+        this._shouldShowZoomNotification = (_a = this.coreDefaults.DataCaptureView.shouldShowZoomNotification) !== null && _a !== void 0 ? _a : true;
+        this.controller = new DataCaptureViewController(() => this.viewId, {
+            didChangeSize: (size, orientation) => this.notifyListenersOfDidChangeSize(size, orientation),
+            didFocusGesture: pointJson => this.notifyFocusGestureListeners(pointJson),
+            didZoomInGesture: () => this.notifyZoomGestureListeners((listener, gesture) => { var _a; return (_a = listener.didZoomInGesture) === null || _a === void 0 ? void 0 : _a.call(listener, gesture); }),
+            didZoomOutGesture: () => this.notifyZoomGestureListeners((listener, gesture) => { var _a; return (_a = listener.didZoomOutGesture) === null || _a === void 0 ? void 0 : _a.call(listener, gesture); }),
+        });
+        // Wire up default zoom gestures after controller is available
+        this.zoomGestures = this.coreDefaults.DataCaptureView.zoomGestures;
+    }
+    /**
+     * Adds an overlay to this view.
+     *
+     * Rejects when the overlay is one the native bridge can hold only one of (currently
+     * `ColorFillOverlay`) and the view already has one, so the returned promise needs handling.
+     */
+    addOverlay(overlay) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.overlays.includes(overlay)) {
+                return;
+            }
+            this.rejectDuplicateSingleInstanceOverlay(overlay);
+            overlay.view = this;
+            this.overlays.push(overlay);
+            yield this.updateNativeView();
+        });
+    }
+    /**
+     * Overlays the native bridge keys by type alone cannot be told apart once two are attached: the
+     * second displaces the first in the key map, leaving an overlay that is drawn but unreachable,
+     * and a later remove is a no-op. A class opts into that constraint by calling
+     * `markSingleInstancePerView` at module scope.
+     */
+    rejectDuplicateSingleInstanceOverlay(overlay) {
+        const name = singleInstanceOverlayName(overlay);
+        if (name === undefined) {
+            return;
+        }
+        if (this.overlays.some(existing => existing.constructor === overlay.constructor)) {
+            throw new Error(`A DataCaptureView can hold only one ${name}. ` +
+                'Remove the existing one before adding another, or change its properties in place.');
+        }
+    }
+    /**
+     * Re-serializes the view so a mutated overlay reaches native. Overlays that are not owned by
+     * a capture mode have no controller of their own, and the native overlay diff keys on
+     * `type:modeId` — which never changes — so an in-place property change is invisible without this.
+     *
+     * @internal
+     */
+    overlayDidChange(overlay) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.overlays.includes(overlay)) {
+                return;
+            }
+            yield this.updateNativeView();
+        });
+    }
+    removeOverlay(overlay) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.overlays.includes(overlay)) {
+                return;
+            }
+            overlay.view = null;
+            this.overlays.splice(this.overlays.indexOf(overlay), 1);
+            yield this.updateNativeView();
+        });
+    }
+    removeAllOverlays() {
+        if (this.overlays.length === 0) {
+            return;
+        }
+        const overlaysCopy = [...this.overlays];
+        for (const overlay of overlaysCopy) {
+            overlay.view = null;
+            this.overlays.splice(this.overlays.indexOf(overlay), 1);
+        }
+        void this.updateNativeView();
+    }
+    addListener(listener) {
+        if (!this.listeners.includes(listener)) {
+            this.listeners.push(listener);
+        }
+    }
+    removeListener(listener) {
+        if (this.listeners.includes(listener)) {
+            this.listeners.splice(this.listeners.indexOf(listener), 1);
+        }
+    }
+    viewPointForFramePoint(point) {
+        return this.controller.viewPointForFramePoint(point);
+    }
+    viewQuadrilateralForFrameQuadrilateral(quadrilateral) {
+        return this.controller.viewQuadrilateralForFrameQuadrilateral(quadrilateral);
+    }
+    triggerFocus(point) {
+        return this.controller.triggerFocus(point);
+    }
+    triggerZoomIn() {
+        return this.controller.triggerZoomIn();
+    }
+    triggerZoomOut() {
+        return this.controller.triggerZoomOut();
+    }
+    addControl(control) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.controls.includes(control)) {
+                control.view = this;
+                this.controls.push(control);
+                yield this.updateNativeView();
+            }
+        });
+    }
+    addControlWithAnchorAndOffset(control, anchor, offset) {
+        if (!this.controls.includes(control)) {
+            control.view = this;
+            control.anchor = anchor;
+            control.offset = offset;
+            this.controls.push(control);
+            void this.updateNativeView();
+        }
+    }
+    removeControl(control) {
+        if (this.controls.includes(control)) {
+            control.view = null;
+            this.controls.splice(this.controls.indexOf(control), 1);
+            void this.updateNativeView();
+        }
+    }
+    controlUpdated() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.updateNativeView();
+        });
+    }
+    createNativeView(viewId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.isViewCreated) {
+                return Promise.resolve();
+            }
+            this.viewId = viewId;
+            const attempt = this.viewCreationGate.begin();
+            try {
+                yield this.controller.createNativeView(this.toJSON());
+                if (!attempt.isCurrent()) {
+                    // Superseded by a teardown while the round trip was in flight. Leave
+                    // isViewCreated false so a remount re-creates instead of taking the
+                    // early return above and never opening a new cycle.
+                    //
+                    // Native created a view nobody owns: the teardown that superseded this
+                    // attempt took its `!isViewCreated` early return and issued no removal,
+                    // so without this every detach-during-creation cycle leaks one.
+                    //
+                    // Remove by this attempt's own id rather than whatever `this.viewId`
+                    // reads now: a remount during the round trip installs its own id, and
+                    // removing by that would tear down the live view instead of the orphan.
+                    // The native `$removeDataCaptureView` payload has always carried an
+                    // explicit viewId, so no native support is needed for this.
+                    try {
+                        yield this.controller.removeNativeView(viewId);
+                    }
+                    catch (removalError) {
+                        // Cleanup is best-effort. This runs under a fire-and-forget
+                        // `void createNativeView(...)` on unmount, and `dispose()` has
+                        // already disposed the controller's proxy by now, so a rejection
+                        // here would surface as an unhandled rejection during teardown
+                        // rather than reaching any caller.
+                        ScanditLogger.emit(LogLevel.Warn, LogCategory.Lifecycle, 'ts.core', 'orphaned native view removal failed', {
+                            viewId,
+                            error: String(removalError),
+                        });
+                    }
+                    return;
+                }
+                this.isViewCreated = true;
+                this.notifyOverlaysOfViewIdChange();
+                // Release the gate BEFORE the flush (review round 25). The gate's contract
+                // is "does the native view exist?", and it does as soon as
+                // `createNativeView()` resolves — nothing about the flush bears on that.
+                // Resolving behind the flush left the 15 s creation deadline running
+                // across an extra bridge round trip, so a slow flush timed the gate out
+                // and every parked caller returned having done nothing against a view
+                // that was created and healthy — this MR's own symptom, reported as
+                // 'creation did not complete in time', which would have been untrue. It
+                // also made every gated caller wait out that round trip on every mount.
+                // Safe: the `isCurrent()` check above already handled teardown, and
+                // `succeeded()` is a no-op once superseded.
+                attempt.succeeded();
+                // SDC-33139: creation now serialises its payload before the consumer's
+                // `onLayout` body runs, so a property written from there (measuring the
+                // laid-out box is what `onLayout` is for — `scanAreaMargins`,
+                // `pointOfInterest`) went out as a separate update while creation was
+                // still in flight, and nothing re-flushed it afterwards. Mirror
+                // `SparkScanViewController.createView()` and flush once the round trip
+                // has landed. Idempotent, and non-fatal: the native view already exists,
+                // so a failed flush must not fail creation.
+                // Wrapped so the flush is TOTAL (review round 26): these controller
+                // methods are not `async`, so a SYNCHRONOUS throw from the body
+                // (`toJSON()`/`JSON.stringify` on an unserialisable overlay or control
+                // payload) bypasses `.catch()` entirely and lands in the `catch` below —
+                // which would call `attempt.failed()` after `succeeded()`, latching the
+                // gate false and memoizing it for a view that exists. Every later gated
+                // call on that view would then no-op for its whole lifetime: exactly the
+                // permanent silent no-op this MR exists to remove.
+                yield Promise.resolve()
+                    .then(() => this.updateNativeView())
+                    .catch(error => {
+                    ScanditLogger.emit(LogLevel.Warn, LogCategory.Lifecycle, 'ts.core', 'post-creation view update failed', {
+                        viewId,
+                        error: String(error),
+                    });
+                });
+            }
+            catch (e) {
+                attempt.failed();
+                throw e;
+            }
+        });
+    }
+    // Native needs the full view JSON; skip serializing it until a native view exists.
+    updateNativeView() {
+        if (!this.controller.hasNativeView)
+            return Promise.resolve();
+        return this.controller.updateView(this.toJSON());
+    }
+    notifyListenersOfDidChangeSize(size, orientation) {
+        this.listeners.forEach(listener => {
+            if (listener.didChangeSize) {
+                listener.didChangeSize(this.viewComponent, size, orientation);
+            }
+        });
+    }
+    notifyFocusGestureListeners(pointJson) {
+        const focusGesture = this._focusGesture;
+        if (!focusGesture) {
+            return;
+        }
+        const privateFocusGesture = focusGesture;
+        if (!privateFocusGesture.listeners || privateFocusGesture.listeners.length === 0) {
+            return;
+        }
+        // `point` is wire-encoded as a JSON string (native serializes it via toJson()/jsonString),
+        // not an object -- it must be decoded before PointWithUnit.fromJSON can read `.x`/`.y` off it.
+        // Reading the raw string directly silently produced an object with undefined x/y (SDC-32670).
+        let decodedPoint;
+        try {
+            decodedPoint = JSON.parse(pointJson);
+        }
+        catch (error) {
+            console.error(`DataCaptureViewController onFocusGesture: failed to parse embedded point JSON: ${String(error)}`);
+            return;
+        }
+        const point = PointWithUnit['fromJSON'](decodedPoint);
+        privateFocusGesture.listeners.forEach(listener => {
+            if (listener.didFocusGesture) {
+                listener.didFocusGesture(focusGesture, point);
+            }
+        });
+    }
+    // In/out gestures dispatch identically; only the listener method differs.
+    notifyZoomGestureListeners(invoke) {
+        var _a;
+        for (const zoomGesture of this._zoomGestures) {
+            const privateZoomGesture = zoomGesture;
+            (_a = privateZoomGesture.listeners) === null || _a === void 0 ? void 0 : _a.forEach(listener => invoke(listener, zoomGesture));
+        }
+    }
+    notifyOverlaysOfViewIdChange() {
+        this.overlays.forEach(overlay => {
+            if (typeof overlay.onViewIdChanged === 'function') {
+                overlay.onViewIdChanged();
+            }
+        });
+    }
+    removeNativeView() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.isViewCreated) {
+                // `isViewCreated` flips only after the creation round trip, so getting
+                // here can also mean creation is still IN FLIGHT. Supersede it: without
+                // this, the in-flight attempt stays current and its `succeeded()`
+                // resolves the gate `true` for a view that was asked to go away, and a
+                // caller parked in show()/hide() then dispatches against it. Reachable
+                // from Cordova's `detachFromElement()`, which does not await removal.
+                this.viewCreationGate.markAbandoned();
+                return Promise.resolve();
+            }
+            try {
+                yield this.controller.removeNativeView();
+            }
+            finally {
+                // Releasing the gate is cleanup: it must not depend on the native
+                // teardown call succeeding, or callers parked on it stay parked.
+                this.isViewCreated = false;
+                this.viewCreationGate.markAbandoned();
+            }
+        });
+    }
+    dispose() {
+        this.removeAllOverlays();
+        this.listeners.forEach(listener => this.removeListener(listener));
+        try {
+            this.controller.dispose();
+        }
+        finally {
+            this.viewId = -1;
+            this.isViewCreated = false;
+            this.viewCreationGate.markAbandoned();
+        }
+    }
+    // HTML Views only
+    setFrame(frame, isUnderContent = false) {
+        return this.setPositionAndSize(frame.origin.y, frame.origin.x, frame.size.width, frame.size.height, isUnderContent);
+    }
+    setPositionAndSize(top, left, width, height, shouldBeUnderWebView) {
+        return this.controller.setPositionAndSize(top, left, width, height, shouldBeUnderWebView);
+    }
+    // Deliberately not `async`: the context check threw synchronously before the
+    // creation gate existed, and Cordova's `elementDidChange` calls `_show()`
+    // without awaiting or catching. Keeping the throw synchronous preserves that
+    // contract; only the gated part is deferred.
+    /**
+     * No-ops if native view creation never completes (it failed, timed out, or
+     * the view was torn down); the gate emits a Warn in that case. There is
+     * currently no public hook to detect it: `whenViewCreated()` is internal to
+     * this base view, and the React Native components do not re-expose it.
+     */
+    show() {
+        if (!this.context) {
+            throw new Error('There should be a context attached to a view that should be shown');
+        }
+        return this.showWhenCreated();
+    }
+    showWhenCreated() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!(yield this.whenViewCreated())) {
+                return;
+            }
+            yield this.controller.show();
+        });
+    }
+    // Synchronous throw, for the same reason as `show()`.
+    /**
+     * No-ops if native view creation never completes (it failed, timed out, or
+     * the view was torn down); the gate emits a Warn in that case. There is
+     * currently no public hook to detect it: `whenViewCreated()` is internal to
+     * this base view, and the React Native components do not re-expose it.
+     */
+    hide() {
+        if (!this.context) {
+            throw new Error('There should be a context attached to a view that should be shown');
+        }
+        return this.hideWhenCreated();
+    }
+    hideWhenCreated() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!(yield this.whenViewCreated())) {
+                return;
+            }
+            yield this.controller.hide();
+        });
+    }
+    setProperty(name, value) {
+        this[name] = value;
+        void this.updateNativeView();
+    }
+    selectZoomLevel(zoomLevel) {
+        return this.controller.selectZoomLevel(zoomLevel);
+    }
+}
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "viewComponent", void 0);
+__decorate([
+    nameForSerialization('parentId'),
+    ignoreFromSerializationIfNull
+], BaseDataCaptureView.prototype, "parentId", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "listeners", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "_context", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "coreDefaults", null);
+__decorate([
+    nameForSerialization('scanAreaMargins')
+], BaseDataCaptureView.prototype, "_scanAreaMargins", void 0);
+__decorate([
+    nameForSerialization('viewId')
+], BaseDataCaptureView.prototype, "_viewId", void 0);
+__decorate([
+    nameForSerialization('pointOfInterest')
+], BaseDataCaptureView.prototype, "_pointOfInterest", void 0);
+__decorate([
+    nameForSerialization('logoAnchor')
+], BaseDataCaptureView.prototype, "_logoAnchor", void 0);
+__decorate([
+    nameForSerialization('logoOffset')
+], BaseDataCaptureView.prototype, "_logoOffset", void 0);
+__decorate([
+    nameForSerialization('focusGesture')
+], BaseDataCaptureView.prototype, "_focusGesture", void 0);
+__decorate([
+    nameForSerialization('zoomGestures')
+], BaseDataCaptureView.prototype, "_zoomGestures", void 0);
+__decorate([
+    nameForSerialization('logoStyle')
+], BaseDataCaptureView.prototype, "_logoStyle", void 0);
+__decorate([
+    nameForSerialization('shouldShowZoomNotification')
+], BaseDataCaptureView.prototype, "_shouldShowZoomNotification", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "controller", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "isViewCreated", void 0);
+__decorate([
+    ignoreFromSerialization
+], BaseDataCaptureView.prototype, "viewCreationGate", void 0);
+
+/**
+ * Fills the whole view with a single colour.
+ *
+ * A view holds at most one. This overlay belongs to no capture mode, so the native bridge keys it
+ * by type alone (`colorFill:-1`) and cannot tell two instances apart; adding a second is rejected
+ * rather than silently attaching an overlay that could never be removed again.
+ */
+class ColorFillOverlay extends DefaultSerializeable {
+    get color() {
+        return this._color;
+    }
+    set color(color) {
+        var _a;
+        this._color = color;
+        // The overlay diff on the native side keys on `type:modeId`, which never changes for a
+        // core overlay, so a re-serialized view is the only way a new color reaches native.
+        void ((_a = this.view) === null || _a === void 0 ? void 0 : _a.overlayDidChange(this));
+    }
+    // `color?: Color` rather than a defaulted parameter: the docs signature collector renders a
+    // default expression into the emitted signature, so `color: Color = Color.fromRGBA(...)` is
+    // collected as `constructor(color: Color(0, 0, 0, 0))` and no longer matches the rst entry.
+    // Same shape SparkScan uses for its optional settings.
+    constructor(color) {
+        super();
+        this.type = 'colorFill';
+        this.view = null;
+        this._color = color !== null && color !== void 0 ? color : Color.fromRGBA(0, 0, 0, 0);
+    }
+}
+__decorate([
+    nameForSerialization('color')
+], ColorFillOverlay.prototype, "_color", void 0);
+__decorate([
+    ignoreFromSerialization
+], ColorFillOverlay.prototype, "view", void 0);
+markSingleInstancePerView(ColorFillOverlay, 'ColorFillOverlay');
+
 class LicenseInfo extends DefaultSerializeable {
     get expiration() {
         return this._expiration;
@@ -5338,6 +8895,9 @@ class NativeProxy {
             this.eventEmitter.emit(eventName, args);
             return Promise.resolve();
         });
+        // Instrument the bridge calls for logging before the JS Proxy wraps the instance.
+        this._call = instrumentBridgeCall(this._call, this, BridgeCallKind.Method);
+        this._callEventRegistration = instrumentBridgeCall(this._callEventRegistration, this, BridgeCallKind.EventRegistration);
         // Wrapping the NativeProxy instance with the JS proxy hook
         return new Proxy(this, nativeProxyHook);
     }
@@ -5415,15 +8975,27 @@ function registerProxies(proxyTypeNames, provider) {
 
 const CORE_PROXY_TYPE_NAMES = ['CoreProxy', 'DataCaptureViewProxy', 'DataCaptureContextProxy'];
 
+/**
+ * Binds the core proxies and arms debug mode on the resulting core proxy.
+ *
+ * Every framework bootstraps by this one path: the log receiver used to be
+ * installed by a copy of the same block in each wrapper's `init*Proxy`, which
+ * let the three copies drift. Frameworks whose bridge needs an explicit event
+ * registration before native delivers anything declare
+ * `requiresNativeLogChannel` on their provider (Cordova alone, today).
+ */
 function registerCoreProxies(provider) {
     registerProxies(CORE_PROXY_TYPE_NAMES, provider);
-}
-
-function generateIdentifier() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
+    const coreProxy = FactoryMaker.getInstance('CoreProxy');
+    if (!coreProxy) {
+        return;
+    }
+    // Ordering: the batch handler and subscribeForEvents must be in place before the
+    // native channel opens, so Cordova's opens from onInstalled, not alongside it.
+    armNativeLogReceiver(coreProxy, () => {
+        // subscribeNativeLogChannel already catches and warns internally; it never rejects.
+        if (provider.requiresNativeLogChannel)
+            void subscribeNativeLogChannel(coreProxy);
     });
 }
 
@@ -5435,5 +9007,5 @@ var ClusteringMode;
     ClusteringMode["AutoWithManualCorrection"] = "autoWithManualCorrection";
 })(ClusteringMode || (ClusteringMode = {}));
 
-export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, Brush, CORE_PROXY_TYPE_NAMES, Camera, CameraController, CameraOwnershipHelper, CameraOwnershipManager, CameraPosition, CameraSettings, ClusteringMode, Color, ContextStatus, ControlImage, CoreProxyAdapter, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureListenerEvents, FocusGestureStrategy, FocusRange, FontFamily, FrameDataController, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MacroModeListenerEvents, MarginsWithUnit, MeasureUnit, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, SKIP, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, SelectionMode, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchListenerEvents, TorchState, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomGestureListenerEvents, ZoomListenerEvents, ZoomSwitchControl, ZoomSwitchOrientation, createNativeProxy, ensureCoreDefaults, generateIdentifier, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, loadCoreDefaults, nameForSerialization, registerCoreProxies, registerProxies, serializationDefault, setCoreDefaultsLoader };
+export { AimerViewfinder, Anchor, BaseController, BaseDataCaptureView, Brush, CORE_PROXY_LOG_METADATA, CORE_PROXY_TYPE_NAMES, Camera, CameraController, CameraOwnershipHelper, CameraOwnershipManager, CameraPosition, CameraSettings, CameraSwitchControl, CameraSwitchControlController, ClusteringMode, Color, ColorFillOverlay, ContextStatus, ControlImage, CoreProxyAdapter, DataCaptureContext, DataCaptureContextEvents, DataCaptureContextSettings, DataCaptureViewController, DataCaptureViewEvents, DefaultSerializeable, Direction, EventDataParser, EventEmitter, Expiration, FactoryMaker, Feedback, FocusGestureListenerEvents, FocusGestureStrategy, FocusRange, FontFamily, FrameDataController, FrameDataSettings, FrameDataSettingsBuilder, FrameSourceListenerEvents, FrameSourceState, HTMLElementState, HtmlElementPosition, HtmlElementSize, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, ListenerRegistry, LogCategory, LogLevel, LogoStyle, MacroMode, MacroModeListenerEvents, MarginsWithUnit, MeasureUnit, ModeBase, NativeProxy, NoViewfinder, NoneLocationSelection, NumberWithUnit, Observable, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, PrivateFocusGestureDeserializer, PrivateFrameData, PrivateZoomGestureDeserializer, Quadrilateral, REDACTED_ARG_KEYS, REDACTED_ARG_METHODS, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, SKIP, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, ScanditLogger, SelectionMode, SequenceFrameSource, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchListenerEvents, TorchState, TorchSwitchControl, VIEW_CREATION_PRE_BEGIN_TIMEOUT_MS, VIEW_CREATION_TIMEOUT_MS, Vibration, VibrationType, VideoResolution, ViewCreationGate, WaveFormVibration, ZoomGestureListenerEvents, ZoomListenerEvents, ZoomSwitchControl, ZoomSwitchOrientation, armNativeLogReceiver, buildStaticCoreDefaultsJson, createNativeProxy, ensureCoreDefaults, generateIdentifier, getCoreDefaults, ignoreFromSerialization, ignoreFromSerializationIfNull, installNativeLogReceiver, loadCoreDefaults, markSingleInstancePerView, nameForSerialization, registerCoreProxies, registerProxies, resetCameraControllerPayloadParserWarnings, resetDataCaptureViewPayloadParserWarnings, serializationDefault, setCoreDefaultsLoader, singleInstanceOverlayName, subscribeNativeLogChannel, wrapNativeProxy };
 //# sourceMappingURL=core.js.map

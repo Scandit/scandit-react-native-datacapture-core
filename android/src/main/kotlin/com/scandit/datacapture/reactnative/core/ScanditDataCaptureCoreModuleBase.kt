@@ -28,7 +28,7 @@ class ScanditDataCaptureCoreModuleBase(
 ) {
     companion object {
         const val NAME = "ScanditDataCaptureCore"
-        private const val DEFAULTS_KEY = "Defaults"
+        private const val DYNAMIC_DEFAULTS_KEY = "DynamicDefaults"
 
         private val VIEW_MANAGER_NULL_ERROR = Error(
             "Unable to add the DataCaptureView on Android. " +
@@ -38,7 +38,7 @@ class ScanditDataCaptureCoreModuleBase(
 
     fun getDefaults(): MutableMap<String, Any> {
         return mutableMapOf(
-            DEFAULTS_KEY to coreModule.getDefaults()
+            DYNAMIC_DEFAULTS_KEY to coreModule.getDynamicDefaults()
         )
     }
 

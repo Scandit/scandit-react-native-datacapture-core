@@ -41,6 +41,13 @@ open class DataCaptureViewContainerWrapper: UIView {
         }
     }
 
+    public override func didMoveToWindow() {
+        super.didMoveToWindow()
+        // Drives the JS single-owner camera model (SDC-32484): attach -> the
+        // hosting wrapper claims camera ownership, detach -> it releases.
+        ViewWindowEventsRelay.notifyWindowChanged(viewId: getViewId(), attached: window != nil)
+    }
+
     public override func removeFromSuperview() {
         if let manager = containerManager,
             let index = manager.containers.firstIndex(where: { $0 === self })

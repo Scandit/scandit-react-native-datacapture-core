@@ -1,32 +1,40 @@
 {
   "name": "scandit-react-native-datacapture-core",
-  "version": "8.5.5",
+  "version": "8.7.0",
   "description": "Scandit Data Capture SDK for React Native",
   "homepage": "https://github.com/Scandit/scandit-react-native-datacapture-core",
   "main": "dist/index.js",
   "types": "dist/dts/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
       "types": "./dist/dts/index.d.ts",
-      "flow": "./dist/index.js.flow"
+      "flow": "./dist/index.js.flow",
+      "default": "./dist/index.js"
     },
     "./experimental": {
-      "import": "./dist/experimental.js",
       "types": "./dist/dts/experimental.d.ts",
-      "flow": "./dist/experimental.js.flow"
+      "flow": "./dist/experimental.js.flow",
+      "default": "./dist/experimental.js"
+    },
+    "./dist/core": {
+      "types": "./dist/dts/core.d.ts",
+      "flow": "./dist/core.js.flow",
+      "default": "./dist/core.js"
+    },
+    "./dist/dts/core": {
+      "types": "./dist/dts/core.d.ts"
     },
     "./package.json": "./package.json",
     "./react-native.config.js": "./react-native.config.js"
   },
   "scripts": {
     "build": "rollup -c ../../rollup.config.js --bundleConfigAsCjs",
-    "generate-flow": "flowgen dist/dts/index.d.ts -o dist/index.js.flow && flowgen dist/dts/experimental.d.ts -o dist/experimental.js.flow",
+    "generate-flow": "node ../../generate-flow.js",
     "jest": "jest",
     "coverage": "jest --coverage",
     "test": "pnpm run lint",
     "lint": "eslint ts",
-    "tsc": "tsc",
+    "tsc": "tsc -p tsconfig.build.json",
     "start": "pnpm build -- --watch"
   },
   "keywords": [
@@ -51,7 +59,8 @@
     "@babel/preset-typescript": "^7.27.1",
     "@babel/runtime": "^7.27.1",
     "@jest/globals": "^29.7.0",
-    "@react-native/babel-preset": "^0.84.0",
+    "@react-native/babel-preset": "^0.86.0",
+    "@react-native/jest-preset": "^0.86.0",
     "@rollup/plugin-commonjs": "25.0.4",
     "@rollup/plugin-node-resolve": "15.2.1",
     "@rollup/plugin-typescript": "11.1.3",
@@ -84,6 +93,6 @@
     }
   },
   "dependencies": {
-    "scandit-datacapture-frameworks-core": "8.5.5"
+    "eventemitter3": "5.0.1"
   }
 }

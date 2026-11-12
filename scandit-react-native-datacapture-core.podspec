@@ -83,7 +83,7 @@ Pod::Spec.new do |s|
     end
   end
 
-  s.dependency "scandit-datacapture-frameworks-core", '= 8.7.0'
+  s.dependency "scandit-datacapture-frameworks-core", '= 8.7.1'
 
   if respond_to?(:install_modules_dependencies, true)
     install_modules_dependencies(s)

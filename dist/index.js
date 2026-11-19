@@ -1,7 +1,7 @@
-import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, FactoryMaker, loadCoreDefaults, setCoreDefaultsLoader, buildStaticCoreDefaultsJson, getCoreDefaults, BaseDataCaptureView, DataCaptureContext, TorchState, CameraPosition, Camera, FrameSourceState } from './core.js';
-export { AimerViewfinder, Anchor, Brush, CameraSettings, CameraSwitchControl, ClusteringMode, Color, ColorFillOverlay, ContextStatus, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogCategory, LogLevel, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, ScanditLogger, SelectionMode, SequenceFrameSource, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
+import { CORE_PROXY_TYPE_NAMES, registerCoreProxies, loadCoreDefaults, setCoreDefaultsLoader, BaseDataCaptureView, DataCaptureContext, TorchState, CameraPosition, Camera, FrameSourceState } from './core.js';
+export { AimerViewfinder, Anchor, Brush, CameraSettings, CameraSwitchControl, ClusteringMode, Color, ContextStatus, DataCaptureContextSettings, Direction, Expiration, Feedback, FocusGestureStrategy, FocusRange, FontFamily, FrameDataSettings, FrameDataSettingsBuilder, ImageBuffer, ImageFrameSource, LaserlineViewfinder, LicenseInfo, LogoStyle, MacroMode, MarginsWithUnit, MeasureUnit, NoViewfinder, NoneLocationSelection, NumberWithUnit, OpenSourceSoftwareLicenseInfo, Orientation, PinchToZoom, Point, PointWithUnit, Quadrilateral, RadiusLocationSelection, Rect, RectWithUnit, RectangularLocationSelection, RectangularViewfinder, RectangularViewfinderAnimation, RectangularViewfinderLineStyle, RectangularViewfinderStyle, ScanIntention, ScanditIcon, ScanditIconBuilder, ScanditIconShape, ScanditIconType, SelectionMode, SequenceFrameSource, Size, SizeWithAspect, SizeWithUnit, SizeWithUnitAndAspect, SizingMode, Sound, SwipeToZoom, TapToFocus, TextAlignment, TorchSwitchControl, Vibration, VibrationType, VideoResolution, WaveFormVibration, ZoomSwitchControl, ZoomSwitchOrientation } from './core.js';
 import { NativeEventEmitter, Platform, NativeModules, TurboModuleRegistry, findNodeHandle, requireNativeComponent, AppState, PermissionsAndroid } from 'react-native';
-import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, createContext, useContext, useRef, useLayoutEffect } from 'react';
 
 class RNNativeCaller {
     nativeModule;
@@ -109,91 +109,39 @@ function getNativeModule(name) {
     }
     throw new Error(`Module ${name} not found. Ensure the native module is properly linked.`);
 }
-/**
- * Returns the dynamic residual exposed by native as `DynamicDefaults` (device id, SDK version,
- * probed camera positions, localized accessibility labels, ...). Every supported version of the
- * native side exposes it, so there is no legacy full-`Defaults`-blob fallback anymore
- * (SDC-32175/SDC-32178).
- */
-function getModuleDynamicDefaults(name) {
+function getModuleDefaults(name) {
     const mod = getNativeModule(name);
-    const dynamicDefaults = mod.DynamicDefaults;
-    if (dynamicDefaults) {
-        return dynamicDefaults;
+    // Constants are automatically merged by React Native
+    const defaults = mod.Defaults;
+    if (defaults) {
+        // Our modules will always be returned by Defaults property, the legacy
+        // code is there just to ensure compatibility with older versions of React Native.
+        return defaults;
     }
+    // Fallback: Try getConstants() directly
     if (typeof mod.getConstants === 'function') {
         const constants = mod.getConstants();
-        if (constants?.DynamicDefaults) {
-            return constants.DynamicDefaults;
+        if (constants?.Defaults) {
+            return constants.Defaults;
         }
     }
-    throw new Error(`Could not load DynamicDefaults from module ${name}`);
+    throw new Error(`Could not load Defaults from module ${name}`);
 }
 
-// RN has no plugin-init gate: user code constructs Camera.default (etc.) immediately at import
-// time, so the dynamic residual (device id, SDK version, probed camera positions, localized
-// accessibility label) must be read synchronously here, not via an async round-trip.
 function initCoreDefaults() {
-    const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-    // Merge raw JSON into raw JSON, then let loadCoreDefaults produce the typed object — never
-    // merge into the already-parsed one. Merging into parsed values happens to work while the
-    // residual is strings/arrays, but the first dynamic key that parsing converts (a Color, Brush
-    // or PointWithUnit) would land as raw JSON inside a typed object and fail silently at the
-    // consumer, far from here.
-    const merged = buildStaticCoreDefaultsJson(platform);
-    deepMerge(merged, getModuleDynamicDefaults('ScanditDataCaptureCore'));
-    // bindInstanceIfNotExists would no-op on a second load, so drop the binding first.
-    FactoryMaker.instances.delete('CoreDefaults');
-    loadCoreDefaults(merged);
-}
-// Keys whose assignment would mutate the prototype chain instead of setting a data property.
-// The payload comes from our own native code, but JSON.parse can produce an own "__proto__" key
-// and Object.keys lists it, so the bracket assignment below is guarded.
-const UNSAFE_MERGE_KEYS = ['__proto__', 'constructor', 'prototype'];
-function deepMerge(target, source) {
-    for (const key of Object.keys(source)) {
-        if (UNSAFE_MERGE_KEYS.includes(key)) {
-            continue;
-        }
-        const sourceValue = source[key];
-        const targetValue = target[key];
-        // Both sides must be plain objects to recurse: an array on either side is replaced wholesale,
-        // never merged key-by-key (which would leave numeric-index pollution behind).
-        if (sourceValue &&
-            targetValue &&
-            typeof sourceValue === 'object' &&
-            typeof targetValue === 'object' &&
-            !Array.isArray(sourceValue) &&
-            !Array.isArray(targetValue)) {
-            // Copy-on-write: buildStatic*DefaultsJson hands out REFERENCES to module-level generated
-            // constants, so recursing straight into targetValue would write the dynamic value into the
-            // generated constant and corrupt it process-wide for every later caller. Descend into a
-            // shallow copy instead.
-            const branch = { ...targetValue };
-            target[key] = branch;
-            deepMerge(branch, sourceValue);
-        }
-        else {
-            target[key] = sourceValue;
-        }
-    }
+    // Use helper to get defaults with fallback logic
+    const defaults = getModuleDefaults('ScanditDataCaptureCore');
+    loadCoreDefaults(defaults);
 }
 setCoreDefaultsLoader(initCoreDefaults);
 
+const NativeModule = getNativeModule('ScanditDataCaptureCore');
 class DataCaptureVersion {
     static get pluginVersion() {
-        return '8.7.1';
+        return '8.6.3';
     }
-    /**
-     * Version of the native SDK the plugin is running against.
-     *
-     * Read from the Core defaults singleton, which `initCoreDefaults()` populates from the native
-     * `DynamicDefaults` payload at import time. This used to read a flat `NativeModule.Version`
-     * constant, which native stopped exposing when the residual moved under `DynamicDefaults`
-     * (SDC-32175 / SDC-32178) — so it had been returning undefined.
-     */
     static get sdkVersion() {
-        return getCoreDefaults().Version ?? '';
+        return NativeModule.Version;
     }
 }
 
@@ -329,15 +277,11 @@ class DataCaptureView extends React.Component {
     // starvable by a blocked JS interaction queue (e.g. a looping animation with
     // `useNativeDriver: false`), which previously left the preview never created.
     // See SDC-32208. `onLayout` can fire repeatedly, so create exactly once.
-    // SDC-33139: kick off creation BEFORE forwarding onLayout, since a caller
-    // may call a view method (e.g. show()) from its own onLayout. Base-view
-    // methods already gate on creation completing, so only the kickoff order
-    // matters here.
     onNativeViewLayout = (event) => {
-        this.tryCreateDataCaptureView();
         // Forward to a caller-supplied onLayout so our internal handler doesn't
         // swallow it (render() overrides the spread `onLayout` with this one).
         this.props.onLayout?.(event);
+        this.tryCreateDataCaptureView();
     };
     // Attempt to create the native view exactly once. Returns true once creation
     // has been kicked off, false if the native tag is not available yet (so a
@@ -382,7 +326,7 @@ const RNTDataCaptureView = requireNativeComponent('RNTDataCaptureView');
  * ```tsx
  * const isForeground = useIsForeground();
  * const isFocused = useIsFocused(); // from @react-navigation/native
- * <BarcodeCaptureAioView isActive={isFocused && isForeground} ... />
+ * <BarcodeCaptureView isActive={isFocused && isForeground} ... />
  * ```
  */
 function useIsForeground() {
@@ -430,7 +374,7 @@ async function requestAndroidPermission() {
  * On iOS this hook returns `permissionStatus: 'not-determined'` initially and
  * optimistically flips to `'granted'` after `requestPermission()` is called.
  * It cannot detect denials after-the-fact; consumers should treat the iOS camera-start
- * flow as the authoritative signal (surfaced via `<BarcodeCaptureAioView onError={...} />`).
+ * flow as the authoritative signal (surfaced via `<BarcodeCaptureView onError={...} />`).
  *
  * ```tsx
  * const { hasPermission, requestPermission } = useCameraPermission();
@@ -467,7 +411,7 @@ function useCameraPermission() {
         }
         // iOS: we can't drive the prompt from JS. Flip optimistically to 'granted';
         // the native camera access triggers the iOS dialog automatically, and denial
-        // surfaces as a camera-start failure (hook into `BarcodeCaptureAioView.onError`).
+        // surfaces as a camera-start failure (hook into `BarcodeCaptureView.onError`).
         setStatus('granted');
         return true;
     }, []);
@@ -503,121 +447,6 @@ function useScanditContext(licenseKey, options) {
     return context;
 }
 
-/**
- * Render an unknown thrown value as a string worth logging.
- *
- * Exists because `console.warn('...', err)` loses the only part that matters.
- * `Error.message` and `Error.stack` are **non-enumerable**, so any log sink that
- * JSON-serializes its arguments — the DebugApp's on-device console tee, among
- * others — writes `{}` for a plain `Error`, or, for a React Native native
- * rejection, just `{"code":"-1","nativeStackIOS":[…]}` with the message gone.
- *
- * That is not hypothetical. During the SDC-33115 B4 rapid-swap run the device
- * showed `Unable to switch the camera to on` on screen while the captured log
- * held only the code and a native stack, because LogBox reads `err.message`
- * directly and the file sink had already dropped it. Interpolating first makes
- * the two agree.
- */
-function describeError(err) {
-    if (err instanceof Error) {
-        // The stack normally already opens with `Error: <message>`, so prefixing the
-        // message again would just duplicate it.
-        const head = err.stack?.includes(err.message) ? err.stack : `${err.message}\n${err.stack ?? ''}`;
-        // Anything the thrower hung off the Error stays. React Native's native
-        // rejections arrive as real `Error`s carrying enumerable `code` and
-        // `nativeStackIOS`, and that native stack is often the only thing that
-        // identifies the failing native call — dropping it to keep the message
-        // would just move the erasure rather than end it. (It did, briefly: the
-        // first cut of this function returned message + stack only, and threw away
-        // the `AbstractCamera::resetContext` frames that diagnosed SDC-33115's F14.)
-        const extras = ownEnumerableProps(err);
-        return extras === undefined ? head : `${head}\n${extras}`;
-    }
-    // React Native rejects native promises with a plain object carrying `code` /
-    // `message` rather than a real Error, so pull those out before falling back
-    // to `String(err)` (which would render `[object Object]`).
-    if (err !== null && typeof err === 'object') {
-        const bag = err;
-        const message = typeof bag.message === 'string' ? bag.message : undefined;
-        // Only stringify a primitive `code`. Coercing an object here would print
-        // `[object Object]` — the same uselessness this function exists to prevent.
-        const code = typeof bag.code === 'string' || typeof bag.code === 'number' || typeof bag.code === 'boolean'
-            ? String(bag.code)
-            : undefined;
-        if (message !== undefined || code !== undefined) {
-            const parts = [message, code === undefined ? undefined : `(code ${code})`].filter(Boolean);
-            return `${parts.join(' ')}\n${safeJson(err)}`;
-        }
-        return safeJson(err);
-    }
-    return String(err);
-}
-/**
- * Serialize an Error's own enumerable properties — the payload a thrower
- * attached, which `message`/`stack` alone do not cover. Returns `undefined` when
- * there is nothing extra, so the caller can skip a trailing empty line.
- */
-function ownEnumerableProps(err) {
-    const extras = {};
-    for (const key of Object.keys(err)) {
-        if (key === 'message' || key === 'stack')
-            continue;
-        extras[key] = err[key];
-    }
-    return Object.keys(extras).length === 0 ? undefined : safeJson(extras);
-}
-function safeJson(value) {
-    try {
-        return JSON.stringify(value) ?? String(value);
-    }
-    catch {
-        return String(value);
-    }
-}
-
-function isSerializable(v) {
-    return typeof v === 'object' && v !== null && typeof v.toJson === 'function';
-}
-function signature(v) {
-    try {
-        return JSON.stringify(isSerializable(v) ? v.toJson() : v) ?? '';
-    }
-    catch {
-        // Cyclic / un-serializable values fall through to `''` so the caller sees
-        // a "changed" signature and uses the new value. Better safe than wrong.
-        return '';
-    }
-}
-/**
- * Returns a referentially-stable copy of `value` as long as the structural
- * content stays the same. Lets consumers pass inline SDK class instances
- * (`new Brush(...)`, `new TorchSwitchControl()`) or plain options objects
- * without memoizing — the effect deps array sees the same reference until
- * the underlying content actually changes.
- *
- * SDK classes that extend `DefaultSerializeable` are compared via their
- * `toJson()` output (which respects `@ignoreFromSerialization`), so private
- * back-refs like `view` don't cause spurious diffs. Plain objects and arrays
- * are compared via direct `JSON.stringify`.
- *
- * ```tsx
- * function MyView({ brush }: { brush?: Brush | null }) {
- *   const stableBrush = useStableProp(brush);
- *   useEffect(() => {
- *     if (stableBrush) overlay.brush = stableBrush;
- *   }, [stableBrush]);
- * }
- * ```
- */
-function useStableProp(value) {
-    const ref = useRef(null);
-    const sig = signature(value);
-    if (ref.current && ref.current.sig === sig)
-        return ref.current.value;
-    ref.current = { value, sig };
-    return value;
-}
-
 const DEFAULT_TORCH = TorchState.Off;
 const DEFAULT_POSITION = CameraPosition.WorldFacing;
 function createCameraOwner(context, cameraFactory = position => Camera.atPosition(position), onError) {
@@ -626,12 +455,6 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
     let createdPosition = null;
     let position = DEFAULT_POSITION;
     let desiredTorch = DEFAULT_TORCH;
-    let desiredSettings = null;
-    // What the provider last applied to its OWN camera (native state latch).
-    // Transitions must be idempotent: while an exclusive owner drives camera 0,
-    // a redundant Off+setFrameSource(null) on the *released* provider camera
-    // races the exclusive view's On and can win, leaving a black preview
-    // (SDC-32484 iOS). Only transition on actual native state changes.
     let applied = 'off';
     // True only after a FULLY successful acquire (both native calls confirmed).
     // Lets the apply pass skip re-issuing setFrameSource/switchOn when nothing
@@ -645,7 +468,7 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
     let chain = Promise.resolve();
     const enqueue = (op) => {
         chain = chain.then(op).catch(err => {
-            console.warn(`ScanditProvider: camera operation failed: ${describeError(err)}`);
+            console.warn('ScanditProvider: camera operation failed', err);
             onError?.(err);
         });
         return chain;
@@ -661,59 +484,30 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
             camera.desiredTorchState = desiredTorch;
             return;
         }
-        // Probe before releasing. The factory opens no native session, so asking
-        // first costs nothing and a position the device lacks leaves the running
-        // camera untouched instead of stranding the caller with a dead preview.
-        let nextCamera = camera;
         if (camera === null || createdPosition !== position) {
-            nextCamera = cameraFactory(position);
-            if (nextCamera === null) {
+            // `Camera.atPosition` returns null when the position is unavailable on
+            // the device. Don't crash the chain — warn and leave the camera off; a
+            // later position change can retry.
+            camera = cameraFactory(position);
+            if (camera === null) {
                 console.warn('ScanditProvider: no camera available at position', position);
-                // Never latch a position the device does not have: every later acquire
-                // would take this same early return, so a standby-resume would find no
-                // camera to reopen and the preview would stay dead (SDC-33131).
-                if (createdPosition !== null)
-                    position = createdPosition;
                 return;
             }
+            createdPosition = position;
         }
-        // Non-null by construction: a null `camera` forces the branch above, which
-        // either returns or assigns.
-        const target = nextCamera;
+        camera.desiredTorchState = desiredTorch;
+        // Mark before the awaits: a partial failure leaves applied='on' so a
+        // later release fully unwinds the half-attached camera.
+        applied = 'on';
+        acquireSucceeded = false;
         try {
-            if (target !== camera) {
-                // Android refuses to configure the new camera while the old one still
-                // holds its capture session ("Unsupported set of inputs/outputs
-                // provided" — SDC-33131), and that constraint applies to setFrameSource
-                // and switchToDesiredState, both of which are still ahead of us here.
-                // Inside the try so a rejected teardown costs one retry rather than
-                // aborting with the frame source already detached.
-                await releaseSharedCamera();
-                camera = target;
-                createdPosition = position;
-            }
-            target.desiredTorchState = desiredTorch;
-            // Mark before the awaits: a partial failure leaves applied='on' so a
-            // later release fully unwinds the half-attached camera.
-            applied = 'on';
-            acquireSucceeded = false;
-            if (desiredSettings !== null)
-                await target.applySettings(desiredSettings);
-            await context.setFrameSource(target);
-            await target.switchToDesiredState(FrameSourceState.On);
+            await context.setFrameSource(camera);
+            await camera.switchToDesiredState(FrameSourceState.On);
             acquireSucceeded = true;
-            console.debug(`[cameraOwner] camera -> On (position=${position})`);
         }
         catch (err) {
-            // Report every failure. A superseded switch-on looks like a candidate for
-            // silencing — it recovers, and under rapid swapping it is common — but the
-            // native call really did fail, and a layer that decides on the caller's
-            // behalf which failures are worth mentioning is how a system ends up
-            // looking healthier than it is. SDC-33115 F14 is a real native race
-            // (`AbstractCamera::resetContext` cancelling an in-flight ~700ms switch);
-            // it is characterised and ticketed, not hidden here.
             if (retriesLeft > 0) {
-                console.warn(`ScanditProvider: switching the camera on failed, retrying once: ${describeError(err)}`);
+                console.warn('ScanditProvider: switching the camera on failed, retrying once', err);
                 await acquireSharedCamera(retriesLeft - 1);
                 return;
             }
@@ -732,7 +526,6 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
         applied = 'standby';
         acquireSucceeded = false;
         await camera.switchToDesiredState(FrameSourceState.Standby);
-        console.debug('[cameraOwner] camera -> Standby (no owner)');
     };
     /** Hard release: full Off + frame source detached. Required when the device
      * must be free immediately - an exclusive (own-camera) owner taking camera 0,
@@ -741,21 +534,10 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
     const releaseSharedCamera = async () => {
         if (camera === null || applied === 'off')
             return;
-        const before = applied;
         applied = 'off';
         acquireSucceeded = false;
-        try {
-            await camera.switchToDesiredState(FrameSourceState.Off);
-            await context.setFrameSource(null);
-        }
-        catch (err) {
-            // Put the latch back, or the retry's release returns on its first line
-            // and the next camera is attached while this one still holds its session
-            // — the Android failure the release exists to prevent (SDC-33131).
-            applied = before;
-            throw err;
-        }
-        console.debug('[cameraOwner] camera -> Off, frame source detached');
+        await camera.switchToDesiredState(FrameSourceState.Off);
+        await context.setFrameSource(null);
     };
     const releaseManagedCamera = releaseSharedCamera;
     /** Apply the state the CURRENT owner implies. Called at op-run time so a
@@ -763,14 +545,6 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
     const applyOwnerState = async () => {
         if (disposed)
             return;
-        // Do NOT add an `if (applyScheduled) return` short-circuit here. It looks
-        // like a free extension of the coalescing `scheduleApply` already does, and
-        // it measures WORSE on device: over an identical 10x shared<->exclusive
-        // deep-link loop on an iPhone SE it took bridge errors from 0.67 to 1.0 per
-        // crossing and halved how often the camera reached `On` (SDC-33115 F14,
-        // A/B recorded in the ticket log). Deferring the transition appears to move
-        // it into a worse window rather than avoiding the collision. Measure before
-        // reintroducing it.
         if (owner === null) {
             await standbySharedCamera();
         }
@@ -854,25 +628,9 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
     const whenGranted = (claim) => {
         return enqueue(() => Promise.resolve());
     };
-    const inspect = () => ({
-        ownerMode: owner === null ? null : owner.mode,
-        applied,
-        acquireSucceeded,
-        pendingSteps: pendingSteps.length,
-    });
-    // Read `owner` here, not via `inspect()`: that is diagnostic-only by contract
-    // and its read can be stale.
-    const warnIfExclusive = (prop) => {
-        if (owner !== null && owner.mode === 'exclusive') {
-            console.warn(`ScanditProvider: \`${prop}\` has no visible effect while a view owns the camera ` +
-                'exclusively (SparkScanAioView). Set SparkScanViewSettings.defaultTorchState / ' +
-                'defaultCameraPosition instead.');
-        }
-    };
     return {
         setTorch(next) {
             return enqueue(() => {
-                warnIfExclusive('torchState');
                 desiredTorch = next;
                 if (camera !== null)
                     camera.desiredTorchState = next;
@@ -881,16 +639,8 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
         },
         setPosition(next) {
             return enqueue(async () => {
-                warnIfExclusive('cameraPosition');
                 position = next;
                 await applyOwnerState();
-            });
-        },
-        setCameraSettings(next) {
-            return enqueue(async () => {
-                desiredSettings = next;
-                if (camera !== null && next !== null)
-                    await camera.applySettings(next);
             });
         },
         idle() {
@@ -914,15 +664,12 @@ function createCameraOwner(context, cameraFactory = position => Camera.atPositio
         updateClaim,
         removeClaim,
         whenGranted,
-        // ─── Diagnostics ────────────────────────────────────────────────────────
-        inspect,
     };
 }
 const ScanditInternalContext = createContext(null);
 /** Reflects a provider's camera-related props onto the singleton camera. */
 function useApplyCameraProps(owner, props) {
     const { frameSourceState, torchState, cameraPosition } = props;
-    const cameraSettings = useStableProp(props.cameraSettings);
     useEffect(() => {
         if (cameraPosition !== undefined)
             void owner.setPosition(cameraPosition);
@@ -931,10 +678,6 @@ function useApplyCameraProps(owner, props) {
         if (torchState !== undefined)
             void owner.setTorch(torchState);
     }, [owner, torchState]);
-    useEffect(() => {
-        if (cameraSettings !== undefined)
-            void owner.setCameraSettings(cameraSettings);
-    }, [owner, cameraSettings]);
     // The camera is ownership-driven: it is only turned on when a view (or an
     // explicit `frameSourceState={On}`) claims it.
     //   - undefined → do nothing (let views drive the camera).
@@ -955,7 +698,7 @@ function useApplyCameraProps(owner, props) {
  * - **Root** (no parent `<ScanditProvider>` above): creates the context + camera,
  *   disposes them on unmount.
  * - **Nested**: applies its own `frameSourceState` / `torchState` / `cameraPosition`
- *   / `cameraSettings` props to the same singleton camera. Last writer wins; values are not reverted
+ *   props to the same singleton camera. Last writer wins; values are not reverted
  *   when a nested provider unmounts.
  *
  * The camera is ownership-driven: exactly one view owns it at a time (last
@@ -974,7 +717,7 @@ function useApplyCameraProps(owner, props) {
  *   frameSourceState={isFocused ? FrameSourceState.On : FrameSourceState.Off}
  *   torchState={torch}
  *   cameraPosition={position}>
- *   <BarcodeCaptureAioView navigation={navigation} ... />
+ *   <BarcodeCaptureView state="enabled" ... />
  * </ScanditProvider>
  * ```
  */
@@ -988,14 +731,14 @@ function ScanditProvider(props) {
     }
     return React.createElement(RootScanditProvider, { ...props, licenseKey: props.licenseKey });
 }
-function NestedScanditProvider({ parent, frameSourceState, torchState, cameraPosition, cameraSettings, licenseKey, settings, options, children, }) {
+function NestedScanditProvider({ parent, frameSourceState, torchState, cameraPosition, licenseKey, settings, options, children, }) {
     if (licenseKey || settings || options) {
         console.warn('ScanditProvider: licenseKey/settings/options are ignored on nested providers.');
     }
-    useApplyCameraProps(parent.owner, { frameSourceState, torchState, cameraPosition, cameraSettings });
+    useApplyCameraProps(parent.owner, { frameSourceState, torchState, cameraPosition });
     return React.createElement(ScanditInternalContext.Provider, { value: parent }, children);
 }
-function RootScanditProvider({ licenseKey, options, settings, frameSourceState, torchState, cameraPosition, cameraSettings, onError, children, }) {
+function RootScanditProvider({ licenseKey, options, settings, frameSourceState, torchState, cameraPosition, onError, children, }) {
     const context = useMemo(() => DataCaptureContext.initialize(licenseKey, options ?? null, settings ?? null), 
     // The context is a singleton keyed on licenseKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1014,7 +757,6 @@ function RootScanditProvider({ licenseKey, options, settings, frameSourceState, 
         frameSourceState,
         torchState: torchState ?? DEFAULT_TORCH,
         cameraPosition: cameraPosition ?? DEFAULT_POSITION,
-        cameraSettings,
     });
     // Dispose context + camera on unmount. Chained onto the owner's chain so
     // any in-flight operation finishes first.
@@ -1038,6 +780,49 @@ function useScanditInternal() {
 /** Internal — used by AIO views to attach modes to the shared context. */
 function useDataCaptureContextInternal() {
     return useScanditInternal().context;
+}
+
+function isSerializable(v) {
+    return typeof v === 'object' && v !== null && typeof v.toJson === 'function';
+}
+function signature(v) {
+    try {
+        return JSON.stringify(isSerializable(v) ? v.toJson() : v) ?? '';
+    }
+    catch {
+        // Cyclic / un-serializable values fall through to `''` so the caller sees
+        // a "changed" signature and uses the new value. Better safe than wrong.
+        return '';
+    }
+}
+/**
+ * Returns a referentially-stable copy of `value` as long as the structural
+ * content stays the same. Lets consumers pass inline SDK class instances
+ * (`new Brush(...)`, `new TorchSwitchControl()`) or plain options objects
+ * without memoizing — the effect deps array sees the same reference until
+ * the underlying content actually changes.
+ *
+ * SDK classes that extend `DefaultSerializeable` are compared via their
+ * `toJson()` output (which respects `@ignoreFromSerialization`), so private
+ * back-refs like `view` don't cause spurious diffs. Plain objects and arrays
+ * are compared via direct `JSON.stringify`.
+ *
+ * ```tsx
+ * function MyView({ brush }: { brush?: Brush | null }) {
+ *   const stableBrush = useStableProp(brush);
+ *   useEffect(() => {
+ *     if (stableBrush) overlay.brush = stableBrush;
+ *   }, [stableBrush]);
+ * }
+ * ```
+ */
+function useStableProp(value) {
+    const ref = useRef(null);
+    const sig = signature(value);
+    if (ref.current && ref.current.sig === sig)
+        return ref.current.value;
+    ref.current = { value, sig };
+    return value;
 }
 
 /**
@@ -1285,8 +1070,7 @@ function useMode(options) {
     // later lifecycle op.
     const enqueue = useCallback((op) => {
         opChainRef.current = opChainRef.current.then(op).catch(err => {
-            // Interpolated, not passed as an object — see `describeError`.
-            console.warn(`[useMode] lifecycle operation failed: ${describeError(err)}`);
+            console.warn('[useMode] lifecycle operation failed', err);
         });
         return opChainRef.current;
     }, []);
@@ -1723,54 +1507,8 @@ function useCameraClaim({ mode, active, nativeViewRef }) {
     }), [owner]);
 }
 
-/**
- * The `attach` body shared by every AIO view that owns its own native view.
- *
- * It exists because getting this wrong is invisible. The natural shape —
- * `new Promise(resolve => { void whenReady().then(async () => { … resolve() }) })`
- * — has no rejection path, so anything thrown past `whenReady()` leaves the
- * returned promise neither resolved nor rejected. `useMode` serializes lifecycle
- * work on a single op chain, so an attach that never settles blocks *every*
- * later op behind it: `setEnabled` never runs, the unmount `detach()` never
- * runs, the camera claim never activates and the provider camera parks in
- * Standby. The user gets a black view with no error, no crash, and no recovery
- * even by navigating away and back.
- *
- * That is not hypothetical: it shipped in `SparkScanAioView`, where a colour
- * default typed `Color` but holding a hex string made `toJSON()` throw inside
- * `createNativeView` (SDC-33115). `BarcodeCountAioView` and `BarcodeArAioView`
- * carried the same shape with the same reachable throw sites and were working
- * only by luck. Routing all three through here means a fourth view cannot
- * reintroduce the bug by writing the obvious thing.
- *
- * Gating on layout rather than `InteractionManager.runAfterInteractions` is
- * deliberate: that queue can be starved by a blocked JS interaction, which
- * leaves the preview never created (SDC-32208).
- */
-function attachNativeViewWhenReady({ tag, node, whenReady, createNativeView, }) {
-    return new Promise((resolve, reject) => {
-        if (!node)
-            return resolve();
-        void whenReady()
-            .then(async () => {
-            const nodeId = findNodeHandle(node);
-            if (nodeId == null)
-                return resolve();
-            await createNativeView(nodeId);
-            resolve();
-        })
-            .catch((err) => {
-            // Interpolated, not passed as an object — see `describeError`.
-            console.warn(`[useMode:${tag}] attach failed: ${describeError(err)}`);
-            reject(err instanceof Error ? err : new Error(String(err)));
-        });
-    });
-}
-
 var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    attachNativeViewWhenReady: attachNativeViewWhenReady,
-    describeError: describeError,
     useCameraClaim: useCameraClaim,
     useDataCaptureContextInternal: useDataCaptureContextInternal,
     useLifecycleHook: useLifecycleHook,
@@ -1787,5 +1525,5 @@ var index = /*#__PURE__*/Object.freeze({
 initCoreDefaults();
 initCoreProxy();
 
-export { Camera, CameraPosition, DataCaptureContext, DataCaptureVersion, DataCaptureView, FrameSourceState, RNNativeCaller, ScanditProvider, TorchState, index as _internal, createRNNativeCaller, getModuleDynamicDefaults, getNativeModule, initCoreDefaults, initCoreProxy, useCameraPermission, useIsForeground, useScanditContext };
+export { Camera, CameraPosition, DataCaptureContext, DataCaptureVersion, DataCaptureView, FrameSourceState, RNNativeCaller, ScanditProvider, TorchState, index as _internal, createRNNativeCaller, getModuleDefaults, getNativeModule, initCoreDefaults, initCoreProxy, useCameraPermission, useIsForeground, useScanditContext };
 //# sourceMappingURL=index.js.map

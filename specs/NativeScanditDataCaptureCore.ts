@@ -15,7 +15,7 @@ export type ScanditEventPayload = {
 export interface Spec extends TurboModule {
   readonly getConstants: () => {
     // eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
-    DynamicDefaults: Object;
+    Defaults: Object;
   };
 
   // Events - unified event emitter for all Core events

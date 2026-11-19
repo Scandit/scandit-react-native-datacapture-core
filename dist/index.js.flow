@@ -24,7 +24,6 @@ import {
   FrameSourceState,
   TorchState,
   CameraPosition,
-  CameraSettings,
   DataCaptureOverlay as DataCaptureOverlay$1,
   NativeCaller,
 } from "./core";
@@ -38,7 +37,6 @@ declare export {
   CameraSwitchControl,
   ClusteringMode,
   Color,
-  ColorFillOverlay,
   ContextStatus,
   Control,
   DataCaptureComponent,
@@ -67,10 +65,6 @@ declare export {
   LaserlineViewfinder,
   LicenseInfo,
   LocationSelection,
-  LogCategory,
-  LogLevel,
-  LogRecord,
-  LogRecordError,
   LogoStyle,
   MacroMode,
   MacroModeListener,
@@ -98,7 +92,6 @@ declare export {
   ScanditIconBuilder,
   ScanditIconShape,
   ScanditIconType,
-  ScanditLogger,
   SelectionMode,
   SequenceFrameSource,
   Size,
@@ -133,46 +126,12 @@ import {
 } from "react-native";
 declare function initCoreProxy(): void;
 declare function initCoreDefaults(): void;
-
-/**
- * This class contains the DataCapture version getter.
- * @since 6.5.0
- */
 declare class DataCaptureVersion {
-  /**
-   * Returns the version of the Scandit Data Capture Plugin.
-   * @since 6.5.0
-   */
   static pluginVersion: string;
-
-  /**
-   * Version of the native SDK the plugin is running against.
-   *
-   * Read from the Core defaults singleton, which `initCoreDefaults()` populates from the native
-   * `DynamicDefaults` payload at import time. This used to read a flat `NativeModule.Version`
-   * constant, which native stopped exposing when the residual moved under `DynamicDefaults`
-   * (SDC-32175 / SDC-32178) — so it had been returning undefined.
-   *
-   * Returns the version of the Scandit Data Capture SDK.
-   * @since 6.5.0
-   */
   static sdkVersion: string;
 }
-/**
- * [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]
- * @since 6.5.0
- */
 declare type DataCaptureOverlay = { ... } & Serializeable;
-
-/**
- * Listener for observing the data capture view. This listener is typically used when you want to react to orientation and size changes, e.g. to adjust view finder and scan area parameters.
- * @since 6.5.0
- */
 declare interface DataCaptureViewListener {
-  /**
-   * Invoked when the data capture view changes size or orientation.
-   * @since 6.5.0
-   */
   didChangeSize?: (
     view: DataCaptureView,
     size: Size,
@@ -193,72 +152,25 @@ declare interface DataCaptureViewProps {
    */
   onNativeDispose?: (teardown: Promise<mixed>) => void;
 }
-/**
- * [object Object],[object Object],[object Object]
- * @since 6.5.0
- */
 declare class DataCaptureView mixins React$1.Component<DataCaptureViewProps> {
   view: BaseDataCaptureView;
   constructor(props: DataCaptureViewProps): this;
-
-  /**
-   * The margins to use for the scan area. The margins are measured from the border of the data capture view and allow to specify a region around the border that is excluded from scanning.
-   *
-   * By default, the margins are zero and the scanning happens in the visible part of the preview.
-   *
-   * On iOS, the scan area also excludes the left and right safe area insets of the view: on each side, the larger of the margin and the inset applies. This property keeps returning the margins that were set.
-   * @since 6.5.0
-   */
   scanAreaMargins: MarginsWithUnit;
   -scanAreaMargins: any;
-
-  /**
-   * [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]
-   * @since 6.5.0
-   */
   pointOfInterest: PointWithUnit;
   -pointOfInterest: any;
-
-  /**
-   * The style of the logo which can be either the default extended “Scanning By Scandit” or a minimal “Scandit”.
-   *
-   * This property has no effect when the logo is drawn by one of the viewfinders.
-   * @since 6.8.0
-   */
-  logoStyle: $Values<typeof LogoStyle$1>;
+  logoStyle: $Values<typeof LogoStyle>;
   -logoStyle: any;
-
-  /**
-   * [object Object],[object Object],[object Object],[object Object],[object Object]
-   * @since 6.5.0
-   */
-  logoAnchor: $Values<typeof Anchor$1>;
+  logoAnchor: $Values<typeof Anchor>;
   -logoAnchor: any;
-
-  /**
-   * [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]
-   * @since 6.5.0
-   */
   logoOffset: PointWithUnit;
   -logoOffset: any;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 6.7.0
-   */
   focusGesture: FocusGesture | null;
   -focusGesture: any;
-
-  /**
-   * [object Object],[object Object],[object Object],[object Object],[object Object]
-   * @since 8.4.0
-   */
   zoomGestures: ZoomGesture[];
   -zoomGestures: any;
 
   /**
-   * [object Object],[object Object],[object Object]
-   * @since 6.7.0
    * @deprecated Use zoomGestures instead. Will be removed in a future version.
    */
   zoomGesture: ZoomGesture | null;
@@ -267,84 +179,23 @@ declare class DataCaptureView mixins React$1.Component<DataCaptureViewProps> {
    * @deprecated Use zoomGestures instead. Will be removed in a future version.
    */
   -zoomGesture: any;
-
-  /**
-   * When enabled, the data capture view may display notifications to inform users about update in zoom level. Defaults to *true*.
-   * @since 8.3.0
-   */
   shouldShowZoomNotification: boolean;
   -shouldShowZoomNotification: any;
-
-  /**
-   * Sets a custom property on this data capture view. This function is for internal use. Any features and functionality offered through this method can and will vanish without public notice from one version to the next.
-   * @since 8.3.0
-   */
   setProperty<T>(name: string, value: T): void;
-
-  /**
-   * Adds the overlay to this data capture view. If the overlay is already part of this view, the call has no effect.
-   * @since 6.5.0
-   */
   addOverlay(overlay: DataCaptureOverlay): Promise<void>;
-
-  /**
-   * Removes overlay from this data capture view. If the overlay is not part of this view, the call has no effect.
-   * @since 6.5.0
-   */
   removeOverlay(overlay: DataCaptureOverlay): Promise<void>;
-
-  /**
-   * Adds the listener to this data capture view.
-   *
-   * In case the same listener is already observing this instance, calling this method will not add the listener again.
-   * @since 6.5.0
-   */
   addListener(listener: DataCaptureViewListener): void;
-
-  /**
-   * Removes a previously added listener from this data capture view.
-   *
-   * In case the listener is not currently observing this instance, calling this method has no effect.
-   * @since 6.5.0
-   */
   removeListener(listener: DataCaptureViewListener): void;
-
-  /**
-   * Converts a point in the coordinate system of the last visible frame and maps it to a coordinate in the view.
-   *
-   * This method is thread-safe and can be called from any thread.
-   * @since 6.5.0
-   */
   viewPointForFramePoint(point: Point): Promise<Point>;
-
-  /**
-   * Converts a quadrilateral in the coordinate system of the last visible frame and maps it to a coordinate in the view.
-   * @since 6.5.0
-   */
   viewQuadrilateralForFrameQuadrilateral(
     quadrilateral: Quadrilateral
   ): Promise<Quadrilateral>;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 6.8.0
-   */
   addControl(control: Control): Promise<void>;
-
-  /**
-   * Adds the control to the data capture view at the specified anchor and with the given offset. Only one control per type can be added at any point in time, trying to add a second instance of the same control type will result in the first one being removed. Adding a control at an anchor already taken will replace the previous control there. The offset x will move the control away from the border of the data capture view horizontally, which means that controls anchored on the left will move to the right and vice-versa. Controls anchored in the center horizontally will also move to the right. The offset y will move the control away from the border of the data capture view vertically, which means that controls anchored on the top will move downward and controls anchored to the bottom will move upward. Controls anchored in the center vertically will also move upward.
-   * @since 6.22.0
-   */
   addControlWithAnchorAndOffset(
     control: Control,
-    anchor: $Values<typeof Anchor$1>,
+    anchor: $Values<typeof Anchor>,
     offset: PointWithUnit
   ): void;
-
-  /**
-   * Removes the previously added control from data capture view. If the control is not part of this view, the call has no effect.
-   * @since 6.8.0
-   */
   removeControl(control: Control): void;
   componentWillUnmount(): void;
   componentDidMount(): void;
@@ -358,7 +209,7 @@ declare class DataCaptureView mixins React$1.Component<DataCaptureViewProps> {
  * ```tsx
  * const isForeground = useIsForeground();
  * const isFocused = useIsFocused(); // from @react-navigation/native
- * <BarcodeCaptureAioView isActive={isFocused && isForeground} ... />
+ * <BarcodeCaptureView isActive={isFocused && isForeground} ... />
  * ```
  */
 declare function useIsForeground(): boolean;
@@ -367,29 +218,9 @@ declare type PermissionStatus =
   | "denied"
   | "not-determined"
   | "restricted";
-/**
- * [object Object],[object Object],[object Object]
- * @since 8.7.0
- */
 declare interface CameraPermissionResult {
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
   hasPermission: boolean;
-
-  /**
-   * The current permission status, typed as `PermissionStatus` — a union of four string values:
-   *
-   * `granted`Camera access has been granted.`denied`Camera access has been refused. Android only; iOS cannot report a denial to JavaScript.`not-determined`Camera access has not been decided yet. Also the initial value on iOS.`restricted`Camera access has been refused and the system will not prompt again. Android only, corresponding to `NEVER_ASK_AGAIN`.
-   * @since 8.7.0
-   */
   permissionStatus: PermissionStatus;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
   requestPermission: () => Promise<boolean>;
 }
 /**
@@ -405,7 +236,7 @@ declare interface CameraPermissionResult {
  * On iOS this hook returns `permissionStatus: 'not-determined'` initially and
  * optimistically flips to `'granted'` after `requestPermission()` is called.
  * It cannot detect denials after-the-fact; consumers should treat the iOS camera-start
- * flow as the authoritative signal (surfaced via `<BarcodeCaptureAioView onError={...} />`).
+ * flow as the authoritative signal (surfaced via `<BarcodeCaptureView onError={...} />`).
  *
  * ```tsx
  * const { hasPermission, requestPermission } = useCameraPermission();
@@ -413,21 +244,16 @@ declare interface CameraPermissionResult {
  * ```
  */
 declare function useCameraPermission(): CameraPermissionResult;
-
-/**
- * [object Object],[object Object],[object Object]
- * @since 8.7.0
- */
 declare interface UseScanditContextOptions {
   /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
+   * Applied at first render, then re-applied via `context.applySettings(...)`
+   * whenever the reference changes. Memoize this with `useMemo` (or build it
+   * once) — passing a fresh instance every render will spam `applySettings`.
    */
   settings?: DataCaptureContextSettings;
 
   /**
-   * Applied once, when the context is created natively. Later changes are ignored.
-   * @since 8.7.0
+   * Applied once at native initialization. Later changes are ignored.
    */
   creationOptions?: DataCaptureContextCreationOptions;
 }
@@ -453,52 +279,11 @@ declare interface CameraClaim {
   active: boolean;
 }
 /**
- * What the provider last applied to its own camera (native state latch).
- */
-declare type CameraAppliedState = "on" | "standby" | "off";
-/**
- * Read-only snapshot of the ownership state, for diagnostics only.
- *
- * The engine's invariants ("one screen holds the claim", "the camera drops to
- * Standby between screens") are otherwise invisible at runtime: ownership lives
- * in a closure variable and Standby is a native state with no queryable
- * counterpart on the JS side. Without this, verifying them on-device means
- * inferring from the *absence* of a log line (SDC-33115).
- */
-declare interface CameraOwnerSnapshot {
-  /**
-   * The current owner's claim mode, or null when no screen holds the claim.
-   */
-  ownerMode: CameraClaimMode | null;
-
-  /**
-   * The last state the provider applied to its own camera.
-   */
-  applied: CameraAppliedState;
-
-  /**
-   * True only after a fully successful acquire (both native calls confirmed).
-   */
-  acquireSucceeded: boolean;
-
-  /**
-   * Number of mutation steps not yet drained by an apply pass.
-   */
-  pendingSteps: number;
-}
-/**
  * The ownership surface `useCameraClaim` is built on, plus camera-wide
  * controls (torch/position) and lifecycle.
  */
 declare interface CameraCoordinator {
   setTorch(torch: $Values<typeof TorchState>): Promise<void>;
-
-  /**
-   * Apply capture settings (resolution, focus, zoom) to the singleton camera.
-   * The provider owns the camera, so this is the only way a consumer can
-   * configure it — an AIO view has no camera of its own to settle them on.
-   */
-  setCameraSettings(settings: CameraSettings | null): Promise<void>;
   setPosition(position: $Values<typeof CameraPosition>): Promise<void>;
 
   /**
@@ -531,82 +316,75 @@ declare interface CameraCoordinator {
    * Resolves once the chain has applied the state this claim implies.
    */
   whenGranted(claim: CameraClaim): Promise<void>;
-
-  /**
-   * Synchronous snapshot of the ownership state. Diagnostic only — never branch
-   * production code on it; the chain is the source of truth and a read here can
-   * be stale by the next microtask. Exists so the DebugApp can display
-   * ownership and Standby, which are otherwise unobservable (SDC-33115).
-   */
-  inspect(): CameraOwnerSnapshot;
 }
 declare type ScanditInternal = {
   context: DataCaptureContext,
   owner: CameraCoordinator,
   ...
 };
+declare type CameraProps = {
+  frameSourceState?: $Values<typeof FrameSourceState>,
+  torchState?: $Values<typeof TorchState>,
+  cameraPosition?: $Values<typeof CameraPosition>,
+  ...
+};
+declare type ScanditProviderProps = {
+  ...CameraProps,
+  ...{
+    /**
+     * Required on the root provider. Ignored (with a warning) on nested ones.
+     */
+    licenseKey?: string,
+
+    /**
+     * Only used on the root provider.
+     */
+    options?: DataCaptureContextCreationOptions,
+
+    /**
+     * Only used on the root provider.
+     */
+    settings?: DataCaptureContextSettings,
+
+    /**
+     * Called when an asynchronous camera operation rejects (e.g. a frame-source
+     * transition fails). Failures are still logged via `console.warn`; this hook
+     * lets consumers surface them (telemetry, UI). Only honored on the root
+     * provider, which owns the camera. The latest callback is always used.
+     */
+    onError?: (error: mixed) => void,
+    children: React$1.ReactNode,
+    ...
+  },
+};
 /**
- * [object Object],[object Object],[object Object]
- * @since 8.7.0
- */
-declare interface ScanditProviderProps {
-  /**
-   * The Scandit license key. Required on the root provider; a root provider without it throws. Ignored on a nested provider.
-   * @since 8.7.0
-   */
-  licenseKey?: string;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
-  options?: DataCaptureContextCreationOptions;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
-  settings?: DataCaptureContextSettings;
-
-  /**
-   * [object Object],[object Object],[object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
-  frameSourceState?: $Values<typeof FrameSourceState>;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
-  torchState?: $Values<typeof TorchState>;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
-  cameraPosition?: $Values<typeof CameraPosition>;
-
-  /**
-   * [object Object],[object Object],[object Object]
-   * @since 8.7.0
-   */
-  cameraSettings?: CameraSettings | null;
-
-  /**
-   * Called when an asynchronous camera operation fails, for example a frame source state transition. Failures are logged regardless; this exists so that they can also be surfaced in the app or sent to telemetry. Honored on the root provider only, since it owns the camera.
-   * @since 8.7.0
-   */
-  onError?: (error: mixed) => void;
-
-  /**
-   * The React node tree that has access to this provider’s context and camera.
-   * @since 8.7.0
-   */
-  children: React$1.ReactNode;
-}
-/**
- * [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]
- * @since 8.7.0
+ * Provides a `DataCaptureContext` and a singleton `Camera` to descendant AIO views.
+ *
+ * - **Root** (no parent `<ScanditProvider>` above): creates the context + camera,
+ *   disposes them on unmount.
+ * - **Nested**: applies its own `frameSourceState` / `torchState` / `cameraPosition`
+ *   props to the same singleton camera. Last writer wins; values are not reverted
+ *   when a nested provider unmounts.
+ *
+ * The camera is ownership-driven: exactly one view owns it at a time (last
+ * claim wins), and it is only on while the owner is a provider-camera view (or
+ * `frameSourceState={On}` is set). Torch and position are applied to the
+ * coordinator; the camera instance is recreated only when `cameraPosition`
+ * flips.
+ *
+ * ```tsx
+ * <ScanditProvider licenseKey={KEY}>
+ *   <NavigationContainer> ... </NavigationContainer>
+ * </ScanditProvider>
+ *
+ * // Screen-local control:
+ * <ScanditProvider
+ *   frameSourceState={isFocused ? FrameSourceState.On : FrameSourceState.Off}
+ *   torchState={torch}
+ *   cameraPosition={position}>
+ *   <BarcodeCaptureView state="enabled" ... />
+ * </ScanditProvider>
+ * ```
  */
 declare function ScanditProvider(
   props: ScanditProviderProps
@@ -622,46 +400,6 @@ declare function useScanditInternal(): ScanditInternal;
  */
 declare function useDataCaptureContextInternal(): DataCaptureContext;
 
-/**
- * The type of the `navigation` prop on the scanning views. A view uses it to enable itself when its screen is focused and disable itself when the screen is blurred.
- *
- * React Navigation’s `navigation` object satisfies this interface, so it can be passed straight through. Any other source of focus events can implement the same method.
- *
- * ```jsx
- * function ScanScreen({ navigation }) {
- *   return <BarcodeCaptureAioView navigation={navigation} />;
- * }
- * ```
- * @since 8.7.0
- */
-declare interface ScanditNavigationProp {
-  /**
-   * Subscribes to a screen event and returns the function that cancels the subscription. It is optional: a view given no `navigation` prop simply does not react to focus changes.
-   *
-   * ```jsx
-   * addListener?(type: 'focus' | 'blur', callback: () => void): () => void
-   * ```
-   * @since 8.7.0
-   */
-  addListener?: (type: "focus" | "blur", callback: () => void) => () => void;
-}
-/**
- * [object Object],[object Object],[object Object]
- * @since 8.7.0
- */
-declare interface EnableDisableHandle {
-  /**
-   * Starts scanning now: enables the mode and claims the camera. Claiming the camera supersedes whichever view held it — see Camera ownership.
-   * @since 8.7.0
-   */
-  enable(): Promise<void>;
-
-  /**
-   * Stops scanning now: disables the mode and releases the camera.
-   * @since 8.7.0
-   */
-  disable(): Promise<void>;
-}
 /**
  * Returns a referentially-stable copy of `value` as long as the structural
  * content stays the same. Lets consumers pass inline SDK class instances
@@ -711,7 +449,7 @@ declare function useStableProp<T>(value: T): T;
 declare function usePassThroughProps<
   Props: { [key: string]: any },
   Target: { [key: string]: any },
-  Keys: ReadonlyArray<{ ...$Keys<Props>, ...$Keys<Target> }>
+  Keys: $ReadOnlyArray<{ ...$Keys<Props>, ...$Keys<Target> }>
 >(
   target: Target | null,
   props: Props,
@@ -859,7 +597,7 @@ declare interface UseModeOptions<TMode> {
    * `detach()`-ed before the consumer's `detach(mode)` is called (in reverse
    * order). Designed for the `UseOverlayApi` returned by `useOverlay`.
    */
-  attachables?: ReadonlyArray<ModeAttachable>;
+  attachables?: $ReadOnlyArray<ModeAttachable>;
 
   /**
    * Gate attach on external readiness (e.g. native view node mounted). Defaults to true.
@@ -1016,6 +754,25 @@ declare interface UseOverlayApi<O> {
 declare function useOverlay<O: DataCaptureOverlay$1>(
   opts: UseOverlayOptions<O>
 ): UseOverlayApi<O>;
+declare interface ScanditNavigationProp {
+  /**
+   * Subscribe to a screen `focus` or `blur` event. Must return an unsubscribe
+   * function. React Navigation's `navigation` object satisfies this; any custom
+   * source can implement the same method.
+   */
+  addListener?: (type: "focus" | "blur", callback: () => void) => () => void;
+}
+declare interface EnableDisableHandle {
+  /**
+   * Turn scanning on now (enable the mode, turn the camera on).
+   */
+  enable(): Promise<void>;
+
+  /**
+   * Turn scanning off now (disable the mode, turn the camera off).
+   */
+  disable(): Promise<void>;
+}
 declare interface UseLifecycleHookProps {
   /**
    * Navigation object (e.g. React Navigation's `navigation`) for screen focus/blur.
@@ -1089,78 +846,6 @@ declare interface CameraClaimHandle {
  * and coalesces rapid changes into a single native transition.
  */
 declare function useCameraClaim(x: UseCameraClaimOptions): CameraClaimHandle;
-declare interface AttachNativeViewWhenReadyOptions<T> {
-  /**
-   * Mode name used in the failure log, e.g. `SparkScan`. Rendered as
-   * `[useMode:<tag>] attach failed: …` so a device log names the view that died.
-   */
-  tag: string;
-
-  /**
-   * The mounted native view instance, normally `viewHandle.current` captured at
-   * render. `null` means there is nothing to attach and the attach resolves as a
-   * no-op.
-   */
-  node: T | null;
-
-  /**
-   * `viewHandle.whenReady` — resolves on first layout.
-   */
-  whenReady: () => Promise<void>;
-
-  /**
-   * Everything this view must do once it has a native node id: build the base
-   * view, await any camera claim, create the native view, publish state. Any
-   * throw in here is surfaced rather than swallowed.
-   */
-  createNativeView: (nodeId: number) => Promise<void>;
-}
-/**
- * The `attach` body shared by every AIO view that owns its own native view.
- *
- * It exists because getting this wrong is invisible. The natural shape —
- * `new Promise(resolve => { void whenReady().then(async () => { … resolve() }) })`
- * — has no rejection path, so anything thrown past `whenReady()` leaves the
- * returned promise neither resolved nor rejected. `useMode` serializes lifecycle
- * work on a single op chain, so an attach that never settles blocks *every*
- * later op behind it: `setEnabled` never runs, the unmount `detach()` never
- * runs, the camera claim never activates and the provider camera parks in
- * Standby. The user gets a black view with no error, no crash, and no recovery
- * even by navigating away and back.
- *
- * That is not hypothetical: it shipped in `SparkScanAioView`, where a colour
- * default typed `Color` but holding a hex string made `toJSON()` throw inside
- * `createNativeView` (SDC-33115). `BarcodeCountAioView` and `BarcodeArAioView`
- * carried the same shape with the same reachable throw sites and were working
- * only by luck. Routing all three through here means a fourth view cannot
- * reintroduce the bug by writing the obvious thing.
- *
- * Gating on layout rather than `InteractionManager.runAfterInteractions` is
- * deliberate: that queue can be starved by a blocked JS interaction, which
- * leaves the preview never created (SDC-32208).
- */
-declare function attachNativeViewWhenReady<T>(
-  x: AttachNativeViewWhenReadyOptions<T>
-): Promise<void>;
-
-/**
- * Render an unknown thrown value as a string worth logging.
- *
- * Exists because `console.warn('...', err)` loses the only part that matters.
- * `Error.message` and `Error.stack` are **non-enumerable**, so any log sink that
- * JSON-serializes its arguments — the DebugApp's on-device console tee, among
- * others — writes `{}` for a plain `Error`, or, for a React Native native
- * rejection, just `{"code":"-1","nativeStackIOS":[…]}` with the message gone.
- *
- * That is not hypothetical. During the SDC-33115 B4 rapid-swap run the device
- * showed `Unable to switch the camera to on` on screen while the captured log
- * held only the code and a native stack, because LogBox reads `err.message`
- * directly and the file sink had already dropped it. Interpolating first makes
- * the two agree.
- */
-declare function describeError(err: mixed): string;
-declare type index_d_AttachNativeViewWhenReadyOptions<T> =
-  AttachNativeViewWhenReadyOptions<T>;
 declare type index_d_CameraClaimHandle = CameraClaimHandle;
 declare type index_d_EnableDisableHandle = EnableDisableHandle;
 declare type index_d_ScanditNavigationProp = ScanditNavigationProp;
@@ -1175,8 +860,6 @@ declare type index_d_UseOverlayApi<O> = UseOverlayApi<O>;
 declare type index_d_UseOverlayOptions<O: DataCaptureOverlay$1> =
   UseOverlayOptions<O>;
 declare type index_d_ViewHandle<T> = ViewHandle<T>;
-declare var index_d_attachNativeViewWhenReady: typeof attachNativeViewWhenReady;
-declare var index_d_describeError: typeof describeError;
 declare var index_d_useCameraClaim: typeof useCameraClaim;
 declare var index_d_useDataCaptureContextInternal: typeof useDataCaptureContextInternal;
 declare var index_d_useLifecycleHook: typeof useLifecycleHook;
@@ -1189,8 +872,6 @@ declare var index_d_useScanditInternal: typeof useScanditInternal;
 declare var index_d_useStableProp: typeof useStableProp;
 declare var index_d_useViewHandle: typeof useViewHandle;
 declare export {
-  index_d_attachNativeViewWhenReady as attachNativeViewWhenReady,
-  index_d_describeError as describeError,
   index_d_useCameraClaim as useCameraClaim,
   index_d_useDataCaptureContextInternal as useDataCaptureContextInternal,
   index_d_useLifecycleHook as useLifecycleHook,
@@ -1205,7 +886,6 @@ declare export {
 };
 
 export type {
-  index_d_AttachNativeViewWhenReadyOptions as AttachNativeViewWhenReadyOptions,
   index_d_CameraClaimHandle as CameraClaimHandle,
   index_d_EnableDisableHandle as EnableDisableHandle,
   index_d_ScanditNavigationProp as ScanditNavigationProp,
@@ -1221,14 +901,7 @@ declare type ScanditNativeModule = {
   [key: string]: any,
 } & NativeModule;
 declare function getNativeModule(name: string): ScanditNativeModule;
-
-/**
- * Returns the dynamic residual exposed by native as `DynamicDefaults` (device id, SDK version,
- * probed camera positions, localized accessibility labels, ...). Every supported version of the
- * native side exposes it, so there is no legacy full-`Defaults`-blob fallback anymore
- * (SDC-32175/SDC-32178).
- */
-declare function getModuleDynamicDefaults(name: string): any;
+declare function getModuleDefaults(name: string): any;
 declare class RNNativeCaller mixins NativeCaller {
   constructor(nativeModule: ScanditNativeModule): this;
 
@@ -1265,7 +938,7 @@ declare export {
   ScanditProvider,
   index_d as _internal,
   createRNNativeCaller,
-  getModuleDynamicDefaults,
+  getModuleDefaults,
   getNativeModule,
   initCoreDefaults,
   initCoreProxy,
@@ -1274,13 +947,8 @@ declare export {
   useScanditContext,
 };
 export type {
-  CameraPermissionResult,
   DataCaptureViewListener,
-  EnableDisableHandle,
-  PermissionStatus,
   ScanditNativeModule,
-  ScanditNavigationProp,
   ScanditProviderProps,
-  UseScanditContextOptions,
 };
 declare export { DataCaptureView };

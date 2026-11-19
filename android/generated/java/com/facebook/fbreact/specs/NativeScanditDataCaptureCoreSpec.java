@@ -51,7 +51,7 @@ public abstract class NativeScanditDataCaptureCoreSpec extends ReactContextBaseJ
     Map<String, Object> constants = getTypedExportedConstants();
     if (ReactBuildConfig.DEBUG || ReactBuildConfig.IS_INTERNAL_BUILD) {
       Set<String> obligatoryFlowConstants = new HashSet<>(Arrays.asList(
-          "DynamicDefaults"
+          "Defaults"
       ));
       Set<String> optionalFlowConstants = new HashSet<>();
       Set<String> undeclaredConstants = new HashSet<>(constants.keySet());

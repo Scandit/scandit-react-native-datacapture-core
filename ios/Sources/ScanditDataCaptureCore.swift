@@ -136,11 +136,13 @@ public class ScanditDataCaptureCoreImpl: NSObject {
         // Per-view window attach/detach events for the JS camera-ownership
         // model (SDC-32484); view containers emit through this relay.
         ViewWindowEventsRelay.setEmitter(reactEmitter)
+        CoreEventEmitter.emitter = reactEmitter
 
         // Eagerly initialize defaults on main thread.
         // This prevents Main Thread Checker errors when getConstants() is called later
-        // from a background thread, since CoreDefaults creates UI components.
-        _ = coreModule.getDefaults()
+        // from a background thread, since CoreDefaults creates UI components
+        // (ZoomSwitchControl / MacroModeControl, built in CoreDefaults.shared).
+        _ = coreModule.getDynamicDefaults()
     }
 
     /// Called by the Obj-C++ adapter to set up the emitter reference and initialize the module (new architecture).
@@ -159,11 +161,13 @@ public class ScanditDataCaptureCoreImpl: NSObject {
         // Per-view window attach/detach events for the JS camera-ownership
         // model (SDC-32484); view containers emit through this relay.
         ViewWindowEventsRelay.setEmitter(reactEmitter)
+        CoreEventEmitter.emitter = reactEmitter
 
         // Eagerly initialize defaults on main thread.
         // This prevents Main Thread Checker errors when getConstants() is called later
-        // from a background thread, since CoreDefaults creates UI components.
-        _ = coreModule.getDefaults()
+        // from a background thread, since CoreDefaults creates UI components
+        // (ZoomSwitchControl / MacroModeControl, built in CoreDefaults.shared).
+        _ = coreModule.getDynamicDefaults()
     }
 
     static public func register(modeDeserializer: DataCaptureModeDeserializer) {
@@ -174,13 +178,13 @@ public class ScanditDataCaptureCoreImpl: NSObject {
         Deserializers.Factory.remove(modeDeserializer)
     }
 
-    /// Returns module constants (Defaults and Version).
+    /// Returns module constants (DynamicDefaults).
     public func getConstants() -> [AnyHashable: Any] {
         guard let module = coreModule else {
             return [:]
         }
         return [
-            "Defaults": module.getDefaults()
+            "DynamicDefaults": module.getDynamicDefaults()
         ]
     }
 

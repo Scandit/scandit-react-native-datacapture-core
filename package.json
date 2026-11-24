@@ -1,20 +1,25 @@
 {
   "name": "scandit-react-native-datacapture-core",
-  "version": "8.6.3",
+  "version": "8.7.2",
   "description": "Scandit Data Capture SDK for React Native",
   "homepage": "https://github.com/Scandit/scandit-react-native-datacapture-core",
   "main": "dist/index.js",
   "types": "dist/dts/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
       "types": "./dist/dts/index.d.ts",
-      "flow": "./dist/index.js.flow"
+      "flow": "./dist/index.js.flow",
+      "default": "./dist/index.js"
     },
     "./experimental": {
-      "import": "./dist/experimental.js",
       "types": "./dist/dts/experimental.d.ts",
-      "flow": "./dist/experimental.js.flow"
+      "flow": "./dist/experimental.js.flow",
+      "default": "./dist/experimental.js"
+    },
+    "./dist/core": {
+      "types": "./dist/dts/core.d.ts",
+      "flow": "./dist/core.js.flow",
+      "default": "./dist/core.js"
     },
     "./dist/dts/core": {
       "types": "./dist/dts/core.d.ts"
@@ -44,9 +49,6 @@
   "peerDependencies": {
     "react": ">=16.8.1",
     "react-native": ">=0.70.0 <1.0.x"
-  },
-  "dependencies": {
-    "eventemitter3": "5.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
@@ -89,5 +91,8 @@
         "RNTDataCaptureView": "RCTDataCaptureView"
       }
     }
+  },
+  "dependencies": {
+    "eventemitter3": "5.0.1"
   }
 }

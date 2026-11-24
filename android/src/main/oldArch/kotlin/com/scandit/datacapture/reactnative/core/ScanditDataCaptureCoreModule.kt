@@ -15,6 +15,7 @@ import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.ViewGroupManager
 import com.scandit.datacapture.frameworks.core.CoreModule
 import com.scandit.datacapture.frameworks.core.FrameworkModule
+import com.scandit.datacapture.frameworks.core.listeners.registry.CoreEventEmitter
 import com.scandit.datacapture.frameworks.core.locator.ServiceLocator
 import com.scandit.datacapture.reactnative.core.utils.ReactNativeEventEmitter
 import com.scandit.datacapture.reactnative.core.utils.ViewWindowEvents
@@ -58,6 +59,7 @@ class ScanditDataCaptureCoreModule(
         // Per-view window attach/detach events for the JS camera-ownership
         // model (SDC-32484); view containers emit through this relay.
         ViewWindowEvents.emitter = emitter
+        CoreEventEmitter.emitter = emitter
 
         val coreModule = CoreModule.create(emitter)
         coreModule.onCreate(reactContext)
